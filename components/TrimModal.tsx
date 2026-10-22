@@ -82,7 +82,7 @@ const TrimModal: React.FC<TrimModalProps> = ({ recording, onSave, onSaveFull, on
             </button>
             <button
                 onClick={handleSaveTrimmed}
-                className="flex items-center gap-2 px-6 py-2 text-lg font-bold font-orbitron bg-knoux-neon-blue text-knoux-dark-glass rounded-lg shadow-[0_0_20px_theme(colors.knoux-neon-blue/0.5)] hover:bg-white transition-all duration-300"
+                className="flex items-center gap-2 px-6 py-2 text-lg font-bold font-orbitron bg-knoux-neon-blue text-knoux-dark-glass rounded-lg shadow-[0_0_20px_rgba(0,217,255,0.5)] hover:bg-white transition-all duration-300"
             >
                 <CutIcon className="w-5 h-5" />
                 Save Trimmed

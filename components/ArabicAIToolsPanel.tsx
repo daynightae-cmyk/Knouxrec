@@ -14,7 +14,7 @@ interface AITool {
   output: number;
 }
 
-const ARABIC_AI_TOOLS: AITool[] = [
+export const ARABIC_AI_TOOLS: AITool[] = [
   {
     icon: "🖼️",
     title: "إزالة الخلفية",

@@ -3,6 +3,7 @@
   "private": false,
   "version": "1.0.0",
   "type": "module",
+  "main": "knoux-rec-app/main.cjs",
   "description": "Luxury AI-Powered Screen Recorder with Glassmorphism UI",
   "keywords": [
     "screen-recorder",
@@ -29,8 +30,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
-    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --ext ts,tsx --fix",
+    "registry": "node scripts/build-capability-registry.mjs",
+    "smoke:ui": "node scripts/ui-smoke.mjs",
+    "smoke:recording": "node scripts/recording-smoke.mjs",
+    "smoke:screen": "node scripts/screen-capture-smoke.mjs",
+    "smoke:error": "node scripts/error-state-smoke.mjs",
+    "smoke:electron": "node scripts/electron-smoke.mjs",
+    "smoke:packaged": "node scripts/packaged-smoke.mjs",
+    "smoke:elysian": "node scripts/elysian-smoke.mjs",
+    "smoke:all": "npm run smoke:ui && npm run smoke:recording && npm run smoke:screen && npm run smoke:error && npm run smoke:electron && npm run smoke:packaged && npm run smoke:elysian",
+    "verify": "npm run type-check && npm run lint && npm run check:i18n && npm test && npm run build",
+    "check:i18n": "node scripts/check-i18n.mjs",
+    "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint src --ext ts,tsx --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,css,json}\"",
     "clean": "rm -rf dist node_modules/.vite",
     "analyze": "npx vite-bundle-analyzer dist",
@@ -38,8 +50,10 @@
     "build:dev": "vite build --mode development",
     "serve": "npm run build && npm run preview",
     "deploy": "npm run build:prod && gh-pages -d dist",
-    "test": "echo \"No tests specified\" && exit 0",
-    "test:watch": "echo \"No tests specified\" && exit 0",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "electron": "electron .",
+    "electron:dist": "npm run build && electron-builder --publish=never",
     "start": "npm run dev",
     "install:deps": "npm install",
     "setup": "npm run install:deps && npm run type-check",
@@ -48,8 +62,16 @@
     "health-check": "npm run type-check && npm run lint"
   },
   "dependencies": {
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  },
+  "devDependencies": {
     "@ffmpeg/ffmpeg": "^0.12.15",
     "@ffmpeg/util": "^0.12.2",
+    "@fontsource/cairo": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/orbitron": "^5.3.0",
+    "@fontsource/rajdhani": "^5.3.0",
     "@tensorflow/tfjs": "^4.15.0",
     "@tensorflow/tfjs-backend-webgl": "^4.15.0",
     "@tensorflow/tfjs-converter": "^4.22.0",
@@ -60,26 +82,31 @@
     "lamejs": "^1.2.1",
     "ml-matrix": "^6.12.1",
     "opus-recorder": "^8.0.5",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "recordrtc": "^5.6.2"
-  },
-  "devDependencies": {
+    "recordrtc": "^5.6.2",
     "@types/node": "^22.14.0",
     "@types/react": "^18.2.43",
     "@types/react-dom": "^18.2.17",
     "@typescript-eslint/eslint-plugin": "^6.14.0",
     "@typescript-eslint/parser": "^6.14.0",
     "@vitejs/plugin-react": "^4.2.1",
+    "autoprefixer": "^10.6.1",
+    "electron": "^45.0.0",
+    "electron-builder": "^26.15.3",
     "eslint": "^8.55.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.5",
+    "fake-indexeddb": "^6.2.6",
     "gh-pages": "^6.1.1",
+    "jsdom": "^25.0.1",
+    "postcss": "^8.5.31",
     "prettier": "^3.1.1",
+    "puppeteer-core": "^24.43.1",
+    "tailwindcss": "^3.4.19",
     "terser": "^5.43.1",
     "typescript": "~5.7.2",
     "vite": "^6.2.0",
-    "vite-bundle-analyzer": "^0.7.0"
+    "vite-bundle-analyzer": "^0.7.0",
+    "vitest": "^2.1.9"
   },
   "engines": {
     "node": ">=18.0.0",
@@ -93,5 +120,45 @@
     "Firefox >= 88",
     "Safari >= 14",
     "Edge >= 90"
-  ]
+  ],
+  "build": {
+    "appId": "com.knoux.rec",
+    "productName": "KNOUX REC",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "knoux-rec-app/main.cjs",
+      "knoux-rec-app/preload.cjs",
+      "knoux-rec-app/picker-preload.cjs",
+      "knoux-rec-app/picker.html",
+      "knoux-rec-app/picker.js",
+      "knoux-rec-app/build/icon.ico"
+    ],
+    "extraResources": [
+      {
+        "from": "knoux-rec-app/build/icon.ico",
+        "to": "icon.ico"
+      }
+    ],
+    "win": {
+      "icon": "knoux-rec-app/build/icon.ico",
+      "target": "nsis",
+      "artifactName": "KNOUX-REC-Setup-${version}-${arch}.${ext}"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "daynightae-cmyk",
+        "repo": "Knouxrec"
+      }
+    ],
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  }
 }

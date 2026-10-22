@@ -1,0 +1,85 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    name: Type-check, lint, unit tests, build
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type-check
+        run: npm run type-check
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Translation coverage
+        run: npm run check:i18n
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+
+      - name: Upload build output
+        uses: actions/upload-artifact@v4
+        with:
+          name: knoux-rec-renderer
+          path: dist
+          retention-days: 7
+
+  packaged:
+    name: Packaged desktop binary boots and renders every route
+    runs-on: windows-latest
+    needs: quality
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build and package the desktop app
+        run: npm run electron:dist
+
+      # This is the gate that caught the shipped build failing to boot: the
+      # packaged package.json declared "type": "module" while the Electron
+      # entry point was CommonJS.
+      - name: Smoke-test the packaged binary
+        run: npm run smoke:packaged
+
+      - name: Smoke-test the Elysian Canvas editor
+        run: npm run smoke:elysian
+
+      - name: Upload the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: knoux-rec-installer
+          path: |
+            release/*.exe
+            release/latest.yml
+          retention-days: 7

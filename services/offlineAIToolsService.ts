@@ -1,5 +1,4 @@
 import { enhancedModelManager } from "./enhancedModelManager";
-import { feedbackService } from "./feedbackService";
 
 export interface OfflineAITool {
   id: string;
@@ -1187,7 +1186,7 @@ export class OfflineAIToolsService {
 
   // معالجة حقيقية مع تقدم
   private async realProcessing(
-    totalTime: number,
+    _totalTime: number,
     onProgress?: (progress: number, stage: string) => void,
     startProgress = 0,
     endProgress = 100,

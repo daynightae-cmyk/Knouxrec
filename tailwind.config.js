@@ -2,6 +2,7 @@
 export default {
   content: [
     "./index.html",
+    "./*.{ts,tsx}",
     "./src/**/*.{js,ts,jsx,tsx}",
     "./components/**/*.{js,ts,jsx,tsx}",
     "./elysian-canvas/**/*.{js,ts,jsx,tsx}",
@@ -34,7 +35,9 @@ export default {
         // Legacy KNOUX colors for compatibility
         "knoux-purple": "#8b5cf6",
         "knoux-neon": "#00d9ff",
+        "knoux-neon-blue": "#00d9ff",
         "knoux-dark": "#0f0f23",
+        "knoux-dark-glass": "rgba(15, 15, 35, 0.7)",
         "knoux-light": "#1a1a2e",
       },
 

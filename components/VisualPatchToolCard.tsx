@@ -1,9 +1,9 @@
 import * as tf from "@tensorflow/tfjs";
-import { videoProcessor } from "./videoProcessor"; // تأكد من وجود هذا الملف
-import { audioProcessor } from "./audioProcessor"; // تأكد من وجود هذا الملف
-import { imageProcessor } from "./imageProcessor"; // تأكد من وجود هذا الملف
-import { enhancedModelManager, LoadingProgress } from "./enhancedModelManager"; // تأكد من وجود هذا الملف
-import { enhancedErrorHandler } from "./enhancedErrorHandler"; // تأكد من وجود هذا الملف
+import { videoProcessor } from "../services/videoProcessor"; // تأكد من وجود هذا الملف
+import { audioProcessor } from "../services/audioProcessor"; // تأكد من وجود هذا الملف
+import { imageProcessor } from "../services/imageProcessor"; // تأكد من وجود هذا الملف
+import { enhancedModelManager, LoadingProgress } from "../services/enhancedModelManager"; // تأكد من وجود هذا الملف
+import { enhancedErrorHandler } from "../services/enhancedErrorHandler"; // تأكد من وجود هذا الملف
 
 /**
  * 1. واجهة AIProcessingTask معززة لمعلومات المستخدم وإدارة المهام.

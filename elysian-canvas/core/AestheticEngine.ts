@@ -331,7 +331,6 @@ export class AestheticEngine {
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     const mood = profile.mood;
-    const palette = profile.colorPalette;
 
     for (let i = 0; i < data.length; i += 4) {
       // Apply warmth
@@ -533,7 +532,7 @@ export class AestheticEngine {
   private createLightingOverlay(
     canvas: HTMLCanvasElement,
     lighting: LightingMood,
-    intensity: number,
+    _intensity: number,
   ): CanvasGradient {
     const ctx = canvas.getContext("2d")!;
 
@@ -702,7 +701,7 @@ export class AestheticEngine {
 
   private createMaterialOverlay(
     ctx: CanvasRenderingContext2D,
-    canvas: HTMLCanvasElement,
+    _canvas: HTMLCanvasElement,
     material: TextureProfile["materialEmulation"],
   ): CanvasPattern {
     // Create a small canvas for the pattern

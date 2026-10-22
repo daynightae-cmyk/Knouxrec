@@ -26,5 +26,7 @@
     "paths": {
       "@/*" :  ["./*"]
     }
-  }
+  },
+  "files": ["index.tsx"],
+  "include": ["types/**/*.d.ts", "src/**/*.test.ts", "src/test/**/*.ts"]
 }

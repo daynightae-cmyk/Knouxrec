@@ -83,7 +83,7 @@ const BackNavigation: React.FC<BackNavigationProps> = ({
     { id: "visual-patch-lab", icon: "🧩", label: "Visual Patch" },
     { id: "knoux-morph-core", icon: "🧱", label: "MorphCore" },
     { id: "ai-body-editor", icon: "🔞", label: "AI Body Editor" },
-    { id: "recordings", icon: "�", label: "Recordings" },
+    { id: "recordings", icon: "🎬", label: "Recordings" },
     { id: "ai", icon: "🧠", label: "AI Tools" },
     { id: "files", icon: "📁", label: "Files" },
     { id: "elysian", icon: "🌌", label: "Elysian" },
@@ -188,4 +188,3 @@ const BackNavigation: React.FC<BackNavigationProps> = ({
 };
 
 export default BackNavigation;
-�

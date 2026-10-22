@@ -49,7 +49,6 @@ export class EnhancedModelManager {
   private maxMemoryUsage = 4096; // 4GB default
   private memoryThreshold = 0.85; // 85% threshold
   private activeLoadings = new Set<string>();
-  private loadingQueue: string[] = [];
   private progressCallbacks = new Map<
     string,
     (progress: LoadingProgress) => void
@@ -532,7 +531,7 @@ export class EnhancedModelManager {
   // إنشاء loader للتقدم التدريجي
   private createProgressiveLoader(
     modelName: string,
-    config: ModelConfig,
+    _config: ModelConfig,
   ): (fraction: number) => void {
     return (fraction: number) => {
       const progress = Math.min(Math.round(fraction * 70) + 10, 80);
@@ -608,7 +607,7 @@ export class EnhancedModelManager {
               activation: "relu",
               padding: "same",
             }),
-            tf.layers.upSampling2d({ size: 2 }),
+            tf.layers.upSampling2d({ size: [2, 2] }),
             tf.layers.conv2d({
               filters: 1,
               kernelSize: 1,
@@ -757,7 +756,10 @@ export class EnhancedModelManager {
   ): number {
     try {
       // حساب تقريبي بناءً على أوزان ا��نموذج
-      const numParams = model.countParams?.() || 0;
+      const numParams =
+        "countParams" in model && typeof model.countParams === "function"
+          ? model.countParams()
+          : 0;
       const estimated = (numParams * 4) / (1024 * 1024); // 4 bytes per parameter
 
       // استخدام التقدير من التكوين إذا كان أكبر

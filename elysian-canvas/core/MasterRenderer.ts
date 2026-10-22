@@ -91,12 +91,10 @@ export class MasterRenderer {
   private canvas: HTMLCanvasElement;
   private ctx: CanvasRenderingContext2D;
   private renderConfig: RenderConfig;
-  private webGLContext?: WebGLRenderingContext;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = canvas;
     this.ctx = canvas.getContext("2d")!;
-    this.webGLContext = canvas.getContext("webgl") || undefined;
     this.renderConfig = this.getDefaultConfig();
   }
 
@@ -276,7 +274,7 @@ export class MasterRenderer {
     }
   }
 
-  private renderBackground(layer: LayerConfig): void {
+  private renderBackground(_layer: LayerConfig): void {
     const gradient = this.ctx.createLinearGradient(
       0,
       0,
@@ -290,12 +288,12 @@ export class MasterRenderer {
     this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
   }
 
-  private async renderSubject(layer: LayerConfig): Promise<void> {
+  private async renderSubject(_layer: LayerConfig): Promise<void> {
     // Apply cinematic lighting to the subject
     this.applyCinematicLighting();
   }
 
-  private renderEffect(layer: LayerConfig): void {
+  private renderEffect(_layer: LayerConfig): void {
     // Render various visual effects
     this.applyParticleEffects();
   }

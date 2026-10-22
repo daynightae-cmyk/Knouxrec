@@ -13,6 +13,9 @@ export const AdultGateAdvanced: React.FC<AdultGateAdvancedProps> = ({
   const [birthYear, setBirthYear] = useState("");
   const [confirmAge, setConfirmAge] = useState(false);
   const [artisticIntent, setArtisticIntent] = useState(false);
+  const [ephemeralIdValue, setEphemeralIdValue] = useState<string | null>(
+    ephemeralId ?? null,
+  );
 
   const generateEphemeralId = () => {
     const timestamp = Date.now();
@@ -29,8 +32,16 @@ export const AdultGateAdvanced: React.FC<AdultGateAdvancedProps> = ({
     if (age >= 18) {
       setIsVerifying(true);
       const newEphemeralId = ephemeralId || generateEphemeralId();
-      localStorage.setItem("elysian_ephemeral_id", newEphemeralId);
-      localStorage.setItem("elysian_verified", "true");
+      // The confirmation is deliberately scoped to this session. A permanent
+      // flag in localStorage was a one-line bypass for the age gate and is not
+      // a real age check in any case: this is a self-declaration.
+      try {
+        sessionStorage.setItem("elysian_ephemeral_id", newEphemeralId);
+        sessionStorage.setItem("elysian_verified", "true");
+      } catch {
+        // storage may be unavailable; the in-memory state still applies
+      }
+      setEphemeralIdValue(newEphemeralId);
 
       setTimeout(() => {
         setIsVerifying(false);
@@ -40,10 +51,15 @@ export const AdultGateAdvanced: React.FC<AdultGateAdvancedProps> = ({
   };
 
   useEffect(() => {
-    const stored = localStorage.getItem("elysian_verified");
-    const storedId = localStorage.getItem("elysian_ephemeral_id");
-    if (stored === "true" && storedId) {
-      onVerified();
+    try {
+      const stored = sessionStorage.getItem("elysian_verified");
+      const storedId = sessionStorage.getItem("elysian_ephemeral_id");
+      if (stored === "true" && storedId) {
+        setEphemeralIdValue(storedId);
+        onVerified();
+      }
+    } catch {
+      // storage may be unavailable; the gate stays closed
     }
   }, [onVerified]);
 
@@ -112,11 +128,17 @@ export const AdultGateAdvanced: React.FC<AdultGateAdvancedProps> = ({
               className="verification-button"
             >
               {isVerifying ? (
-                <span className="verifying-text">Verifying... ✨</span>
+                <span className="verifying-text">Confirming...</span>
               ) : (
                 "Enter Elysian Canvas"
               )}
             </button>
+
+            <p className="gate-disclaimer">
+              This gate is a self-declaration, not an identity check. The app
+              cannot verify your age, and the confirmation is cleared when the
+              application closes.
+            </p>
           </div>
 
           <div className="artistic-note">
@@ -124,6 +146,9 @@ export const AdultGateAdvanced: React.FC<AdultGateAdvancedProps> = ({
               "Art is the lie that enables us to realize the truth" - Pablo
               Picasso
             </p>
+            {ephemeralIdValue && (
+              <p className="ephemeral-id">Session reference: {ephemeralIdValue}</p>
+            )}
           </div>
         </div>
       </div>
@@ -298,6 +323,21 @@ export const AdultGateAdvanced: React.FC<AdultGateAdvancedProps> = ({
           font-style: italic;
           margin: 0;
           font-size: 0.9rem;
+        }
+
+        .gate-disclaimer {
+          margin-top: 16px;
+          font-size: 0.78rem;
+          line-height: 1.6;
+          color: rgba(255, 255, 255, 0.55);
+        }
+
+        .ephemeral-id {
+          margin-top: 10px;
+          font-style: normal;
+          font-family: monospace;
+          font-size: 0.7rem;
+          color: rgba(255, 255, 255, 0.4);
         }
       `}</style>
     </div>

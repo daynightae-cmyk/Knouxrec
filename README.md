@@ -1,309 +1,141 @@
-# KNOUX REC - Luxury AI-Powered Screen Recorder
+# KNOUX REC - Local-first screen recorder
 
-![KNOUX REC Logo](https://img.shields.io/badge/KNOUX-REC-8b5cf6?style=for-the-badge&logo=video&logoColor=white)
+![KNOUX REC](https://img.shields.io/badge/KNOUX-REC-8b5cf6?style=for-the-badge&logo=video&logoColor=white)
 
-A cutting-edge, AI-powered screen recording application featuring a stunning glassmorphism UI, offline AI processing, and professional video editing capabilities.
+A local-first desktop screen recorder (Electron + React + TypeScript). Captures
+screen, window or camera through `getDisplayMedia` / `getUserMedia`, records with
+`MediaRecorder`, and stores every clip, screenshot and edit as a real Blob in
+IndexedDB on the machine it was captured on. Nothing is uploaded, and the
+runtime loads no external resource.
 
-## ✨ Features
+> **Status transparency** — this README describes what the code actually does.
+> The AI catalogues in the navigation are **catalogues**: their model manifests
+> ship without weight files, so they are listed as unavailable instead of
+> returning fabricated output. The authoritative, machine-generated state of
+> every section lives in [`docs/CAPABILITY_REGISTRY.md`](docs/CAPABILITY_REGISTRY.md).
 
-### 🎬 Advanced Screen Recording
+## ✨ What works today
 
-- **High-Quality Recording**: Up to 4K resolution at 60fps
-- **Multi-Source Capture**: Screen, webcam, microphone, and system audio
-- **Smart Region Selection**: Record specific windows or custom areas
-- **Real-Time Filters**: Apply live effects during recording
-- **Picture-in-Picture**: Webcam overlay with customizable positioning
+| Area | Capability | State |
+| --- | --- | --- |
+| Capture | Screen / window capture through the OS picker, camera capture, microphone | Verified at runtime |
+| Capture | Pause, resume, stop, webcam picture-in-picture overlay | Verified at runtime |
+| Capture | Frame-accurate screenshots (PNG / JPEG / WebP) from the live display stream | Verified at runtime |
+| Library | Real Blobs in IndexedDB, preview, rename, favourite, delete, export, trim | Verified at runtime |
+| Library | Trim re-encodes a range into a new clip and keeps the original | Verified at runtime |
+| Shell | Dark / light theme, English / Arabic (RTL), reduced motion, persisted settings | Verified at runtime |
+| Shell | Diagnostics view that measures the live runtime (capture, encoder, storage, fonts) | Verified at runtime |
+| Desktop | Hardened Electron shell: `contextIsolation`, `sandbox`, CSP, validated IPC, own source picker | Verified at runtime |
+| Packaging | NSIS installer, per-user install, uninstall, signed-blockmap metadata | Verified by install + run |
+| Elysian Canvas | Image editing workspace: sliders, real presets, preview, PNG export with filters baked in | Preview / demo |
+| AI catalogues | 38 offline tools, 38 Arabic tools, 24 model manifests | Missing model weights — listed, not faked |
 
-### 🤖 AI-Powered Processing
+## 🚫 What is deliberately not available
 
-- **Offline AI Models**: 25+ pre-trained models for various tasks
-- **Speech Recognition**: Multi-language audio transcription
-- **Smart Video Analysis**: Automatic scene detection and summarization
-- **Content Enhancement**: AI-powered video and audio improvements
-- **Intelligent Editing**: Automated content optimization
+These sections are visible in the navigation but are **disabled with an explicit
+reason**, because their previous implementations produced placeholder output:
 
-### 🎨 Professional Video Tools
+- **Templates / Toolbox / Visual Patch** — the original panels are preserved in
+  `components/` but are not mounted: their dependency graph does not compile and
+  their handlers call processor methods that do not exist.
+- **Offline AI (38 tools) / Arabic AI (38 tools)** — catalogue only. The
+  `model.json` graphs ship without `weights.bin`, and no inference runtime is
+  bundled.
+- **MorphCore / AI Body Editor** — age-gated catalogues whose native engines
+  never existed as executable modules.
+- **Elysian Canvas AI pipeline** — `elysian-canvas/core/AICore.ts` references an
+  ONNX runtime and model paths that are not shipped; it is dead code and is not
+  part of the bundle.
 
-- **Advanced Video Editor**: Timeline-based editing with effects
-- **Template Library**: 80+ professional video templates
-- **Transition Effects**: Smooth transitions and animations
-- **Color Grading**: Professional color correction tools
-- **Audio Processing**: Noise reduction and voice enhancement
-
-### 🖼️ Elysian Canvas (Adult Art Studio)
-
-- **Advanced Image Editing**: Professional-grade photo manipulation
-- **AI Art Generation**: Create stunning digital artwork
-- **Template System**: Pre-designed artistic layouts
-- **Filter Collections**: Extensive filter and effect library
-- **Export Options**: Multiple format support
-
-### 💎 Premium Features
-
-- **Glassmorphism UI**: Modern, translucent interface design
-- **Dark/Light Themes**: Customizable appearance
-- **Hotkey Support**: Efficient keyboard shortcuts
-- **Performance Monitor**: Real-time system monitoring
-- **Cloud Integration**: Optional cloud storage and sync
-
-## 🚀 Quick Start
+## 🚀 Quick start
 
 ### Prerequisites
 
-- Node.js 18+
-- NPM 8+
-- Modern web browser with WebRTC support
-- 4GB+ RAM recommended
+- Node.js 18+ (CI runs on Node 22)
+- npm 8+
+- Windows, macOS or Linux desktop with a Chromium browser or the Electron build
 
-### Installation
+### Install and run
 
-1. **Clone the repository**
-
-   ```bash
-   git clone https://github.com/Knouxai/Knouxrec.git
-   cd Knouxrec
-   ```
-
-2. **Install dependencies**
-
-   ```bash
-   npm install
-   ```
-
-3. **Start development server**
-
-   ```bash
-   npm run dev
-   ```
-
-4. **Build for production**
-   ```bash
-   npm run build
-   ```
-
-### Quick Recording Guide
-
-1. **Start Recording**: Click the red record button or press `Ctrl+Shift+R`
-2. **Select Source**: Choose screen, window, or custom area
-3. **Configure Settings**: Adjust quality, audio, and effects
-4. **Begin Capture**: Start recording with optional countdown
-5. **Stop & Process**: End recording and apply AI enhancements
-
-## 🛠️ Technology Stack
-
-### Frontend
-
-- **React 19**: Latest React with concurrent features
-- **TypeScript**: Type-safe development
-- **Vite**: Lightning-fast build tool
-- **Tailwind CSS**: Utility-first styling
-- **WebRTC**: Real-time communication APIs
-
-### AI & Processing
-
-- **TensorFlow.js**: Client-side machine learning
-- **FFmpeg.wasm**: Video processing in browser
-- **WebGL**: GPU-accelerated rendering
-- **Web Workers**: Background processing
-- **OffscreenCanvas**: Optimized rendering
-
-### Libraries & Tools
-
-- **RecordRTC**: Advanced screen recording
-- **Fabric.js**: Interactive canvas editing
-- **LameJS**: Audio encoding
-- **Jimp**: Image processing
-- **ML-Matrix**: Mathematical operations
-
-## 📊 AI Models & Capabilities
-
-### Video Processing
-
-- **Scene Detection**: Automatic content analysis
-- **Object Recognition**: Identify elements in recordings
-- **Face Detection**: Privacy and editing features
-- **Style Transfer**: Apply artistic effects
-- **Super Resolution**: Enhance video quality
-
-### Audio Processing
-
-- **Speech-to-Text**: Multi-language transcription
-- **Noise Reduction**: Clean audio enhancement
-- **Voice Synthesis**: Text-to-speech generation
-- **Beat Detection**: Music analysis
-- **Audio Separation**: Isolate instruments/vocals
-
-### Image Enhancement
-
-- **Upscaling**: AI-powered resolution enhancement
-- **Colorization**: Add color to grayscale images
-- **Background Removal**: Automatic subject isolation
-- **Style Transfer**: Apply artistic filters
-- **Restoration**: Repair damaged images
-
-## 🎯 Use Cases
-
-### Content Creation
-
-- **YouTube Videos**: Professional recording and editing
-- **Tutorials**: Educational content with annotations
-- **Gaming**: High-quality gameplay capture
-- **Presentations**: Business and academic recordings
-- **Live Streaming**: Real-time recording capabilities
-
-### Professional Applications
-
-- **Software Demos**: Product demonstrations
-- **Training Materials**: Corporate training videos
-- **Documentation**: Visual process documentation
-- **Marketing**: Promotional content creation
-- **Portfolio**: Creative work showcases
-
-### Artistic Projects
-
-- **Digital Art**: Create stunning visual artwork
-- **Photo Manipulation**: Professional image editing
-- **Creative Filters**: Artistic effects and styles
-- **Template Designs**: Custom template creation
-- **Visual Storytelling**: Narrative content creation
-
-## ⚙️ Configuration
-
-### Recording Settings
-
-```javascript
-{
-  videoQuality: "1080p" | "720p" | "480p" | "4K",
-  frameRate: 15 | 30 | 60,
-  audioQuality: "low" | "medium" | "high" | "ultra",
-  compression: "fast" | "balanced" | "quality",
-  format: "webm" | "mp4" | "avi" | "mov"
-}
+```bash
+npm ci
+npm run dev          # Vite dev server (renderer only)
+npm run electron     # Electron shell against the source tree
 ```
 
-### AI Processing
+### Build
 
-```javascript
-{
-  offlineMode: true,
-  modelPrecision: "float16" | "float32",
-  batchSize: 1 | 4 | 8,
-  useGPU: true,
-  cacheModels: true
-}
+```bash
+npm run build        # production renderer into dist/
+npm run electron:dist  # renderer + NSIS installer into release/
 ```
 
-### Performance Optimization
+The desktop shell entry point is `knoux-rec-app/main.cjs`. It is CommonJS on
+purpose: the root `package.json` declares `"type": "module"`, and electron-builder
+copies that manifest into the archive, so a `.js` entry point would be loaded as
+an ES module and crash before the window appears.
 
-```javascript
-{
-  hardwareAcceleration: true,
-  memoryLimit: "2GB" | "4GB" | "8GB",
-  workerThreads: 4,
-  compressionLevel: 1-9,
-  realTimeProcessing: false
-}
+### Recording in 30 seconds
+
+1. Press `Ctrl+Shift+R` (or use **Recorder** → **Start recording**).
+2. Pick a screen or window in the OS picker, optionally enable the camera
+   overlay and microphone.
+3. Stop with `Ctrl+Shift+R`; the encoded WebM is written to the library.
+4. Open **Library** to preview, trim, rename, favourite or export it.
+
+Hotkeys: `Ctrl+Shift+R` start/stop, `Ctrl+Shift+P` pause, `Ctrl+Shift+S`
+screenshot.
+
+## 🛠️ Technology stack
+
+- **Electron 45** desktop shell, **React 19**, **TypeScript 5.7**, **Vite 6**
+- **MediaRecorder** (`vp9/opus` preferred) with EBML duration patching
+- **IndexedDB** (`knoux-rec.library`) for durable media storage
+- **localStorage** (`knoux-rec.settings.v1`) for preferences
+- **CSP** injected at build time (`vite.config.ts`), enforced in the renderer
+  and in the source picker
+- **Vitest** for unit tests, **Puppeteer/Chrome DevTools Protocol** for the
+  runtime smoke tests
+
+## 🧪 Verification
+
+Every claim in this file is reproduced by a script in `scripts/`:
+
+```bash
+npm run type-check      # tsc --noEmit
+npm run lint            # eslint over src/
+npm test                # unit tests (vitest)
+npm run smoke:ui        # renderer behaviour in headless Chrome
+npm run smoke:recording # record -> pause -> resume -> save -> persist
+npm run smoke:screen    # display capture path
+npm run smoke:error     # permission denial and recovery
+npm run smoke:electron  # Electron shell, routes, CSP, console errors
+npm run smoke:packaged  # the packaged binary: boots and renders every route
+npm run smoke:all       # all of the above
 ```
 
-## 🔧 Development
+`npm run smoke:packaged` is the gate that matters most for releases: it starts
+the real `release/win-unpacked/KNOUX REC.exe`, attaches to the renderer over the
+DevTools protocol, walks all 15 routes and fails on any console error, failed
+request or missing view.
 
-### Project Structure
+CI (`.github/workflows/ci.yml`) runs the quality gates on every push and
+packages the desktop app on Windows, then runs the packaged smoke test.
 
-```
-src/
-├── components/          # React components
-├── services/           # Business logic
-├── hooks/              # Custom React hooks
-├── types/              # TypeScript definitions
-├── utils/              # Utility functions
-├── workers/            # Web Workers
-├── elysian-canvas/     # Art studio module
-└── public/models/      # AI model files
-```
+## 🔒 Privacy and security
 
-### Available Scripts
-
-- `npm run dev` - Start development server
-- `npm run build` - Build for production
-- `npm run preview` - Preview production build
-- `npm run type-check` - TypeScript validation
-- `npm run lint` - Code linting
-- `npm run format` - Code formatting
-
-### Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## 📈 Performance
-
-### Benchmarks
-
-- **Recording Overhead**: <5% CPU usage
-- **Memory Usage**: ~200MB for 1080p recording
-- **AI Processing**: Real-time inference on modern GPUs
-- **File Sizes**: 90% compression with minimal quality loss
-- **Startup Time**: <2 seconds on SSD storage
-
-### System Requirements
-
-- **Minimum**: 4GB RAM, dual-core CPU, integrated graphics
-- **Recommended**: 8GB RAM, quad-core CPU, dedicated GPU
-- **Optimal**: 16GB RAM, 8-core CPU, high-end GPU
-
-## 🔒 Privacy & Security
-
-### Data Handling
-
-- **Local Processing**: All AI operations run offline
-- **No Cloud Dependency**: Optional cloud features only
-- **Secure Storage**: Encrypted local file storage
-- **Privacy Controls**: Granular permission management
-- **GDPR Compliant**: Full data protection compliance
-
-### Permissions Required
-
-- **Screen Capture**: For recording functionality
-- **Microphone Access**: Audio recording (optional)
-- **Camera Access**: Webcam recording (optional)
-- **File System**: Local file operations
-- **Clipboard**: Copy/paste operations
+- **Local only** — media stays in IndexedDB on the device; the renderer loads
+  no external resource and the CSP forbids remote origins.
+- **No account, no telemetry, no cloud sync.**
+- **Hardened Electron** — `nodeIntegration: false`, `contextIsolation: true`,
+  `sandbox: true`, navigation allowlist, `window.open` denial, sender-validated
+  IPC, and a dedicated source picker with its own CSP.
+- **Not encrypted at rest** — captures are stored unencrypted in the OS profile
+  directory, readable by other processes running as the same user. Encryption is
+  a roadmap item, not a current guarantee.
+- **Permissions** — screen capture, camera and microphone are requested only
+  from an explicit user gesture.
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## 🤝 Support
-
-### Community
-
-- **GitHub Issues**: Bug reports and feature requests
-- **Discussions**: Community support and ideas
-- **Wiki**: Comprehensive documentation
-- **Examples**: Sample projects and tutorials
-
-### Professional Support
-
-- **Priority Support**: Faster response times
-- **Custom Development**: Tailored solutions
-- **Training**: Professional implementation guidance
-- **Consulting**: Architecture and optimization advice
-
-## 🎉 Acknowledgments
-
-- **TensorFlow Team**: For the amazing ML framework
-- **FFmpeg**: For video processing capabilities
-- **WebRTC Community**: For real-time communication APIs
-- **Open Source Contributors**: For various libraries and tools
-
----
-
-**Built with ❤️ by the KNOUX Team**
-
-![GitHub stars](https://img.shields.io/github/stars/Knouxai/Knouxrec?style=social)
-![GitHub forks](https://img.shields.io/github/forks/Knouxai/Knouxrec?style=social)
-![GitHub issues](https://img.shields.io/github/issues/Knouxai/Knouxrec)
-![GitHub license](https://img.shields.io/github/license/Knouxai/Knouxrec)
+MIT — see [LICENSE](LICENSE).

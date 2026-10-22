@@ -1,11 +1,6 @@
 /* خطوط عربية فاخرة محسنة */
 
 /* استيراد خطوط Google الفاخرة للعربية */
-@import url("https://fonts.googleapis.com/css2?family=Noto+Kufi+Arabic:wght@100;200;300;400;500;600;700;800;900&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Scheherazade+New:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Reem+Kufi:wght@400;500;600;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Markazi+Text:wght@400;500;600;700&display=swap");
 
 /* خط مخصص فاخر للعناوين العربية */
 @font-face {

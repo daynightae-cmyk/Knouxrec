@@ -1,0 +1,361 @@
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useLibrary } from "../state/LibraryContext";
+import { useRecorder } from "../state/RecorderContext";
+import { useSettings } from "../state/SettingsContext";
+import { translate } from "../i18n/translate";
+import { CAPABILITIES, type RouteId } from "../app/capabilities";
+import { Icon, type IconName } from "../app/icons";
+import BrandMark from "../app/BrandMark";
+import { EmptyState, PreviewDialog, StatCard, StateBadge, Thumbnail } from "./ui";
+import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
+import type { LibraryItem } from "../state/types";
+
+function LivePreview({ stream }: { stream: MediaStream }) {
+  const ref = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+    element.srcObject = stream;
+    void element.play().catch(() => undefined);
+    return () => {
+      element.srcObject = null;
+    };
+  }, [stream]);
+
+  return <video ref={ref} muted playsInline autoPlay />;
+}
+
+const QUICK_TOOLS: { route: RouteId; icon: IconName }[] = [
+  { route: "templates", icon: "templates" },
+  { route: "toolbox", icon: "toolbox" },
+  { route: "visual-patch", icon: "patch" },
+  { route: "offline-ai", icon: "brain" },
+];
+
+export default function Dashboard({
+  onNavigate,
+}: {
+  onNavigate: (route: RouteId) => void;
+}) {
+  const { items, urlFor } = useLibrary();
+  const recorder = useRecorder();
+  const { settings, updateRecorder } = useSettings();
+  const t = (key: string) => translate(settings.language, key);
+  const [preview, setPreview] = useState<LibraryItem | null>(null);
+
+  const stats = useMemo(() => {
+    const totalBytes = items.reduce((sum, item) => sum + item.size, 0);
+    const totalSeconds = items
+      .filter((item) => item.kind === "video")
+      .reduce((sum, item) => sum + item.duration, 0);
+    const last = items[0] ?? null;
+    return { totalBytes, totalSeconds, last };
+  }, [items]);
+
+  const rendering = recorder.status === "recording" || recorder.status === "paused";
+
+  return (
+    <div className="kx-content">
+      <section className="kx-hero">
+        <div className="kx-hero-copy">
+          <span className="kx-eyebrow">
+            <span className="kx-status-dot" />
+            {t("appTagline")}
+          </span>
+          <h1 className="kx-hero-title">
+            {t("dashboard.heroTitle")}
+            <br />
+            <em>{t("dashboard.keepItLocal")}</em>
+          </h1>
+          <p className="kx-hero-desc">
+            A real screen recorder, screenshot studio, and local media library in one
+            obsidian workspace. Your recordings are written to this device — never
+            uploaded.
+          </p>
+          <div className="kx-hero-actions">
+            {rendering ? (
+              <button
+                type="button"
+                className="kx-btn kx-btn-primary kx-btn-lg"
+                onClick={() => onNavigate("studio")}
+              >
+                <Icon name="studio" size={18} />
+                {t("dashboard.returnToRecorder")}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="kx-btn kx-btn-primary kx-btn-lg"
+                onClick={() => void recorder.start("screen")}
+                disabled={!recorder.support.display}
+              >
+                <Icon name="play" size={18} />
+                {t("startRecording")}
+              </button>
+            )}
+            <button
+              type="button"
+              className="kx-btn kx-btn-lg"
+              onClick={() => void recorder.takeScreenshot()}
+              disabled={!recorder.support.display && !recorder.previewStream}
+            >
+              <Icon name="camera" size={18} />
+              {t("captureScreenshot")}
+            </button>
+          </div>
+          <div className="kx-row kx-muted" style={{ fontSize: "0.74rem" }}>
+            <Icon name="shield" size={14} />
+            {t("dashboard.localFirstNote")}
+          </div>
+        </div>
+
+        <div className="kx-hero-side">
+          <div className="kx-preview" data-state={recorder.status === "recording" ? "live" : undefined}>
+            {recorder.previewStream ? (
+              <>
+                <LivePreview stream={recorder.previewStream} />
+                <div className="kx-preview-overlay">
+                  {recorder.status === "recording" && <span className="kx-rec-dot" />}
+                  <span>{recorder.status === "paused" ? t("paused") : t("recording")}</span>
+                  <time>{formatDuration(recorder.elapsed)}</time>
+                </div>
+              </>
+            ) : (
+              <div className="kx-preview-idle">
+                <BrandMark size={78} />
+                <div style={{ fontFamily: "var(--kx-font-display)", letterSpacing: "0.2em" }}>
+                  KNOUX REC
+                </div>
+                <div>{t("previewIdle")}</div>
+                <div className="kx-row" style={{ justifyContent: "center", marginTop: 6 }}>
+                  <span className="kx-badge" data-state={recorder.support.display ? "VERIFIED" : "BLOCKED"}>
+                    {recorder.support.display
+                      ? t("dashboard.displayReady")
+                      : t("dashboard.displayBlocked")}
+                  </span>
+                  <span className="kx-badge" data-state={recorder.support.mediaRecorder ? "VERIFIED" : "BLOCKED"}>
+                    {recorder.support.mediaRecorder
+                      ? t("dashboard.mediaRecorderReady")
+                      : t("dashboard.noMediaRecorder")}
+                  </span>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="kx-grid kx-grid-4">
+        <StatCard
+          label={t("totalCaptures")}
+          value={String(items.length)}
+          hint={`${items.filter((item) => item.kind === "video").length} videos · ${
+            items.filter((item) => item.kind === "image").length
+          } images`}
+          icon="layers"
+        />
+        <StatCard
+          label={t("storageUsed")}
+          value={formatBytes(stats.totalBytes)}
+          hint={t("dashboard.storedInDb")}
+          icon="hardDrive"
+        />
+        <StatCard
+          label={t("totalDuration")}
+          value={formatDuration(stats.totalSeconds)}
+          hint={t("dashboard.sumOfClips")}
+          icon="clock"
+        />
+        <StatCard
+          label={t("lastCapture")}
+          value={stats.last ? stats.last.name.replace(/\.[^.]+$/, "") : "—"}
+          hint={
+            stats.last
+              ? `${formatBytes(stats.last.size)} · ${new Date(stats.last.createdAt).toLocaleString()}`
+              : t("dashboard.nothingCaptured")
+          }
+          icon="video"
+        />
+      </section>
+
+      <section className="kx-card">
+        <div className="kx-row-between">
+          <div>
+            <div className="kx-card-title">{t("recent")}</div>
+            <p className="kx-card-sub">
+              {t("dashboard.blobsReadBack")}
+            </p>
+          </div>
+          <button type="button" className="kx-btn kx-btn-sm" onClick={() => onNavigate("library")}>
+            {t("viewAll")}
+            <Icon name="chevronRight" size={15} />
+          </button>
+        </div>
+
+        {items.length === 0 ? (
+          <div style={{ marginTop: 16 }}>
+            <EmptyState
+              icon="folder"
+              title={t("emptyLibrary")}
+              hint={t("emptyLibraryHint")}
+              action={
+                <button
+                  type="button"
+                  className="kx-btn kx-btn-primary"
+                  onClick={() => void recorder.start("screen")}
+                  disabled={!recorder.support.display}
+                >
+                  <Icon name="play" size={16} />
+                  {t("startRecording")}
+                </button>
+              }
+            />
+          </div>
+        ) : (
+          <div className="kx-media-grid" style={{ marginTop: 16 }}>
+            {items.slice(0, 6).map((item) => (
+              <article className="kx-media-card" key={item.id}>
+                <button
+                  type="button"
+                  className="kx-media-thumb"
+                  onClick={() => setPreview(item)}
+                  aria-label={`Preview ${item.name}`}
+                >
+                  <Thumbnail item={item} url={urlFor(item.id)} />
+                  {item.kind === "video" && (
+                    <span className="kx-media-duration">{formatDuration(item.duration)}</span>
+                  )}
+                </button>
+                <div className="kx-media-body">
+                  <span className="kx-media-name" title={item.name}>
+                    {item.name}
+                  </span>
+                  <span className="kx-media-meta">
+                    <span>{formatBytes(item.size)}</span>
+                    <span>{item.kind}</span>
+                    <span>{item.source}</span>
+                  </span>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="kx-grid kx-grid-2">
+        <div className="kx-card">
+          <div className="kx-card-title">
+            <span>{t("recordingSettings")}</span>
+            <Icon name="studio" size={18} />
+          </div>
+          <p className="kx-card-sub">
+            {t("dashboard.defaultsNote")}
+          </p>
+
+          <div className="kx-col" style={{ marginTop: 14 }}>
+            <div className="kx-field">
+              <span className="kx-label">{t("quality")}</span>
+              <div className="kx-segmented">
+                {([720, 1080, 1440, 2160] as const).map((quality) => (
+                  <button
+                    key={quality}
+                    type="button"
+                    aria-pressed={settings.recorder.quality === quality}
+                    onClick={() => updateRecorder({ quality })}
+                  >
+                    {quality}p
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="kx-field">
+              <span className="kx-label">{t("fps")}</span>
+              <div className="kx-segmented">
+                {([30, 60] as const).map((fps) => (
+                  <button
+                    key={fps}
+                    type="button"
+                    aria-pressed={settings.recorder.fps === fps}
+                    onClick={() => updateRecorder({ fps })}
+                  >
+                    {fps} fps
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="kx-row" style={{ gap: 18 }}>
+              <label className="kx-switch">
+                <input
+                  type="checkbox"
+                  checked={settings.recorder.systemAudio}
+                  onChange={(event) => updateRecorder({ systemAudio: event.target.checked })}
+                />
+                <span className="kx-switch-track" />
+                <span className="kx-switch-label">{t("systemAudio")}</span>
+              </label>
+              <label className="kx-switch">
+                <input
+                  type="checkbox"
+                  checked={settings.recorder.microphone}
+                  onChange={(event) => updateRecorder({ microphone: event.target.checked })}
+                />
+                <span className="kx-switch-track" />
+                <span className="kx-switch-label">{t("microphone")}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="kx-col">
+          <div className="kx-grid kx-grid-2">
+            {QUICK_TOOLS.map(({ route, icon }) => {
+              const capability = CAPABILITIES[route];
+              return (
+                <button
+                  key={route}
+                  type="button"
+                  className="kx-tool-card"
+                  onClick={() => onNavigate(route)}
+                >
+                  <span className="kx-tool-icon">
+                    <Icon name={icon} size={22} />
+                  </span>
+                  <span className="kx-tool-name">{t(capability.labelKey)}</span>
+                  <span className="kx-tool-desc">{capability.summary}</span>
+                  <span className="kx-tool-foot">
+                    <StateBadge state={capability.state} />
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="kx-notice" data-tone="warn">
+            <Icon name="info" size={18} />
+            <div>
+              <strong>{t("dashboard.aiGated")}</strong> {t("dashboard.aiGatedBody")} See{" "}
+              <button
+                type="button"
+                className="kx-btn kx-btn-quiet kx-btn-sm"
+                style={{ height: "auto", padding: 0, display: "inline" }}
+                onClick={() => onNavigate("diagnostics")}
+              >
+                diagnostics
+              </button>
+              .
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <PreviewDialog
+        item={preview}
+        url={preview ? urlFor(preview.id) : null}
+        onClose={() => setPreview(null)}
+        onExport={(item) => downloadBlob(item.blob, item.name)}
+      />
+    </div>
+  );
+}

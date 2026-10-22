@@ -42,12 +42,16 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
   );
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [activePresetId, setActivePresetId] = useState<string | null>(null);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageCanvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const masterRenderer = useRef<MasterRenderer | null>(null);
   const aestheticEngine = useRef<AestheticEngine | null>(null);
+  // The decoded source image is kept so that the export can re-render the
+  // picture at its original resolution with the filters baked into the pixels.
+  const sourceImageRef = useRef<HTMLImageElement | null>(null);
 
   // Image editing tools state
   const [brightness, setBrightness] = useState(100);
@@ -105,7 +109,19 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
       id: "vintage",
       name: "Vintage",
       function: (imageData: ImageData) => {
-        // Apply vintage filter logic
+        // Warm, faded tone: pull the channels toward sepia and lift the blacks.
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const sepiaR = 0.393 * r + 0.769 * g + 0.189 * b;
+          const sepiaG = 0.349 * r + 0.686 * g + 0.168 * b;
+          const sepiaB = 0.272 * r + 0.534 * g + 0.131 * b;
+          data[i] = Math.min(255, r * 0.85 + sepiaR * 0.35 + 12);
+          data[i + 1] = Math.min(255, g * 0.85 + sepiaG * 0.35 + 6);
+          data[i + 2] = Math.min(255, b * 0.85 + sepiaB * 0.35);
+        }
         return imageData;
       },
     },
@@ -113,7 +129,16 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
       id: "noir",
       name: "Film Noir",
       function: (imageData: ImageData) => {
-        // Apply noir filter logic
+        // Desaturate completely and push the contrast.
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          const gray =
+            0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+          const contrasted = Math.max(0, Math.min(255, (gray - 128) * 1.35 + 128));
+          data[i] = contrasted;
+          data[i + 1] = contrasted;
+          data[i + 2] = contrasted;
+        }
         return imageData;
       },
     },
@@ -121,7 +146,13 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
       id: "dreamy",
       name: "Dreamy",
       function: (imageData: ImageData) => {
-        // Apply dreamy filter logic
+        // Lift the shadows, soften the highlights and cool the mid tones.
+        const data = imageData.data;
+        for (let i = 0; i < data.length; i += 4) {
+          data[i] = Math.min(255, data[i] * 0.92 + 24);
+          data[i + 1] = Math.min(255, data[i + 1] * 0.95 + 22);
+          data[i + 2] = Math.min(255, data[i + 2] * 1.02 + 30);
+        }
         return imageData;
       },
     },
@@ -248,6 +279,8 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
 
     const img = new Image();
     img.onload = () => {
+      sourceImageRef.current = img;
+
       // Calculate dimensions to maintain aspect ratio
       const maxWidth = canvas.width;
       const maxHeight = canvas.height;
@@ -280,6 +313,30 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
     img.src = image.url;
   };
 
+  // The editor canvas is only mounted while the editor view is open, so the
+  // picture has to be painted when that view appears. Selecting a file from
+  // the upload view happened before the canvas existed, which left the editor
+  // blank.
+  useEffect(() => {
+    if (activeView !== "editor" || !selectedImage) return;
+    if (!imageCanvasRef.current) return;
+    void displayImageOnCanvas(selectedImage);
+  }, [activeView, selectedImage]);
+
+  // The slider filters are expressed as a CSS filter list so the same string
+  // can drive the live preview and be baked into the exported pixels.
+  const sliderFilterString = () =>
+    [
+      `brightness(${brightness}%)`,
+      `contrast(${contrast}%)`,
+      `saturate(${saturation}%)`,
+      `hue-rotate(${hue}deg)`,
+      `blur(${blur}px)`,
+      `sepia(${sepia}%)`,
+      `invert(${invert}%)`,
+      `opacity(${opacity}%)`,
+    ].join(" ");
+
   // Apply image filters
   const applyImageFilters = () => {
     if (!imageCanvasRef.current || !selectedImage) return;
@@ -288,17 +345,23 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    // Apply CSS filters
-    canvas.style.filter = `
-      brightness(${brightness}%)
-      contrast(${contrast}%)
-      saturate(${saturation}%)
-      hue-rotate(${hue}deg)
-      blur(${blur}px)
-      sepia(${sepia}%)
-      invert(${invert}%)
-      opacity(${opacity}%)
-    `;
+    canvas.style.filter = sliderFilterString();
+  };
+
+  // Apply a preset filter to the pixels of the working canvas.
+  const applyPresetFilter = (filter: ImageFilter) => {
+    if (!imageCanvasRef.current || !selectedImage) return;
+    const canvas = imageCanvasRef.current;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    try {
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      ctx.putImageData(filter.function(imageData), 0, 0);
+      setActivePresetId(filter.id);
+    } catch {
+      // A tainted canvas cannot be read back; the sliders still work.
+      setActivePresetId(null);
+    }
   };
 
   // Reset filters
@@ -311,16 +374,64 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
     setSepia(0);
     setInvert(0);
     setOpacity(100);
+    setActivePresetId(null);
+    if (imageCanvasRef.current && selectedImage) {
+      displayImageOnCanvas(selectedImage);
+    }
   };
 
-  // Download edited image
+  // Download edited image. The exported file is re-rendered from the source
+  // image at its original resolution with every filter baked into the pixels,
+  // so the file matches what the editor shows.
   const downloadImage = () => {
-    if (!imageCanvasRef.current) return;
+    const source = sourceImageRef.current;
+    if (!source) {
+      if (!imageCanvasRef.current) return;
+    }
 
-    const canvas = imageCanvasRef.current;
+    const exportCanvas = document.createElement("canvas");
+    if (source) {
+      exportCanvas.width = source.naturalWidth || source.width;
+      exportCanvas.height = source.naturalHeight || source.height;
+    } else {
+      exportCanvas.width = imageCanvasRef.current?.width ?? 800;
+      exportCanvas.height = imageCanvasRef.current?.height ?? 600;
+    }
+    const exportCtx = exportCanvas.getContext("2d");
+    if (!exportCtx) return;
+
+    if (source) {
+      exportCtx.filter = sliderFilterString();
+      exportCtx.drawImage(source, 0, 0, exportCanvas.width, exportCanvas.height);
+      exportCtx.filter = "none";
+
+      const preset = imageFilters.find((filter) => filter.id === activePresetId);
+      if (preset) {
+        try {
+          const imageData = exportCtx.getImageData(
+            0,
+            0,
+            exportCanvas.width,
+            exportCanvas.height,
+          );
+          exportCtx.putImageData(preset.function(imageData), 0, 0);
+        } catch {
+          // keep the unfiltered preset export rather than failing silently
+        }
+      }
+    } else if (imageCanvasRef.current) {
+      exportCtx.drawImage(
+        imageCanvasRef.current,
+        0,
+        0,
+        exportCanvas.width,
+        exportCanvas.height,
+      );
+    }
+
     const link = document.createElement("a");
     link.download = `elysian-edit-${Date.now()}.png`;
-    link.href = canvas.toDataURL();
+    link.href = exportCanvas.toDataURL("image/png");
     link.click();
   };
 
@@ -391,7 +502,34 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
 
   const handlePreview = () => {
     setActiveView("preview");
-    renderTemplate();
+    if (selectedTemplate) {
+      renderTemplate();
+      return;
+    }
+    // An image preview must show the edited picture, not an empty canvas.
+    window.setTimeout(() => {
+      const previewCanvas = canvasRef.current;
+      const source = sourceImageRef.current;
+      if (!previewCanvas || !source) return;
+      const ctx = previewCanvas.getContext("2d");
+      if (!ctx) return;
+      ctx.clearRect(0, 0, previewCanvas.width, previewCanvas.height);
+      ctx.filter = sliderFilterString();
+      const scale = Math.min(
+        previewCanvas.width / (source.naturalWidth || source.width),
+        previewCanvas.height / (source.naturalHeight || source.height),
+      );
+      const width = (source.naturalWidth || source.width) * scale;
+      const height = (source.naturalHeight || source.height) * scale;
+      ctx.drawImage(
+        source,
+        (previewCanvas.width - width) / 2,
+        (previewCanvas.height - height) / 2,
+        width,
+        height,
+      );
+      ctx.filter = "none";
+    }, 0);
   };
 
   // Apply filters on change
@@ -648,8 +786,7 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
                         key={filter.id}
                         className="filter-button"
                         onClick={() => {
-                          // Apply quick filter
-                          console.log("Applying filter:", filter.name);
+                          applyPresetFilter(filter);
                         }}
                       >
                         {filter.name}
@@ -791,21 +928,23 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
 
       <style>{`
         .elysian-canvas-main {
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100vw;
-          height: 100vh;
-          background: linear-gradient(135deg, 
-            rgba(0, 0, 0, 0.95) 0%, 
-            rgba(20, 20, 40, 0.98) 50%, 
+          position: relative;
+          top: auto;
+          left: auto;
+          width: 100%;
+          height: 100%;
+          min-height: 560px;
+          border-radius: var(--kx-radius-lg, 14px);
+          overflow: hidden;
+          background: linear-gradient(135deg,
+            rgba(0, 0, 0, 0.95) 0%,
+            rgba(20, 20, 40, 0.98) 50%,
             rgba(40, 20, 60, 0.95) 100%);
           backdrop-filter: blur(20px);
-          z-index: 8888;
+          z-index: 0;
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          font-family: 'Arial', sans-serif;
         }
 
         .canvas-header {

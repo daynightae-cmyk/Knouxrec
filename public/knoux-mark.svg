@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="KNOUX REC mark">
+  <defs>
+    <linearGradient id="kx-surface" x1="16" y1="8" x2="112" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1B1B22"/>
+      <stop offset="1" stop-color="#08080B"/>
+    </linearGradient>
+    <linearGradient id="kx-accent" x1="38" y1="30" x2="94" y2="98" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE866"/>
+      <stop offset="1" stop-color="#FFC400"/>
+    </linearGradient>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="30" fill="url(#kx-surface)" stroke="#2A2A33" stroke-width="2"/>
+  <path d="M38 32v64" stroke="#F5F5F7" stroke-width="12" stroke-linecap="round"/>
+  <path d="M40 66l34-34M40 62l38 34" stroke="url(#kx-accent)" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="92" cy="88" r="10" fill="#FF4D5E"/>
+</svg>

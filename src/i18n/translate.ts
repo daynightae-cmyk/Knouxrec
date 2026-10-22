@@ -1,0 +1,553 @@
+import type { Language } from "../state/types";
+
+type Dictionary = Record<string, { en: string; ar: string }>;
+
+const STRINGS: Dictionary = {
+  appName: { en: "KNOUX REC", ar: "نوكس ريك" },
+  appTagline: { en: "Local-first capture studio", ar: "استوديو تسجيل محلي" },
+  loading: { en: "Preparing studio", ar: "جار تهيئة الاستوديو" },
+  ready: { en: "Ready", ar: "جاهز" },
+  skip: { en: "Enter studio", ar: "دخول الاستوديو" },
+  "splash.checking": { en: "Checking local capabilities", ar: "فحص الإمكانات المحلية" },
+  "splash.fonts": { en: "Loading bundled fonts", ar: "تحميل الخطوط المضمنة" },
+  "splash.library": { en: "Opening local library", ar: "فتح المكتبة المحلية" },
+  "splash.media": { en: "Probing capture devices", ar: "فحص أجهزة الالتقاط" },
+  "splash.ready": { en: "Studio ready", ar: "الاستوديو جاهز" },
+
+  dashboard: { en: "Dashboard", ar: "لوحة التحكم" },
+  studio: { en: "Recorder", ar: "المسجل" },
+  screenshots: { en: "Screenshots", ar: "لقطات الشاشة" },
+  library: { en: "Library", ar: "المكتبة" },
+  templates: { en: "Templates", ar: "القوالب" },
+  toolbox: { en: "Toolbox", ar: "صندوق الأدوات" },
+  visualPatch: { en: "Visual Patch", ar: "التحرير البصري" },
+  morphCore: { en: "MorphCore", ar: "مورف كور" },
+  elysian: { en: "Elysian Canvas", ar: "لوحة إليزيان" },
+  bodyEditor: { en: "AI Body Editor", ar: "محرر الجسم" },
+  offlineAI: { en: "Offline AI", ar: "الذكاء المحلي" },
+  arabicAI: { en: "Arabic AI Tools", ar: "أدوات عربية" },
+  models: { en: "AI Models", ar: "نماذج الذكاء" },
+  settings: { en: "Settings", ar: "الإعدادات" },
+  diagnostics: { en: "Diagnostics", ar: "التشخيص" },
+  about: { en: "About", ar: "حول" },
+
+  groupRecord: { en: "Capture", ar: "الالتقاط" },
+  groupLibrary: { en: "Library", ar: "المكتبة" },
+  groupCreate: { en: "Create", ar: "الإبداع" },
+  groupIntelligence: { en: "Intelligence", ar: "الذكاء" },
+  groupSystem: { en: "System", ar: "النظام" },
+
+  startRecording: { en: "Start recording", ar: "بدء التسجيل" },
+  pause: { en: "Pause", ar: "إيقاف مؤقت" },
+  resume: { en: "Resume", ar: "استئناف" },
+  stop: { en: "Stop & save", ar: "إيقاف وحفظ" },
+  captureScreenshot: { en: "Capture screenshot", ar: "التقاط لقطة" },
+  screen: { en: "Screen", ar: "الشاشة" },
+  window: { en: "Window", ar: "النافذة" },
+  webcam: { en: "Camera", ar: "الكاميرا" },
+  systemAudio: { en: "System audio", ar: "صوت النظام" },
+  microphone: { en: "Microphone", ar: "الميكروفون" },
+  webcamOverlay: { en: "Camera overlay", ar: "طبقة الكاميرا" },
+  quality: { en: "Quality", ar: "الجودة" },
+  fps: { en: "Frame rate", ar: "معدل الإطارات" },
+  recordingSettings: { en: "Recording settings", ar: "إعدادات التسجيل" },
+  readyToRecord: { en: "Ready to record", ar: "جاهز للتسجيل" },
+  recording: { en: "Recording", ar: "جار التسجيل" },
+  paused: { en: "Paused", ar: "متوقف مؤقتاً" },
+  search: { en: "Search", ar: "بحث" },
+  recent: { en: "Recent captures", ar: "أحدث الالتقاطات" },
+  viewAll: { en: "View all", ar: "عرض الكل" },
+  emptyLibrary: { en: "Nothing captured yet", ar: "لا توجد التقاطات بعد" },
+  emptyLibraryHint: {
+    en: "Record your screen or take a screenshot and it will appear here, persisted on this device.",
+    ar: "سجل الشاشة أو التقط صورة وستظهر هنا محفوظة على هذا الجهاز.",
+  },
+  export: { en: "Export", ar: "تصدير" },
+  rename: { en: "Rename", ar: "إعادة تسمية" },
+  delete: { en: "Delete", ar: "حذف" },
+  trim: { en: "Trim", ar: "قص" },
+  preview: { en: "Preview", ar: "معاينة" },
+  save: { en: "Save", ar: "حفظ" },
+  cancel: { en: "Cancel", ar: "إلغاء" },
+  close: { en: "Close", ar: "إغلاق" },
+  totalDuration: { en: "Recorded time", ar: "مدة التسجيل" },
+  storageUsed: { en: "Local storage", ar: "التخزين المحلي" },
+  totalCaptures: { en: "Captures", ar: "الالتقاطات" },
+  capability: { en: "Capability", ar: "الإمكانية" },
+  status: { en: "Status", ar: "الحالة" },
+  requirements: { en: "Requirements", ar: "المتطلبات" },
+  evidence: { en: "Evidence", ar: "الدليل" },
+  unavailable: { en: "Not available", ar: "غير متوفر" },
+  honestNotice: {
+    en: "This section reports its real state. Nothing is simulated.",
+    ar: "يعرض هذا القسم حالته الحقيقية. لا يوجد أي محاكاة.",
+  },
+  theme: { en: "Appearance", ar: "المظهر" },
+  language: { en: "Language", ar: "اللغة" },
+  dark: { en: "Dark", ar: "داكن" },
+  light: { en: "Light", ar: "فاتح" },
+  reduceMotion: { en: "Reduce motion", ar: "تقليل الحركة" },
+  resetSettings: { en: "Reset to defaults", ar: "استعادة الافتراضي" },
+  diagnosticsTitle: { en: "Runtime diagnostics", ar: "تشخيص التشغيل" },
+  diagnosticsHint: {
+    en: "Measured directly in the current runtime. No values are invented.",
+    ar: "قياسات مباشرة من بيئة التشغيل الحالية. لا توجد قيم مُختلقة.",
+  },
+  noPreview: { en: "No preview available", ar: "لا تتوفر معاينة" },
+  savedToLibrary: { en: "Saved to library", ar: "محفوظ في المكتبة" },
+  loadingSection: { en: "Loading section", ar: "جار تحميل القسم" },
+  sectionError: { en: "This section failed to render", ar: "تعذر عرض هذا القسم" },
+  retry: { en: "Retry", ar: "إعادة المحاولة" },
+  back: { en: "Back", ar: "رجوع" },
+  hotkeys: { en: "Shortcuts", ar: "الاختصارات" },
+  hotkeyHint: {
+    en: "Ctrl+Shift+R start/stop · Ctrl+Shift+P pause · Ctrl+Shift+S screenshot",
+    ar: "Ctrl+Shift+R بدء/إيقاف · Ctrl+Shift+P إيقاف مؤقت · Ctrl+Shift+S لقطة",
+  },
+  filterAll: { en: "All", ar: "الكل" },
+  filterVideos: { en: "Videos", ar: "فيديو" },
+  filterImages: { en: "Images", ar: "صور" },
+  favorites: { en: "Favorites", ar: "المفضلة" },
+  addFavorite: { en: "Add to favorites", ar: "إضافة إلى المفضلة" },
+  removeFavorite: { en: "Remove from favorites", ar: "إزالة من المفضلة" },
+  noFavorites: { en: "No favorites yet", ar: "لا توجد مفضلات بعد" },
+  noFavoritesHint: {
+    en: "Star a capture to pin it to the top of this filtered view.",
+    ar: "أضف نجمة إلى أي التقاط لتثبيته في هذا العرض.",
+  },
+  searchResults: { en: "results", ar: "نتيجة" },
+  captureSource: { en: "Source", ar: "المصدر" },
+  fileSize: { en: "Size", ar: "الحجم" },
+  duration: { en: "Duration", ar: "المدة" },
+  createdAt: { en: "Created", ar: "التاريخ" },
+  resolution: { en: "Resolution", ar: "الدقة" },
+  recordingSaved: { en: "Recording saved", ar: "تم حفظ التسجيل" },
+  screenshotSaved: { en: "Screenshot saved", ar: "تم حفظ اللقطة" },
+  cameraRecording: { en: "Camera recording", ar: "تسجيل الكاميرا" },
+  storageError: { en: "Local storage is unavailable", ar: "التخزين المحلي غير متوفر" },
+  unsupported: { en: "Unsupported in this runtime", ar: "غير مدعوم في هذه البيئة" },
+  report: { en: "Report", ar: "تقرير" },
+  copied: { en: "Copied", ar: "تم النسخ" },
+  copyDigest: { en: "Copy digest", ar: "نسخ الملخص" },
+  livePreview: { en: "Live preview", ar: "معاينة حية" },
+  previewIdle: {
+    en: "Your screen appears here while recording.",
+    ar: "تظهر شاشتك هنا أثناء التسجيل.",
+  },
+
+  // Shell
+  "a11y.mainNavigation": { en: "Main navigation", ar: "التنقل الرئيسي" },
+  "a11y.navigationHistory": { en: "Navigation history", ar: "سجل التنقل" },
+  "a11y.goBack": { en: "Go back", ar: "رجوع" },
+  "a11y.goForward": { en: "Go forward", ar: "تقدّم" },
+  "a11y.openRecorder": { en: "Open recorder", ar: "فتح المسجل" },
+  "a11y.switchToArabic": { en: "Switch to Arabic", ar: "التبديل إلى العربية" },
+  "a11y.switchToEnglish": { en: "Switch to English", ar: "التبديل إلى الإنجليزية" },
+  "a11y.dismissNotification": { en: "Dismiss notification", ar: "إغلاق الإشعار" },
+  "shell.collapse": { en: "Collapse", ar: "طي" },
+  "shell.localFirstNote": {
+    en: "Local-first. Recordings and screenshots never leave this device.",
+    ar: "محلي بالكامل. لا تغادر التسجيلات ولقطات الشاشة هذا الجهاز أبدًا.",
+  },
+  "shell.tagline": { en: "Local capture studio", ar: "استوديو التقاط محلي" },
+  "shell.status.requesting": { en: "Requesting access", ar: "جارٍ طلب الإذن" },
+  "shell.status.saving": { en: "Saving capture", ar: "جارٍ حفظ الالتقاط" },
+  "shell.status.error": { en: "Recorder error", ar: "خطأ في المسجل" },
+  "shell.error.title": {
+    en: "This section failed to render",
+    ar: "فشل عرض هذا القسم",
+  },
+  "shell.error.description": {
+    en: "An unexpected error occurred while mounting this module.",
+    ar: "حدث خطأ غير متوقع أثناء تحميل هذه الوحدة.",
+  },
+
+  // Dashboard
+  "dashboard.keepItLocal": { en: "Keep it local.", ar: "ابقَه محليًا." },
+  "dashboard.aiGated": {
+    en: "AI features are gated, not simulated.",
+    ar: "ميزات الذكاء الاصطناعي مقيَّدة، وليست مُحاكاة.",
+  },
+  "dashboard.storedInDb": {
+    en: "Stored in IndexedDB on this device",
+    ar: "مخزَّن في IndexedDB على هذا الجهاز",
+  },
+  "dashboard.sumOfClips": {
+    en: "Sum of saved video clips",
+    ar: "مجموع مقاطع الفيديو المحفوظة",
+  },
+  "dashboard.displayReady": { en: "Display ready", ar: "العرض جاهز" },
+  "dashboard.displayBlocked": { en: "Display blocked", ar: "العرض محجوب" },
+  "dashboard.mediaRecorderReady": {
+    en: "MediaRecorder ready",
+    ar: "MediaRecorder جاهز",
+  },
+  "dashboard.noMediaRecorder": {
+    en: "No MediaRecorder",
+    ar: "لا يوجد MediaRecorder",
+  },
+  "dashboard.nothingCaptured": {
+    en: "Nothing captured yet",
+    ar: "لم يُلتقط شيء بعد",
+  },
+  "dashboard.localFirstNote": {
+    en: "Local-first · IndexedDB storage · No account required",
+    ar: "محلي بالكامل · تخزين في IndexedDB · بدون حساب",
+  },
+  "dashboard.heroTitle": { en: "Capture. Create.", ar: "التقط. أنشئ." },
+  "dashboard.returnToRecorder": {
+    en: "Return to live recorder",
+    ar: "العودة إلى المسجل الحي",
+  },
+  "dashboard.blobsReadBack": {
+    en: "Saved blobs are read back from IndexedDB — no placeholder thumbnails.",
+    ar: "تُقرأ الملفات المحفوظة من IndexedDB — بلا صور بديلة.",
+  },
+  "dashboard.defaultsNote": {
+    en: "Defaults apply to the next capture. Everything is persisted locally.",
+    ar: "تُطبَّق الإعدادات الافتراضية على الالتقاط التالي، وكل شيء يُحفظ محليًا.",
+  },
+  "studio.dismiss": { en: "Dismiss", ar: "إغلاق" },
+  "screenshots.captureFormat": { en: "Capture format", ar: "صيغة الالتقاط" },
+  "settings.recorderNote": {
+    en: "These values are passed to the next MediaRecorder session.",
+    ar: "تُمرَّر هذه القيم إلى جلسة MediaRecorder التالية.",
+  },
+  "settings.localDataNote": {
+    en: "Settings live in localStorage. Media blobs live in IndexedDB.",
+    ar: "الإعدادات في localStorage، وملفات الوسائط في IndexedDB.",
+  },
+  "diag.probing": {
+    en: "Probing MediaDevices, MediaRecorder, IndexedDB, fonts, and storage quota.",
+    ar: "جارٍ فحص MediaDevices وMediaRecorder وIndexedDB والخطوط وحصة التخزين.",
+  },
+  "diag.displayCapture": { en: "Display capture", ar: "التقاط العرض" },
+  "diag.encoder": { en: "Encoder", ar: "الترميز" },
+  "diag.localStorage": { en: "Local storage", ar: "التخزين المحلي" },
+  "diag.environment": { en: "Environment", ar: "بيئة التشغيل" },
+  "dashboard.aiGatedBody": {
+    en: "Model weights are absent from this build, so offline AI, Arabic AI, MorphCore, and the body editor are catalog-only.",
+    ar: "أوزان النماذج غير موجودة في هذه النسخة، لذا تبقى أدوات الذكاء الاصطناعي العربية ومحرك MorphCore ومحرر الجسم كتالوجات فقط.",
+  },
+
+  // Recorder
+  "studio.description": {
+    en: "Real screen, window, and camera capture through MediaRecorder. Pause, resume, and stop write an actual video blob into the local library.",
+    ar: "التقاط حقيقي للشاشة والنافذة والكاميرا عبر MediaRecorder. الإيقاف المؤقت والاستئناف والإيقاف يكتب ملف فيديو فعليًا في المكتبة المحلية.",
+  },
+  "studio.captureFailed": { en: "Capture failed.", ar: "فشل الالتقاط." },
+  "studio.displayUnavailable": {
+    en: "Screen capture is unavailable in this runtime.",
+    ar: "التقاط الشاشة غير متاح في بيئة التشغيل الحالية.",
+  },
+  "studio.displayUnavailableHint": {
+    en: "Use the Electron build or a Chromium browser on a secure context.",
+    ar: "استخدم نسخة Electron أو متصفح Chromium على سياق آمن.",
+  },
+  "studio.elapsed": { en: "Elapsed", ar: "المدة" },
+  "studio.output": { en: "Output", ar: "المخرجات" },
+  "studio.timerPaused": { en: "Timer paused", ar: "المؤقت متوقف مؤقتًا" },
+  "studio.liveFromClock": {
+    en: "Live from session clock",
+    ar: "مباشر من ساعة الجلسة",
+  },
+  "studio.captureSource": { en: "Capture source", ar: "مصدر الالتقاط" },
+  "studio.overlayPosition": { en: "Overlay position", ar: "موضع التراكب" },
+  "studio.overlaySize": { en: "Overlay size", ar: "حجم التراكب" },
+  "studio.screenAndWindowNote": {
+    en: "Screen and window both use the real display picker; camera uses getUserMedia.",
+    ar: "الشاشة والنافذة تستخدمان منتقي العرض الحقيقي، والكاميرا تستخدم getUserMedia.",
+  },
+  "studio.noRecordings": {
+    en: "No recordings saved yet",
+    ar: "لا توجد تسجيلات محفوظة بعد",
+  },
+  "studio.noRecordingsHint": {
+    en: "Stop a capture and the encoded blob will appear here and in the library.",
+    ar: "أوقف عملية التقاط وسيظهر الملف المُرمَّز هنا وفي المكتبة.",
+  },
+  "studio.status.ready": { en: "Ready", ar: "جاهز" },
+  "studio.status.requesting": {
+    en: "Waiting for permission",
+    ar: "في انتظار الإذن",
+  },
+  "studio.status.recording": { en: "Recording", ar: "جارٍ التسجيل" },
+  "studio.status.paused": { en: "Paused", ar: "متوقف مؤقتًا" },
+  "studio.status.stopping": { en: "Encoding and saving", ar: "جارٍ الترميز والحفظ" },
+  "studio.status.error": { en: "Recorder error", ar: "خطأ في المسجل" },
+  "studio.pipelineBadge": {
+    en: "MediaRecorder pipeline",
+    ar: "مسار MediaRecorder",
+  },
+
+  // Screenshots
+  "screenshots.description": {
+    en: "Capture a real frame from the display stream. The encoded blob is stored locally and can be exported at full resolution.",
+    ar: "التقط إطارًا حقيقيًا من تدفق العرض. يُحفظ الملف محليًا ويمكن تصديره بالدقة الكاملة.",
+  },
+  "screenshots.unavailable": {
+    en: "Screen capture is not available here.",
+    ar: "التقاط الشاشة غير متاح هنا.",
+  },
+  "screenshots.unavailableHint": {
+    en: "Open the desktop build or a Chromium browser and grant display permission.",
+    ar: "افتح نسخة سطح المكتب أو متصفح Chromium وامنح إذن العرض.",
+  },
+  "screenshots.realBlobs": {
+    en: "Real image blobs in the local library",
+    ar: "ملفات صور حقيقية في المكتبة المحلية",
+  },
+  "screenshots.encodedSize": {
+    en: "Encoded size on this device",
+    ar: "الحجم المُرمَّز على هذا الجهاز",
+  },
+  "screenshots.emptyHint": {
+    en: "Press Capture screen and accept the OS picker. The frame is drawn from the live display stream, not a placeholder.",
+    ar: "اضغط «التقاط الشاشة» واقبل منتقي النظام. الإطار مأخوذ من تدفق العرض الحي، وليس صورة بديلة.",
+  },
+
+  // Library
+  "library.description": {
+    en: "Every recording and screenshot is stored as a real Blob in IndexedDB. Preview, rename, export, trim, or delete without touching the originals.",
+    ar: "كل تسجيل ولقطة شاشة مخزَّنة كـ Blob حقيقي في IndexedDB. عاين أو أعد التسمية أو صدّر أو قص أو احذف دون المساس بالأصل.",
+  },
+  "library.storageProblem": { en: "Storage problem.", ar: "مشكلة في التخزين." },
+  "library.verifyStorage": { en: "Verify storage", ar: "فحص التخزين" },
+  "library.reloaded": { en: "Library reloaded", ar: "أُعيد تحميل المكتبة" },
+  "library.reloadedHint": {
+    en: "Items were re-read from IndexedDB.",
+    ar: "أُعيد قراءة العناصر من IndexedDB.",
+  },
+  "library.storageCheckFailed": {
+    en: "Storage check failed",
+    ar: "فشل فحص التخزين",
+  },
+  "library.unknownStorageError": {
+    en: "Unknown storage error",
+    ar: "خطأ تخزين غير معروف",
+  },
+  "library.sort": { en: "Sort", ar: "الترتيب" },
+  "library.sort.newest": { en: "Newest first", ar: "الأحدث أولاً" },
+  "library.sort.oldest": { en: "Oldest first", ar: "الأقدم أولاً" },
+  "library.sort.largest": { en: "Largest first", ar: "الأكبر أولاً" },
+  "library.persistedLocally": {
+    en: "Persisted locally",
+    ar: "مخزَّن محليًا",
+  },
+  "library.playableClips": {
+    en: "Playable recorded clips",
+    ar: "مقاطع مسجَّلة قابلة للتشغيل",
+  },
+  "library.screenshotsEdits": {
+    en: "Screenshots and edits",
+    ar: "لقطات شاشة وتحريرات",
+  },
+  "library.encodedBlob": { en: "Encoded blob payload", ar: "حمولة الملف المُرمَّز" },
+  "library.noMatching": { en: "No matching items", ar: "لا توجد عناصر مطابقة" },
+  "library.tryDifferent": {
+    en: "Try a different search term or filter.",
+    ar: "جرّب كلمة بحث أو تصفية مختلفة.",
+  },
+  "library.audio": { en: "Audio", ar: "صوت" },
+  "library.totalItems": { en: "Total items", ar: "إجمالي العناصر" },
+  "library.deleteCapture": { en: "Delete capture", ar: "حذف الالتقاط" },
+  "library.renameFailed": { en: "Rename failed", ar: "فشلت إعادة التسمية" },
+  "library.deleteFailed": { en: "Delete failed", ar: "فشل الحذف" },
+
+  // Settings
+  "settings.description": {
+    en: "Appearance, language, and capture defaults are persisted in localStorage as knoux-rec.settings.v1 and applied to the document root.",
+    ar: "يُحفظ المظهر واللغة وإعدادات الالتقاط في localStorage تحت knoux-rec.settings.v1 وتُطبَّق على جذر المستند.",
+  },
+  "settings.appearance": { en: "Appearance", ar: "المظهر" },
+  "settings.appearanceHint": {
+    en: "The interface uses obsidian surfaces with the KNOUX yellow signal colour.",
+    ar: "تستخدم الواجهة أسطحًا داكنة مع اللون الأصفر المميز لـ KNOUX.",
+  },
+  "settings.arabic": { en: "Arabic", ar: "العربية" },
+  "settings.english": { en: "English", ar: "الإنجليزية" },
+  "settings.languageHint": {
+    en: "Arabic switches the document to RTL and loads the bundled Cairo face.",
+    ar: "تبديل العربية يحوّل المستند إلى RTL ويحمّل خط Cairo المضمَّن.",
+  },
+  "settings.overlayPosition": { en: "Overlay position", ar: "موضع التراكب" },
+  "settings.overlaySize": { en: "Overlay size", ar: "حجم التراكب" },
+  "settings.fileNaming": { en: "File naming pattern", ar: "نمط تسمية الملفات" },
+  "settings.namingTokens": {
+    en: "Tokens: [DATE], [TIME], [EXT]. Names are sanitised before saving.",
+    ar: "الرموز: [DATE] و[TIME] و[EXT]. تُنقّى الأسماء قبل الحفظ.",
+  },
+  "settings.screenshotDefaults": {
+    en: "Screenshot defaults",
+    ar: "إعدادات اللقطات الافتراضية",
+  },
+  "settings.screenshotDefaultsHint": {
+    en: "Used by the top bar and screenshot studio.",
+    ar: "تُستخدم في الشريط العلوي واستوديو اللقطات.",
+  },
+  "settings.format": { en: "Format", ar: "الصيغة" },
+  "settings.localData": { en: "Local data", ar: "البيانات المحلية" },
+  "settings.mediaSize": { en: "Media size", ar: "حجم الوسائط" },
+  "settings.videoTime": { en: "Video time", ar: "زمن الفيديو" },
+  "settings.settingsKey": { en: "Settings key", ar: "مفتاح الإعدادات" },
+  "settings.reset": { en: "Reset settings", ar: "إعادة تعيين الإعدادات" },
+  "settings.resetDescription": {
+    en: "Appearance, language, recorder, and screenshot defaults return to their initial values. Saved media is not touched.",
+    ar: "تُعاد إعدادات المظهر واللغة والمسجّل واللقطات إلى قيمها الأولية، ولا تُمس الوسائط المحفوظة.",
+  },
+  "settings.resetDone": {
+    en: "Defaults restored and persisted.",
+    ar: "أُعيدت الإعدادات الافتراضية وحُفظت.",
+  },
+  "settings.noTelemetry": {
+    en: "No telemetry, no cloud sync, and no remote font or script requests are made by this shell.",
+    ar: "لا تُرسل هذه الواجهة أي قياس عن بُعد ولا مزامنة سحابية ولا طلبات خطوط أو نصوص من مصادر بعيدة.",
+  },
+  "position.topLeft": { en: "Top left", ar: "أعلى اليسار" },
+  "position.topRight": { en: "Top right", ar: "أعلى اليمين" },
+  "position.bottomLeft": { en: "Bottom left", ar: "أسفل اليسار" },
+  "position.bottomRight": { en: "Bottom right", ar: "أسفل اليمين" },
+  "size.small": { en: "Small", ar: "صغير" },
+  "size.medium": { en: "Medium", ar: "متوسط" },
+  "size.large": { en: "Large", ar: "كبير" },
+
+  // Diagnostics
+  "diag.title": { en: "Runtime diagnostics", ar: "تشخيص بيئة التشغيل" },
+  "diag.description": {
+    en: "Every value below is measured in the current runtime. No capability is marked verified unless its code path is actually present.",
+    ar: "كل قيمة أدناه مقيسة في بيئة التشغيل الحالية، ولا تُوسَم أي إمكانية بأنها مُتحقَّقة إلا إذا كان مسار تنفيذها موجودًا فعليًا.",
+  },
+  "diag.measuring": { en: "Measuring runtime", ar: "جارٍ قياس بيئة التشغيل" },
+  "diag.runtimeFacts": { en: "Runtime facts", ar: "حقائق بيئة التشغيل" },
+  "diag.platform": { en: "Platform", ar: "المنصة" },
+  "diag.secureContext": { en: "Secure context", ar: "سياق آمن" },
+  "diag.secureContextValue": { en: "Secure context", ar: "سياق آمن" },
+  "diag.notSecure": { en: "Not secure", ar: "غير آمن" },
+  "diag.network": { en: "Network", ar: "الشبكة" },
+  "diag.online": { en: "online", ar: "متصل" },
+  "diag.offline": { en: "offline", ar: "غير متصل" },
+  "diag.webcamMic": { en: "Webcam / mic", ar: "الكاميرا والميكروفون" },
+  "diag.userAgent": { en: "User agent", ar: "معرّف المتصفح" },
+  "diag.bundledFonts": { en: "Bundled fonts", ar: "الخطوط المضمَّنة" },
+  "diag.appChannel": { en: "App channel", ar: "قناة التطبيق" },
+  "diag.capabilityLedger": { en: "Capability ledger", ar: "سجل الإمكانات" },
+  "diag.section": { en: "Section", ar: "القسم" },
+  "diag.state": { en: "State", ar: "الحالة" },
+  "diag.requirements": { en: "Requirements", ar: "المتطلبات" },
+  "diag.evidence": { en: "Evidence", ar: "الدليل" },
+  "diag.permanentGaps": {
+    en: "Permanent gaps in this recovery:",
+    ar: "ثغرات دائمة في هذه النسخة:",
+  },
+  "diag.copied": { en: "Diagnostics copied", ar: "نُسخ التشخيص" },
+  "diag.copiedDetail": {
+    en: "The runtime digest is on the clipboard.",
+    ar: "ملخص بيئة التشغيل موجود في الحافظة.",
+  },
+  "diag.clipboardUnavailable": {
+    en: "Clipboard unavailable",
+    ar: "الحافظة غير متاحة",
+  },
+  "diag.clipboardFallback": {
+    en: "Copy the table manually instead.",
+    ar: "انسخ الجدول يدويًا بدلًا من ذلك.",
+  },
+  "diag.unavailable": { en: "Unavailable", ar: "غير متاح" },
+  "diag.displayPickerHint": {
+    en: "The display picker can be requested from a user gesture.",
+    ar: "يمكن طلب منتقي العرض بإيماءة من المستخدم.",
+  },
+  "diag.mediaRecorderPresent": {
+    en: "MediaRecorder present",
+    ar: "MediaRecorder متاح",
+  },
+  "diag.noMime": {
+    en: "No supported video mime type detected",
+    ar: "لم يُكتشف نوع mime مدعوم للفيديو",
+  },
+  "diag.indexedDbUsable": { en: "IndexedDB usable", ar: "IndexedDB قابل للاستخدام" },
+  "diag.indexedDbBlocked": { en: "IndexedDB blocked", ar: "IndexedDB محجوب" },
+  "diag.storageEstimateUnavailable": {
+    en: "Storage estimate unavailable",
+    ar: "تقدير مساحة التخزين غير متاح",
+  },
+  "diag.cameraPresent": {
+    en: "getUserMedia present",
+    ar: "getUserMedia متاح",
+  },
+  "diag.microphonePath": {
+    en: "microphone path",
+    ar: "مسار الميكروفون متاح",
+  },
+  "diag.noMicrophonePath": {
+    en: "no microphone path",
+    ar: "لا يوجد مسار للميكروفون",
+  },
+  "diag.yes": { en: "yes", ar: "نعم" },
+  "diag.no": { en: "no", ar: "لا" },
+
+  // Models
+  "models.title": { en: "Model inventory", ar: "جرد النماذج" },
+  "models.description": {
+    en: "Every manifest shipped in public/models is inspected at runtime. A model is only usable when its weight file is present next to the manifest.",
+    ar: "يُفحص كل بيان مُرسل في public/models أثناء التشغيل، ولا يكون النموذج قابلًا للاستخدام إلا إذا وُجد ملف الأوزان بجوار البيان.",
+  },
+  "models.manifests": { en: "Manifests", ar: "البيانات" },
+  "models.weightFiles": { en: "Weight files", ar: "ملفات الأوزان" },
+  "models.weightFilesHint": {
+    en: "weights.bin present and non-HTML",
+    ar: "ملفات weights.bin موجودة وليست HTML",
+  },
+  "models.weightPayload": { en: "Weight payload", ar: "حجم الأوزان" },
+  "models.manifestsHint": {
+    en: "model.json files found",
+    ar: "عدد ملفات model.jsonالموجودة",
+  },
+  "models.measuredFromHead": {
+    en: "Measured from HEAD responses",
+    ar: "مقيسة من استجابات HEAD",
+  },
+  "models.inspecting": {
+    en: "Inspecting model manifests",
+    ar: "جارٍ فحص بيانات النماذج",
+  },
+  "models.inspectingHint": {
+    en: "Requesting each manifest and weight file from the local bundle.",
+    ar: "طلب كل بيان وملف أوزان من الحزمة المحلية.",
+  },
+  "models.model": { en: "Model", ar: "النموذج" },
+  "models.manifest": { en: "Manifest", ar: "البيان" },
+  "models.weightFile": { en: "Weight file", ar: "ملف الأوزان" },
+  "models.status": { en: "Status", ar: "الحالة" },
+  "models.honestResult": {
+    en: "Honest result:",
+    ar: "النتيجة الصريحة:",
+  },
+
+  lastCapture: { en: "Last capture", ar: "آخر التقاط" },
+  openLibrary: { en: "Open library", ar: "فتح المكتبة" },
+  discard: { en: "Discard", ar: "تجاهل" },
+  applyTrim: { en: "Apply trim", ar: "تطبيق القص" },
+  trimming: { en: "Re-encoding selection", ar: "جار إعادة ترميز المقطع" },
+  trimHint: {
+    en: "Trim re-encodes the selected range into a new clip. The original is kept.",
+    ar: "القص يعيد ترميز المقطع المحدد إلى مقطع جديد. يبقى الأصل محفوظاً.",
+  },
+  pickImage: { en: "Choose image", ar: "اختر صورة" },
+  captureAgain: { en: "Capture again", ar: "التقاط مرة أخرى" },
+  captureScreen: { en: "Capture screen", ar: "التقاط الشاشة" },
+  capturesEmpty: { en: "No screenshots yet", ar: "لا توجد لقطات بعد" },
+  signedOut: { en: "Local only", ar: "محلي فقط" },
+  engine: { en: "Engine", ar: "المحرك" },
+  note: { en: "Note", ar: "ملاحظة" },
+};
+
+export function translate(language: Language, key: string): string {
+  const entry = STRINGS[key];
+  if (!entry) return key;
+  return entry[language];
+}
+
+export function useTranslation(language: Language) {
+  return (key: string) => translate(language, key);
+}

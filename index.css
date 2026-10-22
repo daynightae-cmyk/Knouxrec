@@ -1,10 +1,14 @@
+@import "./src/visualPatchLab.css";
+@import "./src/luxuryStyles.css";
+@import "./src/arabicFonts.css";
+@import "./src/design-system.css";
+
 /* Import Tailwind CSS */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 /* Import Google Fonts */
-@import url("https://fonts.googleapis.com/css2?family=Rajdhani:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap");
 
 /* KNOUX REC - Dark Professional Design */
 
@@ -446,11 +450,3 @@ p {
   border: 1px solid rgba(59, 130, 246, 0.3);
 }
 
-/* Visual Patch Lab Styles (External) */
-@import "./src/visualPatchLab.css";
-
-/* Luxury Styles (External) */
-@import "./src/luxuryStyles.css";
-
-/* Arabic Fonts (External) */
-@import "./src/arabicFonts.css";

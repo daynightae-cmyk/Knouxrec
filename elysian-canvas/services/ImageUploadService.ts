@@ -20,10 +20,27 @@ export interface UploadedImage {
 export class ImageUploadService {
   private uploadedImages: Map<string, UploadedImage> = new Map();
 
+  // Guard rails: an unbounded upload is decoded into a data URL and then into
+  // three full-resolution canvases, which is enough to exhaust the renderer
+  // memory on a large photo.
+  private readonly maxFileBytes = 25 * 1024 * 1024;
+  private readonly maxDimension = 8192;
+
   async uploadImage(file: File): Promise<UploadedImage> {
     return new Promise((resolve, reject) => {
       if (!file.type.startsWith("image/")) {
         reject(new Error("Please select a valid image file"));
+        return;
+      }
+
+      if (file.size > this.maxFileBytes) {
+        reject(
+          new Error(
+            `The image is too large (${Math.round(
+              file.size / (1024 * 1024),
+            )} MB). The limit is ${Math.round(this.maxFileBytes / (1024 * 1024))} MB.`,
+          ),
+        );
         return;
       }
 
@@ -34,6 +51,15 @@ export class ImageUploadService {
           const img = new Image();
 
           img.onload = async () => {
+            if (img.width > this.maxDimension || img.height > this.maxDimension) {
+              reject(
+                new Error(
+                  `The image is too large (${img.width}x${img.height}). The limit is ${this.maxDimension} pixels per side.`,
+                ),
+              );
+              return;
+            }
+
             const id = `img_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
             // Create thumbnail

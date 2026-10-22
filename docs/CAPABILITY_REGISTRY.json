@@ -1,0 +1,2218 @@
+{
+  "generatedAt": "2026-10-22T05:37:12.482Z",
+  "source": {
+    "repository": "https://github.com/daynightae-cmyk/Knouxrec.git",
+    "commit": "05a542957a62730301972361c1300ccd7d66ca54",
+    "note": "Generated from the working tree; runtime states reference artifacts/evidence."
+  },
+  "counts": {
+    "routes": 15,
+    "core": 16,
+    "offlineAI": 38,
+    "arabicAI": 38,
+    "visualPatch": 50,
+    "morphCore": 50,
+    "toolbox": 8,
+    "templatesBase": 5,
+    "templatesGenerated": 51,
+    "models": 24
+  },
+  "routes": [
+    {
+      "id": "dashboard",
+      "group": "capture",
+      "state": "VERIFIED",
+      "summary": "Unified capture dashboard with live recorder status and recent local media.",
+      "requirements": [],
+      "evidence": "Rendered shell; navigation and recorder state wired to a single provider."
+    },
+    {
+      "id": "studio",
+      "group": "capture",
+      "state": "VERIFIED",
+      "summary": "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output.",
+      "requirements": [
+        "Screen capture permission",
+        "MediaRecorder support"
+      ],
+      "evidence": "RecordingSession records real timestamps from the active media stream; output is written to IndexedDB."
+    },
+    {
+      "id": "screenshots",
+      "group": "capture",
+      "state": "VERIFIED",
+      "summary": "Real pixel capture from the display stream with PNG/JPEG/WebP encoding.",
+      "requirements": [
+        "Screen capture permission"
+      ],
+      "evidence": "Canvas drawImage from a live display stream; blob signature checked before saving."
+    },
+    {
+      "id": "library",
+      "group": "library",
+      "state": "VERIFIED",
+      "summary": "Persistent local library with preview, rename, delete, export and trim.",
+      "requirements": [
+        "IndexedDB"
+      ],
+      "evidence": "Items survive reload; object URLs are created from stored blobs, never placeholders."
+    },
+    {
+      "id": "templates",
+      "group": "create",
+      "state": "BLOCKED",
+      "summary": "Template browser preserved, but it is not mounted: its dependency graph does not compile or run as shipped.",
+      "requirements": [
+        "Repaired VisualPatchToolCard exports",
+        "Runtime verification"
+      ],
+      "evidence": "components/TemplatesPanel.tsx imports a VisualPatchTool export that does not exist; its tool cards call missing service methods."
+    },
+    {
+      "id": "toolbox",
+      "group": "create",
+      "state": "BLOCKED",
+      "summary": "Media utility panel preserved, but it is not mounted: the shared tool card has no default export and broken handlers.",
+      "requirements": [
+        "Repaired VisualPatchToolCard",
+        "Per-tool runtime verification"
+      ],
+      "evidence": "components/ToolboxPanel.tsx default-imports VisualPatchToolCard, which only exposes named exports; handlers call absent processor APIs."
+    },
+    {
+      "id": "visual-patch",
+      "group": "create",
+      "state": "BLOCKED",
+      "summary": "Region-based image editor preserved, but it is not mounted because its processing pipeline is incomplete.",
+      "requirements": [
+        "Repaired processor methods",
+        "Runtime pixel diffing"
+      ],
+      "evidence": "components/VisualPatchLabPanel.tsx and VisualPatchToolCard.tsx call extractAudio/detectObjects/applyStyle methods that do not exist on the services."
+    },
+    {
+      "id": "morphcore",
+      "group": "create",
+      "state": "MISSING_ENGINE",
+      "summary": "Body-shape tool catalog preserved, but it depended on fictional .exe modules and fabricated output paths.",
+      "requirements": [
+        "Native morphology engine",
+        "Per-tool validated model"
+      ],
+      "evidence": "services/knouxMorphCore.ts only simulates execution; no executable module or pixel pipeline exists."
+    },
+    {
+      "id": "elysian",
+      "group": "create",
+      "state": "PARTIAL",
+      "summary": "Image editing workspace with slider filters, real presets and PNG export. The AI inference pipeline is not part of the bundle.",
+      "requirements": [
+        "Image input",
+        "Model weights for the AI pipeline"
+      ],
+      "evidence": "scripts/elysian-smoke.mjs drives the packaged binary: age gate, upload, preset filter and a PNG export whose pixels carry the filter."
+    },
+    {
+      "id": "body-editor",
+      "group": "create",
+      "state": "MISSING_MODEL",
+      "summary": "Age-gated body editor UI preserved. It depends on segmentation models whose weight files are not distributed.",
+      "requirements": [
+        "Age verification",
+        "Segmentation weights",
+        "Inference runtime"
+      ],
+      "evidence": "public/models/*/model.json manifests exist, weights.bin files do not."
+    },
+    {
+      "id": "offline-ai",
+      "group": "intelligence",
+      "state": "MISSING_MODEL",
+      "summary": "38-tool catalog recovered. The previous service returned synthetic images/transcripts; it is now marked unavailable instead of faking output.",
+      "requirements": [
+        "Model weights",
+        "Inference runtime"
+      ],
+      "evidence": "Weights binaries are absent from public/models; the old service produced canvas placeholders."
+    },
+    {
+      "id": "arabic-ai",
+      "group": "intelligence",
+      "state": "MISSING_ENGINE",
+      "summary": "38-tool Arabic catalog preserved for future engines; the prior handler only waited and logged.",
+      "requirements": [
+        "Per-tool inference engine"
+      ],
+      "evidence": "components/ArabicAIToolsPanel.tsx handleToolRun performed no processing."
+    },
+    {
+      "id": "models",
+      "group": "intelligence",
+      "state": "MISSING_MODEL",
+      "summary": "Model manifest inventory with explicit weight-file verification.",
+      "requirements": [
+        "Weight binaries"
+      ],
+      "evidence": "Only model.json graph metadata ships; no weights.bin present."
+    },
+    {
+      "id": "settings",
+      "group": "system",
+      "state": "VERIFIED",
+      "summary": "Persisted appearance, language and recording defaults.",
+      "requirements": [],
+      "evidence": "Settings persist in localStorage and are applied to the document root."
+    },
+    {
+      "id": "diagnostics",
+      "group": "system",
+      "state": "VERIFIED",
+      "summary": "Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB.",
+      "requirements": [],
+      "evidence": "Values computed in-browser; model availability proven by bundle inspection."
+    }
+  ],
+  "core": [
+    {
+      "id": "screen-recording",
+      "name": "Screen recording",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Headless Chrome fake display: 1920x1080 VP9/Opus WebM, patched finite duration, exported EBML signature."
+    },
+    {
+      "id": "camera-recording",
+      "name": "Camera recording",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Fake camera capture produced a 4.84s 1920x1080 VP9/Opus clip persisted in IndexedDB."
+    },
+    {
+      "id": "pause-resume",
+      "name": "Pause and resume",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "recording-smoke.mjs pauses and resumes; elapsed time excludes paused spans."
+    },
+    {
+      "id": "screenshot-capture",
+      "name": "Screenshot capture",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Live display stream drew real pixels into canvas; 1920x1080 image saved and previewed."
+    },
+    {
+      "id": "library-persistence",
+      "name": "Library persistence",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "IndexedDB objects survive full reload; blob URLs are recreated on hydrate."
+    },
+    {
+      "id": "video-trim",
+      "name": "Video trim",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Trim re-encodes a range to a new item, patches WebM duration and keeps the original."
+    },
+    {
+      "id": "webm-duration",
+      "name": "WebM duration patch",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "EBML Info>Duration injected; browser reports finite duration instead of Infinity."
+    },
+    {
+      "id": "export-download",
+      "name": "Export download",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Download produced a file starting with EBML magic 1a45dfa3."
+    },
+    {
+      "id": "favorites",
+      "name": "Library favorites",
+      "state": "BUILD_VERIFIED",
+      "evidence": "Favorite flag persisted through libraryStore.setFavorite; UI filter is wired."
+    },
+    {
+      "id": "settings-persistence",
+      "name": "Settings persistence",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Theme and language survive reload; document root receives theme/lang/dir."
+    },
+    {
+      "id": "rtl-arabic",
+      "name": "Arabic RTL",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Language toggle sets lang=ar dir=rtl with no horizontal overflow."
+    },
+    {
+      "id": "high-dpi",
+      "name": "High DPI",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "deviceScaleFactor 1.25 and 1.5 rendered without overflow."
+    },
+    {
+      "id": "minimum-window",
+      "name": "Minimum window",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "1024x700 viewport has no horizontal overflow."
+    },
+    {
+      "id": "reduced-motion",
+      "name": "Reduced motion",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "prefers-reduced-motion collapses animation durations."
+    },
+    {
+      "id": "navigation-history",
+      "name": "Back and forward navigation",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "ui-smoke.mjs verifies back returns to recorder and forward to library."
+    },
+    {
+      "id": "permission-error",
+      "name": "Permission error recovery",
+      "state": "RUNTIME_VERIFIED",
+      "evidence": "Denied camera shows an error notice, no fake preview, and Dismiss restores ready state."
+    }
+  ],
+  "offlineAI": [
+    {
+      "id": "remove_background",
+      "name": "إزالة الخلفية",
+      "nameEn": "Remove Background",
+      "category": "image",
+      "modelPath": "/models/u2net/model.json",
+      "modelSize": 95,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "upscale_image",
+      "name": "تكبير الصور",
+      "nameEn": "Image Upscaler",
+      "category": "image",
+      "modelPath": "/models/real_esrgan/model.json",
+      "modelSize": 150,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "enhance_image",
+      "name": "تحسين جودة الصور",
+      "nameEn": "Photo Enhancer",
+      "category": "image",
+      "modelPath": "/models/real_esrgan/model.json",
+      "modelSize": 150,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "detect_objects",
+      "name": "كشف الأجسام",
+      "nameEn": "Object Detection",
+      "category": "image",
+      "modelPath": "/models/yolo/model.json",
+      "modelSize": 45,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "detect_faces",
+      "name": "كشف الوجوه",
+      "nameEn": "Face Detection",
+      "category": "image",
+      "modelPath": "/models/face_detection/model.json",
+      "modelSize": 10,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "face_swap",
+      "name": "تبديل الوجوه",
+      "nameEn": "Face Swap",
+      "category": "image",
+      "modelPath": "/models/simswap/model.json",
+      "modelSize": 320,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "colorize_image",
+      "name": "تلوين الصور القديمة",
+      "nameEn": "Colorize Old Photos",
+      "category": "image",
+      "modelPath": "/models/stable_diffusion/model.json",
+      "modelSize": 2560,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "toonify_image",
+      "name": "تحويل إلى رسمة",
+      "nameEn": "Toonify Image",
+      "category": "image",
+      "modelPath": "/models/stable_diffusion/model.json",
+      "modelSize": 2560,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "enhance_face",
+      "name": "تحسين الوجه والجلد",
+      "nameEn": "Face Enhancement",
+      "category": "image",
+      "modelPath": "/models/real_esrgan/model.json",
+      "modelSize": 150,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "edge_detection",
+      "name": "كشف الحواف والتفاصيل",
+      "nameEn": "Edge Detection",
+      "category": "image",
+      "modelPath": "/models/yolo/model.json",
+      "modelSize": 45,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "track_objects",
+      "name": "تتبع الأجسام",
+      "nameEn": "Object Tracking",
+      "category": "video",
+      "modelPath": "/models/yolo/model.json",
+      "modelSize": 45,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "extract_scenes",
+      "name": "استخراج المشاهد",
+      "nameEn": "Scene Extraction",
+      "category": "video",
+      "modelPath": "/models/scenecut/model.json",
+      "modelSize": 50,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "stabilize_video",
+      "name": "تثبيت الفيديو",
+      "nameEn": "Video Stabilization",
+      "category": "video",
+      "modelPath": "/models/yolo/model.json",
+      "modelSize": 45,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "enhance_video",
+      "name": "تحسين جودة الفيديو",
+      "nameEn": "Video Enhancement",
+      "category": "video",
+      "modelPath": "/models/real_esrgan/model.json",
+      "modelSize": 150,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "detect_motion",
+      "name": "كشف الحركة",
+      "nameEn": "Motion Detection",
+      "category": "video",
+      "modelPath": "/models/yolo/model.json",
+      "modelSize": 45,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "analyze_fps",
+      "name": "تحليل معدل الإطارات",
+      "nameEn": "FPS Analyzer",
+      "category": "video",
+      "modelPath": "/models/scenecut/model.json",
+      "modelSize": 50,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "extract_audio",
+      "name": "استخراج الصوت",
+      "nameEn": "Audio Extraction",
+      "category": "video",
+      "modelPath": "/models/whisper/model.json",
+      "modelSize": 85,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "video_filters",
+      "name": "فلاتر الفيديو",
+      "nameEn": "Video Filters",
+      "category": "video",
+      "modelPath": "/models/stable_diffusion/model.json",
+      "modelSize": 2560,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "extract_faces_video",
+      "name": "استخراج الوجوه من الفيديو",
+      "nameEn": "Video Face Extraction",
+      "category": "video",
+      "modelPath": "/models/face_detection/model.json",
+      "modelSize": 10,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "extract_frames",
+      "name": "تحويل فيديو إلى صور",
+      "nameEn": "Frame Extraction",
+      "category": "video",
+      "modelPath": "/models/scenecut/model.json",
+      "modelSize": 50,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "separate_audio",
+      "name": "فصل الصوت والموسيقى",
+      "nameEn": "Audio Separation",
+      "category": "audio",
+      "modelPath": "/models/spleeter/model.json",
+      "modelSize": 150,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "enhance_voice",
+      "name": "تحسين الصوت البشري",
+      "nameEn": "Voice Enhancement",
+      "category": "audio",
+      "modelPath": "/models/rnnoise/model.json",
+      "modelSize": 15,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "detect_silence",
+      "name": "كشف فترات الصمت",
+      "nameEn": "Silence Detection",
+      "category": "audio",
+      "modelPath": "/models/beat_detector/model.json",
+      "modelSize": 25,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "speech_to_text",
+      "name": "تحويل الكلام إلى نص",
+      "nameEn": "Speech to Text",
+      "category": "audio",
+      "modelPath": "/models/whisper/model.json",
+      "modelSize": 85,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "change_pitch",
+      "name": "تغيير نغمة الصوت",
+      "nameEn": "Voice Pitch Changer",
+      "category": "audio",
+      "modelPath": "/models/sovits/model.json",
+      "modelSize": 220,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "generate_spectrogram",
+      "name": "توليد طيف ترددي",
+      "nameEn": "Spectrogram Generator",
+      "category": "audio",
+      "modelPath": "/models/beat_detector/model.json",
+      "modelSize": 25,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "noise_profiler",
+      "name": "محلل الضوضاء",
+      "nameEn": "Noise Profiler",
+      "category": "audio",
+      "modelPath": "/models/rnnoise/model.json",
+      "modelSize": 15,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "reverse_audio",
+      "name": "عكس الصوت",
+      "nameEn": "Audio Reversal",
+      "category": "audio",
+      "modelPath": "/models/beat_detector/model.json",
+      "modelSize": 25,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "frequency_filter",
+      "name": "مرشح الترددات",
+      "nameEn": "Frequency Filter",
+      "category": "audio",
+      "modelPath": "/models/rnnoise/model.json",
+      "modelSize": 15,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "audio_converter",
+      "name": "محول الصوت",
+      "nameEn": "Audio Converter",
+      "category": "audio",
+      "modelPath": "/models/beat_detector/model.json",
+      "modelSize": 25,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "ocr_extract",
+      "name": "استخراج النص من الصور",
+      "nameEn": "OCR Text Extraction",
+      "category": "text",
+      "modelPath": "/models/whisper/model.json",
+      "modelSize": 85,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "text_summarizer",
+      "name": "ملخص النصوص",
+      "nameEn": "Text Summarizer",
+      "category": "text",
+      "modelPath": "/models/gpt4all/model.json",
+      "modelSize": 120,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "sentiment_analysis",
+      "name": "تحليل المشاعر",
+      "nameEn": "Sentiment Analysis",
+      "category": "text",
+      "modelPath": "/models/gpt4all/model.json",
+      "modelSize": 120,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "local_speech_to_text",
+      "name": "تحويل الكلام المحلي",
+      "nameEn": "Local Speech to Text",
+      "category": "text",
+      "modelPath": "/models/whisper/model.json",
+      "modelSize": 85,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "text_generator",
+      "name": "مولد النصوص",
+      "nameEn": "Text Generator",
+      "category": "text",
+      "modelPath": "/models/gpt4all/model.json",
+      "modelSize": 120,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "language_detector",
+      "name": "كاشف اللغة",
+      "nameEn": "Language Detector",
+      "category": "text",
+      "modelPath": "/models/m2m100/model.json",
+      "modelSize": 420,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "document_classifier",
+      "name": "مصنف الوثائق",
+      "nameEn": "Document Classifier",
+      "category": "text",
+      "modelPath": "/models/gpt4all/model.json",
+      "modelSize": 120,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "file_analyzer",
+      "name": "محلل الملفات الشامل",
+      "nameEn": "Comprehensive File Analyzer",
+      "category": "analysis",
+      "modelPath": "/models/yolo/model.json",
+      "modelSize": 45,
+      "status": "MISSING_MODEL"
+    }
+  ],
+  "arabicAI": [
+    {
+      "id": "arabic-ai-01",
+      "title": "إزالة الخلفية",
+      "description": "إزالة خلفية الصور تلقائياً باستخدام U-2-Net المحلي",
+      "modelSize": 95,
+      "minutes": 3,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-02",
+      "title": "استخراج الصوت",
+      "description": "استخراج المسار الصوتي من الفيديو",
+      "modelSize": 85,
+      "minutes": 10,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-03",
+      "title": "استخراج المشاهد",
+      "description": "تقسيم الفيديو إلى مشاهد تلقائياً",
+      "modelSize": 50,
+      "minutes": 20,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-04",
+      "title": "استخراج النص من الصور",
+      "description": "استخراج النصوص من الصور باستخدام Tesseract OCR",
+      "modelSize": 85,
+      "minutes": 8,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-05",
+      "title": "استخراج الوجوه من الفيديو",
+      "description": "استخراج جميع الوجوه الظاهرة في الفيديو",
+      "modelSize": 10,
+      "minutes": 35,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-06",
+      "title": "تبديل الوجوه",
+      "description": "تبديل الوجوه بين الصور باستخدام SimSwap",
+      "modelSize": 320,
+      "minutes": 15,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-07",
+      "title": "تتبع الأجسام",
+      "description": "تتبع الأجسام في الفيديو باستخدام YOLO Tracker",
+      "modelSize": 45,
+      "minutes": 30,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-08",
+      "title": "تثبيت الفيديو",
+      "description": "تثبيت الفيديو المهتز وتحسين الاستقرار",
+      "modelSize": 45,
+      "minutes": 45,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-09",
+      "title": "تحسين الصوت البشري",
+      "description": "تحسين وضوح الصوت البشري وإزالة التشويش",
+      "modelSize": 15,
+      "minutes": 15,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-10",
+      "title": "تحسين الوجه والجلد",
+      "description": "تحسين ملامح الوجه والجلد في الصور",
+      "modelSize": 150,
+      "minutes": 8,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-11",
+      "title": "تحسين جودة الصور",
+      "description": "تحسين جودة الصور وإزالة الضوضاء وتعديل الألوان",
+      "modelSize": 150,
+      "minutes": 5,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-12",
+      "title": "تحسين جودة الفيديو",
+      "description": "تحسين جودة الفيديو ووضوح الصورة",
+      "modelSize": 150,
+      "minutes": 60,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-13",
+      "title": "تحليل المشاعر",
+      "description": "تحليل المشاعر والعواطف في النصوص والتعليقات",
+      "modelSize": 120,
+      "minutes": 5,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-14",
+      "title": "تحليل معدل الإطارات",
+      "description": "تحليل معدل الإطارات وجودة الفيديو",
+      "modelSize": 50,
+      "minutes": 5,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-15",
+      "title": "تحويل الكلام المحلي",
+      "description": "تحويل الكلام إلى نص بشكل محلي وسريع",
+      "modelSize": 85,
+      "minutes": 12,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-16",
+      "title": "تحويل الكلام إلى نص",
+      "description": "تحويل التسجيلات الصوتية إلى نص باستخدام Whisper",
+      "modelSize": 85,
+      "minutes": 20,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-17",
+      "title": "تحويل إلى رسمة",
+      "description": "تحويل الصور الحقيقية إلى رسوم متحركة",
+      "modelSize": 2500,
+      "minutes": 18,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-18",
+      "title": "تحويل فيديو إلى صور",
+      "description": "استخراج الإطارات من الفيديو كصور منفصلة",
+      "modelSize": 50,
+      "minutes": 15,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-19",
+      "title": "تغيير نغمة الصوت",
+      "description": "تغيير طبقة ونغمة الصوت مع الحفاظ على الوضوح",
+      "modelSize": 220,
+      "minutes": 25,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-20",
+      "title": "تكبير الصور",
+      "description": "تكبير الصور وتحسين جودتها باستخدام Real-ESRGAN",
+      "modelSize": 150,
+      "minutes": 8,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-21",
+      "title": "تلوين الصور القديمة",
+      "description": "تلوين الصور القديمة والأبيض والأسود تلقائياً",
+      "modelSize": 2500,
+      "minutes": 20,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-22",
+      "title": "توليد طيف ترددي",
+      "description": "إنشاء طيف ترددي مرئي للملفات الصوتية",
+      "modelSize": 25,
+      "minutes": 10,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-23",
+      "title": "عكس الصوت",
+      "description": "عكس الملفات الصوتية وتشغيلها بالاتجاه المعاكس",
+      "modelSize": 25,
+      "minutes": 5,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-24",
+      "title": "فصل الصوت والموسيقى",
+      "description": "فصل الأصوات والآلات الموسيقية باستخدام Spleeter",
+      "modelSize": 150,
+      "minutes": 30,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-25",
+      "title": "فلاتر الفيديو",
+      "description": "تطبيق فلاتر وتأثيرات متنوعة على الفيديو",
+      "modelSize": 2500,
+      "minutes": 40,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-26",
+      "title": "كاشف اللغة",
+      "description": "اكتشاف لغة النص والترجمة الأساسية",
+      "modelSize": 420,
+      "minutes": 3,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-27",
+      "title": "كشف الأجسام",
+      "description": "كشف وتمييز الأجسام في الصور باستخدام YOLOv8",
+      "modelSize": 45,
+      "minutes": 2,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-28",
+      "title": "كشف الحركة",
+      "description": "كشف وتحليل الحركة في الفيديو",
+      "modelSize": 45,
+      "minutes": 25,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-29",
+      "title": "كشف الحواف ��التفاصيل",
+      "description": "استخراج الحواف والتفاصيل من الصور باستخدام Canny",
+      "modelSize": 45,
+      "minutes": 2,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-30",
+      "title": "كشف الوجوه",
+      "description": "اكتشاف الوجوه ونقاط الوجه في الصور",
+      "modelSize": 10,
+      "minutes": 1,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-31",
+      "title": "كشف فترات الصمت",
+      "description": "اكتشاف وتحديد فترات الصمت في التسجيلات الصوتية",
+      "modelSize": 25,
+      "minutes": 8,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-32",
+      "title": "محلل الضوضاء",
+      "description": "تحليل وتحديد أنواع الضوضاء في التسجيلات",
+      "modelSize": 15,
+      "minutes": 12,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-33",
+      "title": "محلل الملفات الشامل",
+      "description": "تحليل شامل للملفات: البيانات الوصفية، الهاش، الحجم، البنية",
+      "modelSize": 45,
+      "minutes": 5,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-34",
+      "title": "محول الصوت",
+      "description": "تحويل بين مونو وستيريو وتنسيقات صوتية مختلفة",
+      "modelSize": 25,
+      "minutes": 6,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-35",
+      "title": "مرشح الترددات",
+      "description": "تصفية ترددات معينة (عالية/منخفضة) من الصوت",
+      "modelSize": 15,
+      "minutes": 8,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-36",
+      "title": "مصنف الوثائق",
+      "description": "تصنيف الوثائق والنصوص حسب المحتوى والموضوع",
+      "modelSize": 120,
+      "minutes": 10,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-37",
+      "title": "ملخص النصوص",
+      "description": "تلخيص النصوص الطويلة والوثائق تلقائياً",
+      "modelSize": 120,
+      "minutes": 15,
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arabic-ai-38",
+      "title": "مولد النصوص",
+      "description": "توليد نصوص إبداعية ومقالات باستخدام GPT4All",
+      "modelSize": 120,
+      "minutes": 20,
+      "status": "MISSING_ENGINE"
+    }
+  ],
+  "visualPatch": [
+    {
+      "id": "body-scale-full-enlarge",
+      "name": "Enlarge Full Body",
+      "nameAr": "تكبير الجسم كاملاً",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "body-scale-full-shrink",
+      "name": "Shrink Full Body",
+      "nameAr": "تصغير الجسم كاملاً",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "body-scale-upper-enlarge",
+      "name": "Enlarge Upper Body",
+      "nameAr": "تكبير الجزء العلوي",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "body-scale-lower-enlarge",
+      "name": "Enlarge Lower Body",
+      "nameAr": "تكبير الجزء السفلي",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "body-scale-height-extend",
+      "name": "Extend Height",
+      "nameAr": "تطويل القامة",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "body-scale-height-compress",
+      "name": "Compress Height",
+      "nameAr": "تقصير القامة",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "body-scale-width-expand",
+      "name": "Expand Width",
+      "nameAr": "توسيع الجسم عرضاً",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "body-scale-width-narrow",
+      "name": "Narrow Width",
+      "nameAr": "تضييق الجسم",
+      "category": "body-scale",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "waist-slim",
+      "name": "Slim Waist",
+      "nameAr": "تنحيف الخصر",
+      "category": "waist-belly",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "belly-flatten",
+      "name": "Flatten Belly",
+      "nameAr": "تسطيح البطن",
+      "category": "waist-belly",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "waist-curves-enhance",
+      "name": "Enhance Waist Curves",
+      "nameAr": "إبراز منحنيات الخصر",
+      "category": "waist-belly",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "belly-enhance",
+      "name": "Enhance Belly",
+      "nameAr": "زيادة بروز البطن",
+      "category": "waist-belly",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "torso-tighten",
+      "name": "Tighten Torso",
+      "nameAr": "شدّ الجذع والوسط",
+      "category": "waist-belly",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "hips-lower",
+      "name": "Lower Hips",
+      "nameAr": "إنزا�� الحوض",
+      "category": "waist-belly",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "chest-lift",
+      "name": "Lift Chest",
+      "nameAr": "رفع الصدر",
+      "category": "chest",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "chest-reduce",
+      "name": "Reduce Chest",
+      "nameAr": "تصغير الصدر",
+      "category": "chest",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "chest-enhance",
+      "name": "Enhance Chest",
+      "nameAr": "تكبير الصدر",
+      "category": "chest",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "chest-reshape",
+      "name": "Reshape Chest",
+      "nameAr": "إعادة تشكيل الصدر",
+      "category": "chest",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "chest-balance",
+      "name": "Balance Chest",
+      "nameAr": "موازنة الطرفين",
+      "category": "chest",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "chest-flatten",
+      "name": "Flatten Chest",
+      "nameAr": "تسطيح الصدر",
+      "category": "chest",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "hips-enhance",
+      "name": "Enhance Hips",
+      "nameAr": "تكبير الأرداف",
+      "category": "hips-thighs",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "butt-lift",
+      "name": "Lift Butt",
+      "nameAr": "رفع المؤخرة",
+      "category": "hips-thighs",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "hips-slim",
+      "name": "Slim Hips",
+      "nameAr": "تنحيف الأرداف",
+      "category": "hips-thighs",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "thighs-smooth",
+      "name": "Smooth Thighs",
+      "nameAr": "تنعيم الفخذين",
+      "category": "hips-thighs",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "thighs-slim",
+      "name": "Slim Thighs",
+      "nameAr": "تنحيف الفخذين",
+      "category": "hips-thighs",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "hips-shape",
+      "name": "Shape Hips",
+      "nameAr": "تحسين شكل الأرداف",
+      "category": "hips-thighs",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "legs-lengthen",
+      "name": "Lengthen Legs",
+      "nameAr": "تطويل الساقين",
+      "category": "legs-feet",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "legs-shorten",
+      "name": "Shorten Legs",
+      "nameAr": "تقصير الساقين",
+      "category": "legs-feet",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "legs-slim",
+      "name": "Slim Legs",
+      "nameAr": "تنحيف الساقين",
+      "category": "legs-feet",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "legs-bulk",
+      "name": "Bulk Legs",
+      "nameAr": "تضخيم الساقين",
+      "category": "legs-feet",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "knees-adjust",
+      "name": "Adjust Knee Curves",
+      "nameAr": "ضبط انحناء الركبتين",
+      "category": "legs-feet",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "ankles-slim",
+      "name": "Slim Ankles",
+      "nameAr": "تصغير الكاحلين",
+      "category": "legs-feet",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arms-slim",
+      "name": "Slim Arms",
+      "nameAr": "تنحيف الذراعين",
+      "category": "arms-shoulders",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arms-bulk",
+      "name": "Bulk Arms",
+      "nameAr": "تضخيم الذراعين",
+      "category": "arms-shoulders",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shoulders-adjust",
+      "name": "Adjust Shoulders",
+      "nameAr": "توسيع أو تصغير الكتفين",
+      "category": "arms-shoulders",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "elbows-smooth",
+      "name": "Smooth Elbows",
+      "nameAr": "تنعيم المرفقين",
+      "category": "arms-shoulders",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "hands-slim",
+      "name": "Slim Hands",
+      "nameAr": "تصغير اليدين",
+      "category": "arms-shoulders",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "arms-lengthen",
+      "name": "Lengthen Arms",
+      "nameAr": "تطويل الذراعين",
+      "category": "arms-shoulders",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "face-resize",
+      "name": "Resize Face",
+      "nameAr": "تكبير/تصغير الوجه",
+      "category": "head-face",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "cheeks-lift",
+      "name": "Lift Cheeks",
+      "nameAr": "رفع الخدين",
+      "category": "head-face",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "jaw-slim",
+      "name": "Slim Jaw",
+      "nameAr": "تنحيف الفك",
+      "category": "head-face",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "forehead-widen",
+      "name": "Widen Forehead",
+      "nameAr": "توسيع الجبهة",
+      "category": "head-face",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "ears-adjust",
+      "name": "Adjust Ears",
+      "nameAr": "تعديل الأذنين",
+      "category": "head-face",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "face-symmetry",
+      "name": "Face Symmetry",
+      "nameAr": "ضبط التماثل الوجهي",
+      "category": "head-face",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "freeform-brush",
+      "name": "Manual Brush",
+      "nameAr": "أداة الفرشاة اليدوية",
+      "category": "freeform",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "freeform-warp",
+      "name": "Free Warp",
+      "nameAr": "أداة التشويه الحر",
+      "category": "freeform",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "freeform-curve",
+      "name": "Curve Tool",
+      "nameAr": "أداة المنحنى",
+      "category": "freeform",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "freeform-mirror",
+      "name": "Mirror/Flip",
+      "nameAr": "أداة عكس الجهة",
+      "category": "freeform",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "freeform-highlighter",
+      "name": "Before/After Highlighter",
+      "nameAr": "أداة التظليل قبل/بعد",
+      "category": "freeform",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "freeform-reset",
+      "name": "Reset Areas",
+      "nameAr": "أداة إعادة الشكل الأصلي",
+      "category": "freeform",
+      "status": "MISSING_ENGINE"
+    }
+  ],
+  "morphCore": [
+    {
+      "id": "resize_body",
+      "name": "تغيير حجم الجسم",
+      "nameEn": "Resize Body",
+      "category": "body_scale",
+      "executable": "resize_body.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "enlarge_upper_body",
+      "name": "تكبير الجزء العلوي",
+      "nameEn": "Enlarge Upper Body",
+      "category": "body_scale",
+      "executable": "enlarge_upper_body.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "enlarge_lower_body",
+      "name": "تكبير الجزء السفلي",
+      "nameEn": "Enlarge Lower Body",
+      "category": "body_scale",
+      "executable": "enlarge_lower_body.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shrink_body",
+      "name": "تصغير الجسم",
+      "nameEn": "Shrink Body",
+      "category": "body_scale",
+      "executable": "shrink_body.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "extend_height",
+      "name": "زيادة الطول",
+      "nameEn": "Extend Height",
+      "category": "body_scale",
+      "executable": "extend_height.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shorten_height",
+      "name": "تقصير الطول",
+      "nameEn": "Shorten Height",
+      "category": "body_scale",
+      "executable": "shorten_height.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "widen_body",
+      "name": "توسيع الجسم",
+      "nameEn": "Widen Body",
+      "category": "body_scale",
+      "executable": "widen_body.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "narrow_body",
+      "name": "تضييق الجسم",
+      "nameEn": "Narrow Body",
+      "category": "body_scale",
+      "executable": "narrow_body.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shrink_waist",
+      "name": "تصغير الخصر",
+      "nameEn": "Shrink Waist",
+      "category": "waist_tools",
+      "executable": "shrink_waist.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "flatten_belly",
+      "name": "تسطيح البطن",
+      "nameEn": "Flatten Belly",
+      "category": "waist_tools",
+      "executable": "flatten_belly.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "curve_waist",
+      "name": "منحنى الخصر",
+      "nameEn": "Curve Waist",
+      "category": "waist_tools",
+      "executable": "curve_waist.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "expand_belly",
+      "name": "توسيع البطن",
+      "nameEn": "Expand Belly",
+      "category": "waist_tools",
+      "executable": "expand_belly.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "tighten_core",
+      "name": "شد العضلات الأساسية",
+      "nameEn": "Tighten Core",
+      "category": "waist_tools",
+      "executable": "tighten_core.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "drop_hips",
+      "name": "خفض الأرداف",
+      "nameEn": "Drop Hips",
+      "category": "waist_tools",
+      "executable": "drop_hips.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "lift_chest",
+      "name": "رفع الصدر",
+      "nameEn": "Lift Chest",
+      "category": "chest_tools",
+      "executable": "lift_chest.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shrink_chest",
+      "name": "تصغير الصدر",
+      "nameEn": "Shrink Chest",
+      "category": "chest_tools",
+      "executable": "shrink_chest.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "enlarge_chest",
+      "name": "تكبير الصدر",
+      "nameEn": "Enlarge Chest",
+      "category": "chest_tools",
+      "executable": "enlarge_chest.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "reshape_chest",
+      "name": "إعادة تشكيل ��لصدر",
+      "nameEn": "Reshape Chest",
+      "category": "chest_tools",
+      "executable": "reshape_chest.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "symmetry_chest",
+      "name": "تماثل الصدر",
+      "nameEn": "Symmetry Chest",
+      "category": "chest_tools",
+      "executable": "symmetry_chest.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "flatten_chest",
+      "name": "تسطيح الصدر",
+      "nameEn": "Flatten Chest",
+      "category": "chest_tools",
+      "executable": "flatten_chest.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "enlarge_hips",
+      "name": "تكبير الأرداف",
+      "nameEn": "Enlarge Hips",
+      "category": "hips_tools",
+      "executable": "enlarge_hips.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "lift_hips",
+      "name": "رفع الأرداف",
+      "nameEn": "Lift Hips",
+      "category": "hips_tools",
+      "executable": "lift_hips.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shrink_hips",
+      "name": "تصغير الأرداف",
+      "nameEn": "Shrink Hips",
+      "category": "hips_tools",
+      "executable": "shrink_hips.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "smooth_thighs",
+      "name": "تنعيم الفخذين",
+      "nameEn": "Smooth Thighs",
+      "category": "hips_tools",
+      "executable": "smooth_thighs.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "slim_thighs",
+      "name": "تنحيف الفخذين",
+      "nameEn": "Slim Thighs",
+      "category": "hips_tools",
+      "executable": "slim_thighs.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "enhance_hips_shape",
+      "name": "تحسين شكل الأرداف",
+      "nameEn": "enhance Hips Shape",
+      "category": "hips_tools",
+      "executable": "enhance_hips_shape.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "lengthen_legs",
+      "name": "إطالة الساقين",
+      "nameEn": "Lengthen Legs",
+      "category": "legs_tools",
+      "executable": "lengthen_legs.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shorten_legs",
+      "name": "تقصير الساقين",
+      "nameEn": "Shorten Legs",
+      "category": "legs_tools",
+      "executable": "shorten_legs.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "slim_legs",
+      "name": "تنحيف الساقين",
+      "nameEn": "Slim Legs",
+      "category": "legs_tools",
+      "executable": "slim_legs.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "thicken_legs",
+      "name": "تسمين الساقين",
+      "nameEn": "Thicken Legs",
+      "category": "legs_tools",
+      "executable": "thicken_legs.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "adjust_knees",
+      "name": "تعديل الركبتين",
+      "nameEn": "Adjust Knees",
+      "category": "legs_tools",
+      "executable": "adjust_knees.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "reduce_ankles",
+      "name": "تنحيف الكاحلين",
+      "nameEn": "Reduce Ankles",
+      "category": "legs_tools",
+      "executable": "reduce_ankles.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "tone_arms",
+      "name": "شد الذراعين",
+      "nameEn": "Tone Arms",
+      "category": "arms_tools",
+      "executable": "tone_arms.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "bulk_arms",
+      "name": "تضخيم الذراعين",
+      "nameEn": "Bulk Arms",
+      "category": "arms_tools",
+      "executable": "bulk_arms.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "resize_shoulders",
+      "name": "تغيير حجم الكتفين",
+      "nameEn": "Resize Shoulders",
+      "category": "arms_tools",
+      "executable": "resize_shoulders.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "smooth_elbows",
+      "name": "تنعيم المرفقين",
+      "nameEn": "Smooth Elbows",
+      "category": "arms_tools",
+      "executable": "smooth_elbows.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shrink_hands",
+      "name": "تصغير اليدين",
+      "nameEn": "Shrink Hands",
+      "category": "arms_tools",
+      "executable": "shrink_hands.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "stretch_arms",
+      "name": "إطالة الذراعين",
+      "nameEn": "Stretch Arms",
+      "category": "arms_tools",
+      "executable": "stretch_arms.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "resize_face",
+      "name": "تغيير حجم الوجه",
+      "nameEn": "Resize Face",
+      "category": "face_tools",
+      "executable": "resize_face.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "lift_cheeks",
+      "name": "رفع الخدود",
+      "nameEn": "Lift Cheeks",
+      "category": "face_tools",
+      "executable": "lift_cheeks.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "shrink_jaw",
+      "name": "تصغير الفك",
+      "nameEn": "Shrink Jaw",
+      "category": "face_tools",
+      "executable": "shrink_jaw.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "widen_forehead",
+      "name": "توسيع الجبهة",
+      "nameEn": "Widen Forehead",
+      "category": "face_tools",
+      "executable": "widen_forehead.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "adjust_ears",
+      "name": "تعديل الأذنين",
+      "nameEn": "Adjust Ears",
+      "category": "face_tools",
+      "executable": "adjust_ears.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "symmetry_face",
+      "name": "تماثل الوجه",
+      "nameEn": "Symmetry Face",
+      "category": "face_tools",
+      "executable": "symmetry_face.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "mirror_flip",
+      "name": "انعكاس مرآة",
+      "nameEn": "Mirror Flip",
+      "category": "misc_tools",
+      "executable": "mirror_flip.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "manual_sculpt",
+      "name": "النحت اليدوي",
+      "nameEn": "Manual Sculpt",
+      "category": "misc_tools",
+      "executable": "manual_sculpt.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "warp_tool",
+      "name": "أداة التشويه",
+      "nameEn": "Warp Tool",
+      "category": "misc_tools",
+      "executable": "warp_tool.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "curve_tool",
+      "name": "أداة المنحنيات",
+      "nameEn": "Curve Tool",
+      "category": "misc_tools",
+      "executable": "curve_tool.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "reset_body",
+      "name": "إعادة تعيين",
+      "nameEn": "Reset Body",
+      "category": "misc_tools",
+      "executable": "reset_body.exe",
+      "status": "MISSING_ENGINE"
+    },
+    {
+      "id": "area_highlighter",
+      "name": "تحديد المناطق",
+      "nameEn": "Area Highlighter",
+      "category": "misc_tools",
+      "executable": "area_highlighter.exe",
+      "status": "MISSING_ENGINE"
+    }
+  ],
+  "toolbox": [
+    {
+      "id": "image-resizer",
+      "name": "Image Resizer",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "image-filter",
+      "name": "Image Filters",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "image-format-converter",
+      "name": "Format Converter",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "video-thumbnail",
+      "name": "Video Thumbnail",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "audio-visualizer",
+      "name": "Audio Visualizer",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "text-generator",
+      "name": "Text Image Generator",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "qr-generator",
+      "name": "QR Code Generator",
+      "status": "BLOCKED"
+    },
+    {
+      "id": "color-palette",
+      "name": "Color Palette Extractor",
+      "status": "BLOCKED"
+    }
+  ],
+  "templates": {
+    "base": [
+      {
+        "id": "modern-intro-1",
+        "status": "BLOCKED"
+      },
+      {
+        "id": "neon-intro-2",
+        "status": "BLOCKED"
+      },
+      {
+        "id": "minimalist-outro-1",
+        "status": "BLOCKED"
+      },
+      {
+        "id": "education-slide-1",
+        "status": "BLOCKED"
+      },
+      {
+        "id": "business-promo-1",
+        "status": "BLOCKED"
+      }
+    ],
+    "generated": [
+      {
+        "id": "for-you-generated-1",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-2",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-3",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-4",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-5",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-6",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-7",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-8",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-9",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-10",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-11",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-12",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-13",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-14",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "for-you-generated-15",
+        "category": "for-you",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-1",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-2",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-3",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-4",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-5",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-6",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-7",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "birthday-generated-8",
+        "category": "birthday",
+        "status": "MOCK"
+      },
+      {
+        "id": "festival-generated-1",
+        "category": "festival",
+        "status": "MOCK"
+      },
+      {
+        "id": "festival-generated-2",
+        "category": "festival",
+        "status": "MOCK"
+      },
+      {
+        "id": "festival-generated-3",
+        "category": "festival",
+        "status": "MOCK"
+      },
+      {
+        "id": "festival-generated-4",
+        "category": "festival",
+        "status": "MOCK"
+      },
+      {
+        "id": "festival-generated-5",
+        "category": "festival",
+        "status": "MOCK"
+      },
+      {
+        "id": "festival-generated-6",
+        "category": "festival",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-1",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-2",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-3",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-4",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-5",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-6",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-7",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-8",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-9",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "vlog-generated-10",
+        "category": "vlog",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-1",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-2",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-3",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-4",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-5",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-6",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-7",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-8",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-9",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-10",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-11",
+        "category": "social-media",
+        "status": "MOCK"
+      },
+      {
+        "id": "social-media-generated-12",
+        "category": "social-media",
+        "status": "MOCK"
+      }
+    ]
+  },
+  "models": [
+    {
+      "id": "animatediff",
+      "name": "AnimateDiff Motion Generation",
+      "version": "1.0.0",
+      "manifest": "public/models/animatediff/model.json",
+      "expectedWeights": "public/models/animatediff/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "bark_tts",
+      "name": "Bark Local Text-to-Speech",
+      "version": "1.0.0",
+      "manifest": "public/models/bark_tts/model.json",
+      "expectedWeights": "public/models/bark_tts/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "beat_detector",
+      "name": "AI Beat Detection",
+      "version": "1.0.0",
+      "manifest": "public/models/beat_detector/model.json",
+      "expectedWeights": "public/models/beat_detector/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "face_detection",
+      "name": "face_detection",
+      "version": null,
+      "manifest": "public/models/face_detection/model.json",
+      "expectedWeights": "public/models/face_detection/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "gpt4all",
+      "name": "GPT4All Local Text Generation",
+      "version": "1.0.0",
+      "manifest": "public/models/gpt4all/model.json",
+      "expectedWeights": "public/models/gpt4all/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "llama2",
+      "name": "LLaMA2 Local Language Model",
+      "version": "7B-Chat",
+      "manifest": "public/models/llama2/model.json",
+      "expectedWeights": "public/models/llama2/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "m2m100",
+      "name": "M2M100 Multilingual Translation",
+      "version": "418M",
+      "manifest": "public/models/m2m100/model.json",
+      "expectedWeights": "public/models/m2m100/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "modnet",
+      "name": "MODNet Background Removal",
+      "version": "1.0.0",
+      "manifest": "public/models/modnet/model.json",
+      "expectedWeights": "public/models/modnet/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "real_esrgan",
+      "name": "Real-ESRGAN Local Image Enhancement",
+      "version": "2.0.0",
+      "manifest": "public/models/real_esrgan/model.json",
+      "expectedWeights": "public/models/real_esrgan/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "rnnoise",
+      "name": "RNNoise Audio Denoising",
+      "version": "1.0.0",
+      "manifest": "public/models/rnnoise/model.json",
+      "expectedWeights": "public/models/rnnoise/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "sadtalker",
+      "name": "SadTalker Talking Avatar",
+      "version": "1.0.0",
+      "manifest": "public/models/sadtalker/model.json",
+      "expectedWeights": "public/models/sadtalker/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "sam",
+      "name": "SAM (Segment Anything Model)",
+      "version": "1.0.0",
+      "manifest": "public/models/sam/model.json",
+      "expectedWeights": "public/models/sam/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "scenecut",
+      "name": "SceneCut AI Transition",
+      "version": "1.0.0",
+      "manifest": "public/models/scenecut/model.json",
+      "expectedWeights": "public/models/scenecut/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "selfie_segmentation",
+      "name": "selfie_segmentation",
+      "version": null,
+      "manifest": "public/models/selfie_segmentation/model.json",
+      "expectedWeights": "public/models/selfie_segmentation/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "simswap",
+      "name": "SimSwap Local Face Swap",
+      "version": "1.0.0",
+      "manifest": "public/models/simswap/model.json",
+      "expectedWeights": "public/models/simswap/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "sovits",
+      "name": "So-VITS Voice Conversion",
+      "version": "4.0",
+      "manifest": "public/models/sovits/model.json",
+      "expectedWeights": "public/models/sovits/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "spleeter",
+      "name": "Spleeter Audio Source Separation",
+      "version": "2-stems",
+      "manifest": "public/models/spleeter/model.json",
+      "expectedWeights": "public/models/spleeter/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "stable_diffusion",
+      "name": "Stable Diffusion Local Image Generation",
+      "version": "1.5.0",
+      "manifest": "public/models/stable_diffusion/model.json",
+      "expectedWeights": "public/models/stable_diffusion/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "super_resolution",
+      "name": "super_resolution",
+      "version": null,
+      "manifest": "public/models/super_resolution/model.json",
+      "expectedWeights": "public/models/super_resolution/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "u2net",
+      "name": "U-2-Net Local Background Removal",
+      "version": "1.0.0",
+      "manifest": "public/models/u2net/model.json",
+      "expectedWeights": "public/models/u2net/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "videocrafter",
+      "name": "VideoCrafter Local Video Generation",
+      "version": "1.0.0",
+      "manifest": "public/models/videocrafter/model.json",
+      "expectedWeights": "public/models/videocrafter/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "wav2lip",
+      "name": "Wav2Lip Lip Synchronization",
+      "version": "1.0.0",
+      "manifest": "public/models/wav2lip/model.json",
+      "expectedWeights": "public/models/wav2lip/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "whisper",
+      "name": "Whisper Local Speech Recognition",
+      "version": "1.0.0",
+      "manifest": "public/models/whisper/model.json",
+      "expectedWeights": "public/models/whisper/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    },
+    {
+      "id": "yolo",
+      "name": "YOLOv8 Local Object Detection",
+      "version": "8.0.0",
+      "manifest": "public/models/yolo/model.json",
+      "expectedWeights": "public/models/yolo/weights.bin",
+      "weightsPresent": false,
+      "status": "MISSING_MODEL"
+    }
+  ]
+}

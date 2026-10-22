@@ -2,15 +2,43 @@
 
 // KNOUX REC - EXE Creator Script
 // سكريبت إنشاء ملف تنفيذي لـ KNOUX REC
+//
+// ============================ QUARANTINED ============================
+// This script is kept only for reference. It generates a DIFFERENT and
+// UNSAFE desktop shell than the shipped product:
+//
+//   * nodeIntegration: true
+//   * contextIsolation: false
+//   * webSecurity: false
+//   * app.commandLine.appendSwitch("ignore-certificate-errors")
+//   * app.commandLine.appendSwitch("disable-web-security")
+//   * mainWindow.webContents.executeJavaScript(...) driven from the main process
+//
+// The real desktop shell lives in ../knoux-rec-app/main.cjs and is hardened
+// (contextIsolation, sandbox, CSP, sender validation). Never ship the output
+// of this file, and never run it in a release pipeline.
+//
+// Run it only if you explicitly want the legacy insecure build:
+//   node legacy/create-exe.cjs --I-understand-this-is-insecure
+// =====================================================================
 
 const fs = require("fs");
 const path = require("path");
 
-console.log("🎬 KNOUX REC - مولد الملف التنفيذي");
+const CONFIRM_FLAG = "--I-understand-this-is-insecure";
+
+if (!process.argv.includes(CONFIRM_FLAG)) {
+  console.error("This legacy generator produces an insecure Electron shell.");
+  console.error("It is quarantined in legacy/ and is not part of the release path.");
+  console.error(`Re-run with: node legacy/create-exe.cjs ${CONFIRM_FLAG}`);
+  process.exit(2);
+}
+
+console.log("🎬 KNOUX REC - مولد الملف التنفيذي (LEGACY / INSECURE)");
 console.log("=====================================");
 
 // قراءة ملف HTML
-const htmlPath = path.join(__dirname, "knoux-rec-standalone.html");
+const htmlPath = path.join(__dirname, "..", "knoux-rec-standalone.html");
 if (!fs.existsSync(htmlPath)) {
   console.error("❌ لم يتم العثور على ملف knoux-rec-standalone.html");
   process.exit(1);
