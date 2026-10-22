@@ -70,14 +70,12 @@ export interface TemplateRenderSettings {
 
 export class RealTemplateEngine {
   private templates: Map<string, RealTemplate> = new Map();
-  private renderCanvas: HTMLCanvasElement;
-  private renderContext: CanvasRenderingContext2D;
-  private audioContext: AudioContext;
+  private renderCanvas!: HTMLCanvasElement;
+  private renderContext!: CanvasRenderingContext2D;
   private loadedAssets: Map<string, any> = new Map();
 
   constructor() {
     this.initializeCanvas();
-    this.initializeAudioContext();
     this.loadRealTemplates();
   }
 
@@ -95,17 +93,6 @@ export class RealTemplateEngine {
     this.renderContext = context;
     this.renderContext.imageSmoothingEnabled = true;
     this.renderContext.imageSmoothingQuality = "high";
-  }
-
-  // تهيئة سياق الصوت
-  private initializeAudioContext(): void {
-    try {
-      const AudioContext =
-        window.AudioContext || (window as any).webkitAudioContext;
-      this.audioContext = new AudioContext();
-    } catch (error) {
-      console.warn("فشل في تهيئة سياق الصوت:", error);
-    }
   }
 
   // تحميل القوالب الحقيقية
@@ -794,7 +781,7 @@ export class RealTemplateEngine {
   private async renderElement(
     element: RealTemplateElement,
     customizations: Record<string, any>,
-    settings: TemplateRenderSettings,
+    _settings: TemplateRenderSettings,
   ): Promise<void> {
     this.renderContext.save();
 
@@ -1096,7 +1083,7 @@ export class RealTemplateEngine {
 
   // إنشاء تدرج
   private createGradient(
-    gradientString: string,
+    _gradientString: string,
     element: RealTemplateElement,
   ): CanvasGradient {
     // تحليل string التدرج المبسط
@@ -1198,7 +1185,7 @@ export class RealTemplateEngine {
       settings,
     );
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       canvas.toBlob(
         (blob) => {
           if (blob) {

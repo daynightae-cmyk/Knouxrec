@@ -93,12 +93,12 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "templates",
     group: "create",
     labelKey: "templates",
-    state: "BLOCKED",
+    state: "PARTIAL",
     summary:
-      "Template browser preserved, but it is not mounted: its dependency graph does not compile or run as shipped.",
-    requirements: ["Repaired VisualPatchToolCard exports", "Runtime verification"],
+      "Five templates render real frames through the preserved engine; the 51 generated entries stay labelled as mock because they carry no template content.",
+    requirements: ["Canvas 2D renderer", "A video encoder for real video export"],
     evidence:
-      "components/TemplatesPanel.tsx imports a VisualPatchTool export that does not exist; its tool cards call missing service methods.",
+      "services/realTemplateEngine.ts draws the elements of each template onto a canvas; the export is a PNG frame because no video encoder ships with this build.",
   },
   toolbox: {
     id: "toolbox",
