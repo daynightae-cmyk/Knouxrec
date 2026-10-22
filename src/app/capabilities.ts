@@ -115,12 +115,12 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "visual-patch",
     group: "create",
     labelKey: "visualPatch",
-    state: "BLOCKED",
+    state: "PARTIAL",
     summary:
-      "Region-based image editor preserved, but it is not mounted because its processing pipeline is incomplete.",
-    requirements: ["Repaired processor methods", "Runtime pixel diffing"],
+      "Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export.",
+    requirements: ["An image to edit"],
     evidence:
-      "components/VisualPatchLabPanel.tsx and VisualPatchToolCard.tsx call extractAudio/detectObjects/applyStyle methods that do not exist on the services.",
+      "services/visualPatchLabService.ts applies the pinch, warp, sculpt, brush, smooth, curve and mirror processors to the painted region; the exported PNG comes from the same canvas.",
   },
   morphcore: {
     id: "morphcore",

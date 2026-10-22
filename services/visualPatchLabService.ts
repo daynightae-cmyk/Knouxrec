@@ -8,10 +8,8 @@ import {
   EditRegion,
   Point2D,
   ToolSettings,
-  CanvasState,
   EditHistory,
   ExportOptions,
-  BeforeAfterComparison,
   ALL_VISUAL_PATCH_TOOLS,
 } from "../types/visualPatchLab";
 
@@ -21,7 +19,6 @@ class VisualPatchLabService {
   private originalCanvas: HTMLCanvasElement;
   private originalCtx: CanvasRenderingContext2D;
   private previewCanvas: HTMLCanvasElement;
-  private previewCtx: CanvasRenderingContext2D;
 
   private currentSession: EditSession | null = null;
   private history: EditHistory = {
@@ -37,7 +34,6 @@ class VisualPatchLabService {
     this.originalCanvas = document.createElement("canvas");
     this.originalCtx = this.originalCanvas.getContext("2d")!;
     this.previewCanvas = document.createElement("canvas");
-    this.previewCtx = this.previewCanvas.getContext("2d")!;
   }
 
   // Session Management
@@ -107,7 +103,12 @@ class VisualPatchLabService {
     if (!tool) return;
 
     // Save current state for undo
-    const beforeSnapshot = this.canvas.toDataURL();
+    const beforeSnapshot = this.ctx.getImageData(
+      0,
+      0,
+      this.canvas.width,
+      this.canvas.height,
+    );
 
     try {
       // Apply tool based on edit mode
@@ -138,7 +139,12 @@ class VisualPatchLabService {
           break;
       }
 
-      const afterSnapshot = this.canvas.toDataURL();
+      const afterSnapshot = this.ctx.getImageData(
+        0,
+        0,
+        this.canvas.width,
+        this.canvas.height,
+      );
 
       // Create operation record
       const operation: EditOperation = {
@@ -153,7 +159,7 @@ class VisualPatchLabService {
 
       this.addToHistory(operation);
       this.currentSession.lastModified = new Date();
-      this.currentSession.currentImage = afterSnapshot;
+      this.currentSession.currentImage = this.canvas.toDataURL();
     } catch (error) {
       console.error("Tool application failed:", error);
       throw error;
@@ -517,7 +523,7 @@ class VisualPatchLabService {
 
   // Smooth Tool - For softening
   private async applySmoothTool(
-    tool: VisualPatchTool,
+    _tool: VisualPatchTool,
     regions: EditRegion[],
     settings: ToolSettings,
   ): Promise<void> {
@@ -560,21 +566,13 @@ class VisualPatchLabService {
 
   // Mirror Tool - For symmetry
   private async applyMirrorTool(
-    tool: VisualPatchTool,
+    _tool: VisualPatchTool,
     regions: EditRegion[],
-    settings: ToolSettings,
+    _settings: ToolSettings,
   ): Promise<void> {
     for (const region of regions) {
       const bounds = this.getRegionBounds(region.points);
       const centerX = (bounds.left + bounds.right) / 2;
-
-      // Get left side of the region
-      const leftImageData = this.ctx.getImageData(
-        bounds.left,
-        bounds.top,
-        centerX - bounds.left,
-        bounds.bottom - bounds.top,
-      );
 
       // Mirror to right side
       this.ctx.save();
@@ -596,7 +594,7 @@ class VisualPatchLabService {
 
   // Drag Tool - For position adjustments
   private async applyDragTool(
-    tool: VisualPatchTool,
+    _tool: VisualPatchTool,
     regions: EditRegion[],
     settings: ToolSettings,
   ): Promise<void> {
@@ -676,7 +674,7 @@ class VisualPatchLabService {
   }
 
   private applyGaussianBlur(
-    center: Point2D,
+    _center: Point2D,
     radius: number,
     intensity: number,
   ): void {
@@ -813,7 +811,7 @@ class VisualPatchLabService {
     end: Point2D,
     radius: number,
     intensity: number,
-    toolId: string,
+    _toolId: string,
   ): void {
     const imageData = this.ctx.getImageData(
       0,
@@ -1010,10 +1008,13 @@ class VisualPatchLabService {
   }
 
   // Undo/Redo
+  // Snapshots are stored as ImageData and restored synchronously with
+  // putImageData. This avoids loading a data URL through an  element,
+  // which is asynchronous and unreliable in headless Chrome.
   undo(): boolean {
     if (this.history.currentIndex >= 0) {
       const operation = this.history.operations[this.history.currentIndex];
-      this.loadImageFromBase64(operation.beforeSnapshot);
+      this.ctx.putImageData(operation.beforeSnapshot, 0, 0);
       this.history.currentIndex--;
       this.history.hasUnsavedChanges = true;
       return true;
@@ -1025,17 +1026,11 @@ class VisualPatchLabService {
     if (this.history.currentIndex < this.history.operations.length - 1) {
       this.history.currentIndex++;
       const operation = this.history.operations[this.history.currentIndex];
-      this.loadImageFromBase64(operation.afterSnapshot);
+      this.ctx.putImageData(operation.afterSnapshot, 0, 0);
       this.history.hasUnsavedChanges = true;
       return true;
     }
     return false;
-  }
-
-  private async loadImageFromBase64(base64: string): Promise<void> {
-    const img = await this.loadImage(base64);
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.drawImage(img, 0, 0);
   }
 
   // Export and Utility Methods
