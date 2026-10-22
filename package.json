@@ -38,7 +38,7 @@
     "smoke:electron": "node scripts/electron-smoke.mjs",
     "smoke:packaged": "node scripts/packaged-smoke.mjs",
     "smoke:elysian": "node scripts/elysian-smoke.mjs",
-    "smoke:all": "npm run smoke:ui && npm run smoke:recording && npm run smoke:screen && npm run smoke:error && npm run smoke:electron && npm run smoke:packaged && npm run smoke:elysian",
+    "smoke:all": "npm run smoke:ui && npm run smoke:recording && npm run smoke:screen && npm run smoke:error && npm run smoke:electron && npm run smoke:packaged && npm run smoke:elysian && npm run smoke:toolbox",
     "verify": "npm run type-check && npm run lint && npm run check:i18n && npm test && npm run build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
@@ -59,7 +59,8 @@
     "setup": "npm run install:deps && npm run type-check",
     "dev:debug": "vite --host --debug",
     "build:analyze": "npm run build && npm run analyze",
-    "health-check": "npm run type-check && npm run lint"
+    "health-check": "npm run type-check && npm run lint",
+    "smoke:toolbox": "node scripts/toolbox-smoke.mjs"
   },
   "dependencies": {
     "react": "^19.1.0",

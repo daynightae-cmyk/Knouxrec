@@ -26,6 +26,7 @@ import DiagnosticsView from "../views/DiagnosticsView";
 import ModelsView from "../views/ModelsView";
 import UnavailableView from "../views/UnavailableView";
 import ToolSection from "../views/ToolSection";
+import ToolboxView from "../views/ToolboxView";
 
 const ElysianCanvas = lazy(() => import("../../elysian-canvas/ElysianCanvas"));
 
@@ -274,13 +275,14 @@ export default function AppRoot() {
       case "models":
         return <ModelsView />;
       case "templates":
-      case "toolbox":
       case "visual-patch":
       case "morphcore":
       case "body-editor":
       case "offline-ai":
       case "arabic-ai":
         return <UnavailableView route={route} />;
+      case "toolbox":
+        return <ToolboxView />;
       case "elysian":
         return (
           <div className="kx-content">

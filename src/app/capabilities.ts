@@ -104,12 +104,12 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "toolbox",
     group: "create",
     labelKey: "toolbox",
-    state: "BLOCKED",
+    state: "VERIFIED",
     summary:
-      "Media utility panel preserved, but it is not mounted: the shared tool card has no default export and broken handlers.",
-    requirements: ["Repaired VisualPatchToolCard", "Per-tool runtime verification"],
+      "Eight local media utilities with real processors: resize, filters, format conversion, video thumbnail, waveform, text image, QR code and colour palette.",
+    requirements: ["Canvas 2D encoder", "Web Audio decoder for the visualiser"],
     evidence:
-      "components/ToolboxPanel.tsx default-imports VisualPatchToolCard, which only exposes named exports; handlers call absent processor APIs.",
+      "src/services/mediaTools.ts produces encoded bytes through the browser encoders; the QR encoder is verified by an independent decoder in src/services/qrCode.test.ts and the pixel maths by src/services/mediaTools.test.ts.",
   },
   "visual-patch": {
     id: "visual-patch",
