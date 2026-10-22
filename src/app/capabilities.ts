@@ -163,20 +163,21 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "offlineAI",
     state: "MISSING_MODEL",
     summary:
-      "38-tool catalog recovered. The previous service returned synthetic images/transcripts; it is now marked unavailable instead of faking output.",
-    requirements: ["Model weights", "Inference runtime"],
+      "One unified catalog of 38 on-device tasks with their real model requirement; no task can run until its weight binaries exist.",
+    requirements: ["Weight binaries", "Inference runtime"],
     evidence:
-      "Weights binaries are absent from public/models; the old service produced canvas placeholders.",
+      "src/data/aiCatalog.ts merges the English and Arabic catalogs into 38 canonical tasks; the Model Manager measures the weight payload from the manifests.",
   },
   "arabic-ai": {
     id: "arabic-ai",
     group: "intelligence",
     labelKey: "arabicAI",
-    state: "MISSING_ENGINE",
+    state: "MISSING_MODEL",
     summary:
-      "38-tool Arabic catalog preserved for future engines; the prior handler only waited and logged.",
-    requirements: ["Per-tool inference engine"],
-    evidence: "components/ArabicAIToolsPanel.tsx handleToolRun performed no processing.",
+      "The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel.",
+    requirements: ["Weight binaries", "Inference runtime"],
+    evidence:
+      "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired.",
   },
   models: {
     id: "models",

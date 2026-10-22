@@ -2,7 +2,7 @@
 @import "./src/luxuryStyles.css";
 @import "./src/arabicFonts.css";
 @import "./src/design-system.css";
-@import "./src/toolbox.css";
+@import "./src/workspaces.css";
 
 /* Import Tailwind CSS */
 @tailwind base;
