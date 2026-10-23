@@ -171,7 +171,7 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
       "One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist.",
     requirements: ["Weight binaries for the 23 model tasks", "Inference runtime"],
     evidence:
-      "src/services/aiTasks.ts executes 15 tasks for real and src/services/aiDsp.ts is unit tested; scripts/ai-tools-smoke.mjs runs them in Chromium and inspects the produced bytes.",
+      "scripts/ai-tools-smoke.mjs now runs in the standard suite (79 checks): every deterministic task executes in Chromium with real fixtures, saves and downloads its bytes, rejects wrong input, cancels cleanly and leaves model tasks blocked.",
   },
   "arabic-ai": {
     id: "arabic-ai",
@@ -182,7 +182,7 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
       "The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too.",
     requirements: ["Weight binaries for the 23 model tasks", "Inference runtime"],
     evidence:
-      "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired; scripts/ai-tools-smoke.mjs runs a task on the Arabic route.",
+      "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired; ai-tools-smoke runs a task on the Arabic route and asserts the RTL shell, localized runner labels and identical output bytes.",
   },
   models: {
     id: "models",

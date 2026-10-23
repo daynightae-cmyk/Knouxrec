@@ -38,7 +38,7 @@
     "smoke:electron": "node scripts/electron-smoke.mjs",
     "smoke:packaged": "node scripts/packaged-smoke.mjs",
     "smoke:elysian": "node scripts/elysian-smoke.mjs",
-    "smoke:all": "npm run smoke:ui && npm run smoke:recording && npm run smoke:screen && npm run smoke:error && npm run smoke:electron && npm run smoke:packaged && npm run smoke:elysian && npm run smoke:toolbox && npm run smoke:ai && npm run smoke:templates && npm run smoke:visual-patch && npm run smoke:live-studio",
+    "smoke:all": "npm run smoke:ui && npm run smoke:recording && npm run smoke:screen && npm run smoke:error && npm run smoke:electron && npm run smoke:packaged && npm run smoke:elysian && npm run smoke:toolbox && npm run smoke:ai && npm run smoke:ai-tools && npm run smoke:templates && npm run smoke:visual-patch && npm run smoke:live-studio",
     "verify": "npm run type-check && npm run lint && npm run check:i18n && npm test && npm run build",
     "check:i18n": "node scripts/check-i18n.mjs",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",

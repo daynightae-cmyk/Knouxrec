@@ -22,7 +22,7 @@ import { mkdir, readFile, readdir, rm } from "node:fs/promises";
 import path from "node:path";
 import puppeteer from "puppeteer-core";
 
-const BASE = process.env.KNOUX_BASE_URL ?? "http://localhost:4180/";
+const BASE = process.env.KNOUX_BASE_URL ?? "http://localhost:4173/";
 const OUT = path.resolve("artifacts/evidence/ai-tools");
 const DOWNLOADS = path.join(OUT, "downloads");
 const CHROME =
@@ -1289,7 +1289,44 @@ try {
       run.status === "done" && preview.json?.parsed?.sha256 === expectedTextSha,
       { status: run.status, hash: preview.json?.parsed?.sha256 },
     );
+
+    // The shell must localize the runner surface, not just the catalog card.
+    await page.evaluate(() => {
+      const toggle = [...document.querySelectorAll("button")].find(
+        (element) => element.textContent?.trim() === "AR",
+      );
+      toggle?.click();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    const arabic = await page.evaluate(() => ({
+      dir: document.documentElement.dir,
+      lang: document.documentElement.lang,
+      overflow:
+        document.documentElement.scrollWidth - document.documentElement.clientWidth,
+      body: document.body.innerText.slice(0, 6000),
+    }));
+    check(
+      "Arabic route: RTL shell with localized runner labels",
+      arabic.dir === "rtl" &&
+        arabic.lang === "ar" &&
+        /تشغيل هذه المهمة|محرك محلي/.test(arabic.body),
+      { dir: arabic.dir, lang: arabic.lang },
+    );
+    check(
+      "Arabic route: no horizontal overflow",
+      arabic.overflow <= 0,
+      arabic.overflow,
+    );
     await page.screenshot({ path: path.join(OUT, "07-arabic-route.png"), fullPage: false });
+
+    // Restore English so later checks and evidence screenshots stay stable.
+    await page.evaluate(() => {
+      const toggle = [...document.querySelectorAll("button")].find(
+        (element) => element.textContent?.trim() === "EN",
+      );
+      toggle?.click();
+    });
+    await new Promise((resolve) => setTimeout(resolve, 400));
   }
 
   /* -------------------------------------------------------------- summary */

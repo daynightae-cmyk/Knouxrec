@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-23T22:52:08.962Z",
+  "generatedAt": "2026-10-23T22:58:22.899Z",
   "source": {
     "repository": "https://github.com/daynightae-cmyk/Knouxrec.git",
     "commit": "05a542957a62730301972361c1300ccd7d66ca54",
@@ -133,7 +133,7 @@
         "Weight binaries for the 23 model tasks",
         "Inference runtime"
       ],
-      "evidence": "src/services/aiTasks.ts executes 15 tasks for real and src/services/aiDsp.ts is unit tested; scripts/ai-tools-smoke.mjs runs them in Chromium and inspects the produced bytes."
+      "evidence": "scripts/ai-tools-smoke.mjs now runs in the standard suite (79 checks): every deterministic task executes in Chromium with real fixtures, saves and downloads its bytes, rejects wrong input, cancels cleanly and leaves model tasks blocked."
     },
     {
       "id": "arabic-ai",
@@ -144,7 +144,7 @@
         "Weight binaries for the 23 model tasks",
         "Inference runtime"
       ],
-      "evidence": "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired; scripts/ai-tools-smoke.mjs runs a task on the Arabic route."
+      "evidence": "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired; ai-tools-smoke runs a task on the Arabic route and asserts the RTL shell, localized runner labels and identical output bytes."
     },
     {
       "id": "models",

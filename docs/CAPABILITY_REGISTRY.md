@@ -1,6 +1,6 @@
 # KNOUX REC capability registry
 
-Generated 2026-10-23T22:52:08.962Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
+Generated 2026-10-23T22:58:22.899Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
 
 Counts: routes=16, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
 
