@@ -62,6 +62,7 @@
     "health-check": "npm run type-check && npm run lint",
     "smoke:toolbox": "node scripts/toolbox-smoke.mjs",
     "smoke:ai": "node scripts/ai-smoke.mjs",
+    "smoke:ai-tools": "node scripts/ai-tools-smoke.mjs",
     "smoke:templates": "node scripts/templates-smoke.mjs",
     "smoke:visual-patch": "node scripts/visual-patch-smoke.mjs"
   },
