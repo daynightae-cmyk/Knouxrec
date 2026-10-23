@@ -18,7 +18,6 @@ import { fileURLToPath } from "node:url";
 import {
   createCdpClient,
   evaluate,
-  freePort,
   killTree,
   sleep,
   startAndAttach,
@@ -36,6 +35,8 @@ const result = {
   electron: null,
   attempts: 1,
   gpuFallback: false,
+  stdout: "",
+  stderr: "",
   checks: [],
   consoleErrors: [],
   pageErrors: [],
@@ -48,20 +49,21 @@ function check(name, pass, detail = null) {
   result.checks.push({ name, pass: Boolean(pass), detail });
 }
 
-const port = await freePort();
 const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "knoux-electron-"));
 
 let session = null;
 try {
   session = await startAndAttach({
     executable: electronPath,
-    args: [".", `--remote-debugging-port=${port}`, `--user-data-dir=${userDataDir}`],
+    baseArgs: [".", `--user-data-dir=${userDataDir}`],
     cwd: root,
-    port,
     env: { ...process.env, ELECTRON_ENABLE_LOGGING: "1" },
   });
   result.attempts = session.attempts;
   result.gpuFallback = session.gpuFallback;
+  result.port = session.port;
+  result.stdout = session.stdout ?? "";
+  result.stderr = session.stderr ?? "";
 
   const client = createCdpClient(session.ws, {
     onConsoleError: (message) => result.consoleErrors.push(message),
