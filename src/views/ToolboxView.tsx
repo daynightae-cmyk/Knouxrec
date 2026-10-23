@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon, type IconName } from "../app/icons";
-import { CAPABILITIES } from "../app/capabilities";
+import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { translate } from "../i18n/translate";
 import { useLibrary } from "../state/LibraryContext";
 import { useSettings } from "../state/SettingsContext";
@@ -76,7 +76,11 @@ const DEFAULT_OPTIONS: ToolOptions = {
   count: 6,
 };
 
-export default function ToolboxView() {
+export default function ToolboxView({
+  onNavigate,
+}: {
+  onNavigate: (route: RouteId, jobId?: string) => void;
+}) {
   const { settings } = useSettings();
   const { items, add, urlFor } = useLibrary();
   const { push } = useToast();
@@ -109,6 +113,7 @@ export default function ToolboxView() {
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [studioJobId, setStudioJobId] = useState<string | null>(null);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const tokenRef = useRef<CancellationToken>({ cancelled: false });
@@ -229,6 +234,7 @@ export default function ToolboxView() {
         {
           route: "toolbox",
           token: tokenRef.current,
+          onStart: (id) => setStudioJobId(id),
           onProgress: (update) =>
             setProgress({
               stage: update.stage,
@@ -691,6 +697,17 @@ export default function ToolboxView() {
               >
                 <span style={{ width: `${Math.round(progress.progress * 100)}%` }} />
               </div>
+              {studioJobId && (
+                <button
+                  type="button"
+                  className="kx-btn kx-btn-sm"
+                  style={{ marginTop: 10 }}
+                  onClick={() => onNavigate("live-studio", studioJobId)}
+                >
+                  <Icon name="activity" size={14} />
+                  {t("liveStudio.open")}
+                </button>
+              )}
             </div>
           )}
 
@@ -732,6 +749,16 @@ export default function ToolboxView() {
                   <Icon name="external" size={15} />
                   {t("toolbox.export")}
                 </button>
+                {studioJobId && (
+                  <button
+                    type="button"
+                    className="kx-btn kx-btn-quiet"
+                    onClick={() => onNavigate("live-studio", studioJobId)}
+                  >
+                    <Icon name="activity" size={15} />
+                    {t("liveStudio.open")}
+                  </button>
+                )}
               </div>
             </div>
           )}

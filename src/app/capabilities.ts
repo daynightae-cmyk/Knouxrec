@@ -15,7 +15,8 @@ export type RouteId =
   | "arabic-ai"
   | "models"
   | "settings"
-  | "diagnostics";
+  | "diagnostics"
+  | "live-studio";
 
 export interface Capability {
   id: RouteId;
@@ -210,6 +211,17 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     requirements: [],
     evidence: "Values computed in-browser; model availability proven by bundle inspection.",
   },
+  "live-studio": {
+    id: "live-studio",
+    group: "create",
+    labelKey: "liveStudio",
+    state: "VERIFIED",
+    summary:
+      "Shared execution workspace for every real job: media tools, template WebM exports and recordings, with live lifecycle events, media previews, verification and save/export.",
+    requirements: ["Real jobs from the tool registry, template encoder or recorder"],
+    evidence:
+      "scripts/live-studio-smoke.mjs ran 30 checks through the workspace: image job with live timeline and verified dock, save/reopen, real retry, before/after slider, audio playback plus waveform, template WebM preview, a fake-display recording, cancellation and Arabic RTL.",
+  },
 };
 
 export const ROUTE_TITLES: Record<RouteId, string> = {
@@ -228,4 +240,5 @@ export const ROUTE_TITLES: Record<RouteId, string> = {
   models: "models",
   settings: "settings",
   diagnostics: "diagnostics",
+  "live-studio": "liveStudio",
 };

@@ -31,6 +31,7 @@ import ToolboxView from "../views/ToolboxView";
 import AiWorkspaceView from "../views/AiWorkspaceView";
 import TemplatesView from "../views/TemplatesView";
 import VisualPatchView from "../views/VisualPatchView";
+import LiveStudioView from "../views/LiveStudioView";
 
 const ElysianCanvas = lazy(() => import("../../elysian-canvas/ElysianCanvas"));
 
@@ -39,7 +40,9 @@ const SIDEBAR_KEY = "knoux-rec.sidebar.v1";
 
 function parseRoute(): RouteId {
   if (typeof window === "undefined") return "dashboard";
-  const raw = window.location.hash.replace(/^#\/?/, "");
+  // A hash may carry a subpath (e.g. "#/live-studio/<jobId>"); the route is
+  // always the first segment.
+  const raw = window.location.hash.replace(/^#\/?/, "").split("/")[0];
   return (ROUTE_IDS as string[]).includes(raw) ? (raw as RouteId) : "dashboard";
 }
 
@@ -109,9 +112,10 @@ export default function AppRoot() {
     }
   }, []);
 
-  const navigate = useCallback((next: RouteId) => {
-    if (window.location.hash !== `#/${next}`) {
-      window.location.hash = `#/${next}`;
+  const navigate = useCallback((next: RouteId, jobId?: string) => {
+    const target = jobId ? `#/${next}/${jobId}` : `#/${next}`;
+    if (window.location.hash !== target) {
+      window.location.hash = target;
     } else {
       setRoute(next);
     }
@@ -295,7 +299,7 @@ export default function AppRoot() {
       case "dashboard":
         return <Dashboard onNavigate={navigate} />;
       case "studio":
-        return <StudioView />;
+        return <StudioView onNavigate={navigate} />;
       case "screenshots":
         return <ScreenshotsView />;
       case "library":
@@ -307,14 +311,14 @@ export default function AppRoot() {
       case "models":
         return <ModelsView />;
       case "templates":
-        return <TemplatesView />;
+        return <TemplatesView onNavigate={navigate} />;
       case "visual-patch":
         return <VisualPatchView />;
       case "morphcore":
       case "body-editor":
         return <UnavailableView route={route} />;
       case "toolbox":
-        return <ToolboxView />;
+        return <ToolboxView onNavigate={navigate} />;
       case "offline-ai":
         return <AiWorkspaceView variant="offline-ai" />;
       case "arabic-ai":
@@ -329,6 +333,8 @@ export default function AppRoot() {
             </ToolSection>
           </div>
         );
+      case "live-studio":
+        return <LiveStudioView onNavigate={navigate} />;
       default:
         return <Dashboard onNavigate={navigate} />;
     }

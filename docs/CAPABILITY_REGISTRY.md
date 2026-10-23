@@ -1,8 +1,8 @@
 # KNOUX REC capability registry
 
-Generated 2026-10-23T21:16:57.607Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
+Generated 2026-10-23T22:41:41.692Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
 
-Counts: routes=15, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
+Counts: routes=16, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
 
 Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catalog entry ships without its runtime; `MOCK` means the data is explicitly generated placeholder content; `BLOCKED` means the view cannot be mounted as shipped.
 
@@ -25,6 +25,7 @@ Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catal
 | models | intelligence | MISSING_MODEL | Model manifest inventory with explicit weight-file verification. |
 | settings | system | VERIFIED | Persisted appearance, language and recording defaults. |
 | diagnostics | system | VERIFIED | Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB. |
+| live-studio | create | VERIFIED | Shared execution workspace for every real job: media tools, template WebM exports and recordings, with live lifecycle events, media previews, verification and save/export. |
 
 ## Core runtime
 

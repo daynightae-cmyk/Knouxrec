@@ -56,7 +56,8 @@ export type IconName =
   | "lock"
   | "star"
   | "arrowLeft"
-  | "activity";
+  | "activity"
+  | "export";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -330,6 +331,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
       strokeLinecap="round"
       strokeLinejoin="round"
     />
+  ),
+  export: (
+    <>
+      <path d="M12 15V4m0 0-4 4m4-4 4 4" />
+      <path d="M4 15v3.5A1.5 1.5 0 0 0 5.5 20h13a1.5 1.5 0 0 0 1.5-1.5V15" />
+    </>
   ),
 };
 

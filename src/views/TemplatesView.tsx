@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "../app/icons";
-import { CAPABILITIES } from "../app/capabilities";
+import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { translate } from "../i18n/translate";
+import { useJobs } from "../state/JobsContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useSettings } from "../state/SettingsContext";
 import { useToast } from "../state/ToastContext";
 import { downloadBlob, formatBytes } from "../lib/format";
+import { exportTemplateVideo } from "../services/templateExport";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 import { MOCK_TEMPLATE_FAMILIES, MOCK_TEMPLATE_TOTAL } from "../data/templateCatalog";
 
@@ -60,9 +62,14 @@ const CATEGORY_LABELS: Record<string, string> = {
   overlay: "Overlay",
 };
 
-export default function TemplatesView() {
+export default function TemplatesView({
+  onNavigate,
+}: {
+  onNavigate: (route: RouteId, jobId?: string) => void;
+}) {
   const { settings } = useSettings();
   const { add } = useLibrary();
+  const { beginJob } = useJobs();
   const { push } = useToast();
   const t = useCallback(
     (key: string) => translate(settings.language, key),
@@ -87,12 +94,14 @@ export default function TemplatesView() {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [previewKind, setPreviewKind] = useState<"frame" | "video">("frame");
+  const [studioJobId, setStudioJobId] = useState<string | null>(null);
 
   const urlRef = useRef<string | null>(null);
   const videoUrlRef = useRef<string | null>(null);
   const frameBlobRef = useRef<Blob | null>(null);
   const videoBlobRef = useRef<Blob | null>(null);
   const cancelExportRef = useRef(false);
+  const jobTokenRef = useRef<{ cancelled: boolean } | null>(null);
   const engineRef = useRef<TemplateEngine | null>(null);
 
   const clearVideo = useCallback(() => {
@@ -239,6 +248,7 @@ export default function TemplatesView() {
 
   const cancelExport = useCallback(() => {
     cancelExportRef.current = true;
+    if (jobTokenRef.current) jobTokenRef.current.cancelled = true;
   }, []);
 
   const exportVideo = useCallback(async () => {
@@ -251,136 +261,100 @@ export default function TemplatesView() {
 
     const fps = Math.max(12, Math.min(30, Math.round(selected.fps || 30)));
     const duration = selected.duration > 0 ? selected.duration : 5;
-    const settings = {
-      resolution: { width: selected.width, height: selected.height },
-      fps,
-      quality: "export" as const,
-      format: "webm" as const,
-      backgroundColor: "#05050a",
-    };
-
-    let stream: MediaStream | null = null;
-    let recorder: MediaRecorder | null = null;
+    const job = beginJob({
+      kind: "template",
+      title: selected.name,
+      route: "templates",
+      input: {
+        fileName: `${selected.id}.template`,
+        mimeType: "application/x-knoux-template",
+        bytes: null,
+      },
+      params: {
+        templateId: selected.id,
+        width: selected.width,
+        height: selected.height,
+        fps,
+        duration,
+        ...customizations,
+      },
+    });
+    jobTokenRef.current = job.token;
+    setStudioJobId(job.id);
 
     try {
-      const canvas = await engine.renderTemplate(
-        selected.id,
-        customizations,
-        settings,
-        0,
+      job.report("validating", "Checking the WebM encoder", 0.02);
+      const output = await exportTemplateVideo(
+        {
+          templateId: selected.id,
+          customizations,
+          width: selected.width,
+          height: selected.height,
+          fps,
+          duration,
+        },
+        (report) => {
+          setExportProgress(report.percent);
+          job.report(
+            "processing",
+            report.message,
+            0.05 + (report.percent / 100) * 0.85,
+          );
+        },
+        job.token,
       );
-      if (typeof canvas.captureStream !== "function") {
-        throw new Error("This browser cannot capture a canvas stream.");
-      }
-      if (typeof MediaRecorder === "undefined") {
-        throw new Error("This browser has no MediaRecorder encoder.");
-      }
-      const mimeType = [
-        "video/webm;codecs=vp9",
-        "video/webm;codecs=vp8",
-        "video/webm",
-      ].find((type) => MediaRecorder.isTypeSupported(type));
-      if (!mimeType) {
-        throw new Error("This browser cannot encode WebM video.");
-      }
-
-      stream = canvas.captureStream(fps);
-      recorder = new MediaRecorder(stream, {
-        mimeType,
-        videoBitsPerSecond: 8_000_000,
-      });
-      const chunks: BlobPart[] = [];
-      recorder.ondataavailable = (event) => {
-        if (event.data && event.data.size > 0) chunks.push(event.data);
-      };
-      const stopped = new Promise<void>((resolve, reject) => {
-        recorder!.onstop = () => resolve();
-        recorder!.onerror = () =>
-          reject(new Error("The WebM encoder failed."));
-      });
-      void stopped.catch(() => undefined);
-
-      recorder.start(100);
-      const startedAt = performance.now();
-      await new Promise<void>((resolve) => {
-        const tick = async () => {
-          if (cancelExportRef.current) {
-            resolve();
-            return;
-          }
-          const elapsed = (performance.now() - startedAt) / 1000;
-          const time = Math.min(elapsed, duration);
-          await engine.renderTemplate(
-            selected.id,
-            customizations,
-            settings,
-            time,
-          );
-          const percent = Math.min(
-            100,
-            Math.round((time / duration) * 100),
-          );
-          setExportProgress((current) =>
-            current === percent ? current : percent,
-          );
-          if (elapsed >= duration) {
-            resolve();
-            return;
-          }
-          window.setTimeout(() => void tick(), 1000 / fps);
-        };
-        void tick();
-      });
-
-      // Give the encoder a moment to capture the final frame.
-      await new Promise((resolve) => window.setTimeout(resolve, 120));
-      if (recorder.state !== "inactive") recorder.stop();
-      await stopped;
-
-      if (cancelExportRef.current) {
-        setExportProgress(0);
-        return;
-      }
-
-      const blob = new Blob(chunks, { type: mimeType.split(";")[0] });
-      if (blob.size < 1000) {
-        throw new Error("The encoder produced an empty video.");
-      }
+      job.report("verifying", "Verifying the WebM container", 0.95);
 
       if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
-      videoUrlRef.current = URL.createObjectURL(blob);
-      videoBlobRef.current = blob;
+      videoUrlRef.current = URL.createObjectURL(output.blob);
+      videoBlobRef.current = output.blob;
       setVideoUrl(videoUrlRef.current);
-      setVideoBytes(blob.size);
-      setVideoDuration(duration);
+      setVideoBytes(output.blob.size);
+      setVideoDuration(output.duration);
       setVideoSaved(false);
       setExportProgress(100);
       setPreviewKind("video");
+      job.complete({
+        blob: output.blob,
+        mimeType: output.mimeType,
+        fileName: `${selected.id}-${duration.toFixed(1)}s.webm`,
+        width: selected.width,
+        height: selected.height,
+        duration: output.duration,
+        bytes: output.blob.size,
+        metrics: {
+          codec: output.codec,
+          frames: output.frames,
+          fps,
+          width: selected.width,
+          height: selected.height,
+        },
+        logs: [`Encoded ${output.frames} canvas frames as ${output.codec}.`],
+      });
       push(
         "success",
         t("templates.videoReady"),
         `${selected.id}-${duration.toFixed(1)}s.webm`,
       );
     } catch (cause) {
+      if (cause instanceof Error && cause.name === "MediaJobCancelledError") {
+        job.report("cancelled", "Cancelled by the user", 0);
+        setExportProgress(0);
+        return;
+      }
       const message =
         cause instanceof Error
           ? cause.message
           : "The video could not be exported.";
+      job.fail(message);
       setRenderError(message);
       push("error", t("templates.videoFailed"), message);
     } finally {
-      if (recorder && recorder.state !== "inactive") {
-        try {
-          recorder.stop();
-        } catch {
-          // The recorder may already be stopping.
-        }
-      }
-      stream?.getTracks().forEach((track) => track.stop());
+      jobTokenRef.current = null;
       cancelExportRef.current = false;
       setExporting(false);
     }
-  }, [customizations, exporting, push, selected, t]);
+  }, [beginJob, customizations, exporting, push, selected, t]);
 
   const saveVideoToLibrary = useCallback(async () => {
     const blob = videoBlobRef.current;
@@ -658,6 +632,16 @@ export default function TemplatesView() {
                         <Icon name="external" size={15} />
                         {t("templates.downloadVideo")}
                       </button>
+                      {studioJobId && (
+                        <button
+                          type="button"
+                          className="kx-btn kx-btn-quiet"
+                          onClick={() => onNavigate("live-studio", studioJobId)}
+                        >
+                          <Icon name="activity" size={15} />
+                          {t("liveStudio.open")}
+                        </button>
+                      )}
                       {previewKind === "frame" && (
                         <button
                           type="button"
@@ -725,6 +709,17 @@ export default function TemplatesView() {
                     >
                       <span style={{ width: `${exportProgress}%` }} />
                     </div>
+                    {studioJobId && (
+                      <button
+                        type="button"
+                        className="kx-btn kx-btn-sm"
+                        style={{ marginTop: 10 }}
+                        onClick={() => onNavigate("live-studio", studioJobId)}
+                      >
+                        <Icon name="activity" size={14} />
+                        {t("liveStudio.open")}
+                      </button>
+                    )}
                   </div>
                 )}
 

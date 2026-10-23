@@ -57,7 +57,7 @@ const QUICK_TOOLS: { route: RouteId; icon: IconName }[] = [
 export default function Dashboard({
   onNavigate,
 }: {
-  onNavigate: (route: RouteId) => void;
+  onNavigate: (route: RouteId, jobId?: string) => void;
 }) {
   const { items, urlFor } = useLibrary();
   const recorder = useRecorder();
@@ -264,36 +264,56 @@ export default function Dashboard({
             {activeJobs.map((job) => {
               const stage = JOB_STAGE_LABELS[job.stage] ?? JOB_STAGE_LABELS.processing;
               return (
-                <div className="kx-job-row" data-active="true" key={job.id}>
+                <button
+                  type="button"
+                  className="kx-job-row"
+                  data-active="true"
+                  key={job.id}
+                  onClick={() => onNavigate("live-studio", job.id)}
+                  title={t("jobs.openWorkspace")}
+                >
                   <span className="kx-job-icon">
                     <Icon name={stage.icon} size={15} />
                   </span>
-                  <span className="kx-job-tool">{job.toolName}</span>
+                  <span className="kx-job-tool">{job.title}</span>
                   <span className="kx-job-stage">{t(stage.key)}</span>
                   <span className="kx-job-progress" aria-hidden="true">
                     <span
-                      style={{ width: `${Math.round(Math.min(1, Math.max(0, job.progress)) * 100)}%` }}
+                      data-indeterminate={job.progress === null}
+                      style={
+                        job.progress === null
+                          ? undefined
+                          : {
+                              width: `${Math.round(Math.min(1, Math.max(0, job.progress)) * 100)}%`,
+                            }
+                      }
                     />
                   </span>
                   <span className="kx-job-age kx-mono">
                     {relativeAge(job.startedAt, now)}
                   </span>
-                </div>
+                </button>
               );
             })}
             {finishedJobs.map((job) => {
               const stage = JOB_STAGE_LABELS[job.stage] ?? JOB_STAGE_LABELS.done;
               return (
-                <div className="kx-job-row" key={job.id}>
+                <button
+                  type="button"
+                  className="kx-job-row"
+                  key={job.id}
+                  onClick={() => onNavigate("live-studio", job.id)}
+                  title={t("jobs.openWorkspace")}
+                >
                   <span className="kx-job-icon">
                     <Icon name={stage.icon} size={15} />
                   </span>
-                  <span className="kx-job-tool">{job.toolName}</span>
+                  <span className="kx-job-tool">{job.title}</span>
                   <span className="kx-job-stage">{t(stage.key)}</span>
                   <span className="kx-job-age kx-mono">
                     {relativeAge(job.finishedAt ?? job.startedAt, now)}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>

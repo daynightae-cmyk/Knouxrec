@@ -17,11 +17,11 @@ export default function App() {
     <ToastProvider>
       <SettingsProvider>
         <LibraryProvider>
-          <RecorderProvider>
-            <JobsProvider>
+          <JobsProvider>
+            <RecorderProvider>
               <AppRoot />
-            </JobsProvider>
-          </RecorderProvider>
+            </RecorderProvider>
+          </JobsProvider>
         </LibraryProvider>
       </SettingsProvider>
     </ToastProvider>

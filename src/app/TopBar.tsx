@@ -117,7 +117,7 @@ export default function TopBar({
         <button
           type="button"
           className="kx-jobs-chip"
-          onClick={() => onNavigate(latestJob.route as RouteId)}
+          onClick={() => onNavigate("live-studio")}
           title={t("jobs.openWorkspace")}
         >
           <Icon name="activity" size={15} />
@@ -131,9 +131,14 @@ export default function TopBar({
           </span>
           <span className="kx-jobs-chip-bar" aria-hidden="true">
             <span
-              style={{
-                width: `${Math.round(Math.min(1, Math.max(0, latestJob.progress)) * 100)}%`,
-              }}
+              data-indeterminate={latestJob.progress === null}
+              style={
+                latestJob.progress === null
+                  ? undefined
+                  : {
+                      width: `${Math.round(Math.min(1, Math.max(0, latestJob.progress)) * 100)}%`,
+                    }
+              }
             />
           </span>
         </button>

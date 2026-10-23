@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-23T21:16:57.607Z",
+  "generatedAt": "2026-10-23T22:41:41.692Z",
   "source": {
     "repository": "https://github.com/daynightae-cmyk/Knouxrec.git",
     "commit": "05a542957a62730301972361c1300ccd7d66ca54",
     "note": "Generated from the working tree; runtime states reference artifacts/evidence."
   },
   "counts": {
-    "routes": 15,
+    "routes": 16,
     "core": 16,
     "offlineAI": 38,
     "arabicAI": 38,
@@ -171,6 +171,16 @@
       "summary": "Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB.",
       "requirements": [],
       "evidence": "Values computed in-browser; model availability proven by bundle inspection."
+    },
+    {
+      "id": "live-studio",
+      "group": "create",
+      "state": "VERIFIED",
+      "summary": "Shared execution workspace for every real job: media tools, template WebM exports and recordings, with live lifecycle events, media previews, verification and save/export.",
+      "requirements": [
+        "Real jobs from the tool registry, template encoder or recorder"
+      ],
+      "evidence": "scripts/live-studio-smoke.mjs ran 30 checks through the workspace: image job with live timeline and verified dock, save/reopen, real retry, before/after slider, audio playback plus waveform, template WebM preview, a fake-display recording, cancellation and Arabic RTL."
     }
   ],
   "core": [
