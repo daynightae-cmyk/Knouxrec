@@ -12,6 +12,8 @@ import {
   inspectModels,
   type ModelInspection,
 } from "../services/modelRegistry";
+import { runtimeFor } from "../data/aiRuntime";
+import AiTaskRunner from "./AiTaskRunner";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 
 export type AiWorkspaceVariant = "offline-ai" | "arabic-ai";
@@ -85,6 +87,12 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
 
   const selectedModel = selected ? models[selected.modelId] : undefined;
   const weightsPresent = selectedModel?.weightsState === "present";
+  const selectedRuntime = selected ? runtimeFor(selected.id) : undefined;
+  const localTasks = useMemo(
+    () => AI_CATALOG.filter((entry) => runtimeFor(entry.id)).length,
+    [],
+  );
+  const modelTasks = AI_CATALOG.length - localTasks;
 
   return (
     <div className="kx-section">
@@ -99,6 +107,19 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
         <Icon name="info" size={18} />
         <div>
           <strong>{t("ai.unifiedTitle")}</strong> {t("ai.unifiedBody")}
+        </div>
+      </div>
+
+      <div
+        className="kx-notice"
+        data-tone="ok"
+        style={{ marginBottom: 16 }}
+        data-ai-runtime-summary
+      >
+        <Icon name="cpu" size={18} />
+        <div>
+          <strong data-ai-local-count>{localTasks}</strong> {t("ai.localRuntimeBody")}{" "}
+          <strong data-ai-model-count>{modelTasks}</strong> {t("ai.modelRuntimeBody")}
         </div>
       </div>
 
@@ -146,13 +167,16 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
           ) : (
             filtered.map((entry) => {
               const model = models[entry.modelId];
+              const runtime = runtimeFor(entry.id);
               const ready = model?.weightsState === "present";
               return (
                 <button
                   key={entry.id}
                   type="button"
                   className="kx-ai-row"
+                  data-task-id={entry.id}
                   data-active={selectedId === entry.id}
+                  data-runtime={runtime ? "local" : "model"}
                   onClick={() => setSelectedId(entry.id)}
                   aria-pressed={selectedId === entry.id}
                 >
@@ -169,9 +193,13 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
                   </span>
                   <span
                     className="kx-badge"
-                    data-state={ready ? "PARTIAL" : "MISSING_MODEL"}
+                    data-state={runtime ? "PARTIAL" : ready ? "PARTIAL" : "MISSING_MODEL"}
                   >
-                    {ready ? t("ai.weightsPresent") : t("ai.weightsMissing")}
+                    {runtime
+                      ? t("ai.runsLocally")
+                      : ready
+                        ? t("ai.weightsPresent")
+                        : t("ai.weightsMissing")}
                   </span>
                 </button>
               );
@@ -219,62 +247,81 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
 
               <div className="kx-divider" />
 
-              <div className="kx-card-title" style={{ fontSize: "0.84rem" }}>
-                <span>{t("ai.modelRequirement")}</span>
-              </div>
-              <table className="kx-table" style={{ marginTop: 8 }}>
-                <tbody>
-                  <tr>
-                    <td className="kx-muted">{t("ai.modelFolder")}</td>
-                    <td className="kx-mono">/models/{selected.modelId}</td>
-                  </tr>
-                  <tr>
-                    <td className="kx-muted">{t("ai.manifest")}</td>
-                    <td className="kx-mono">
-                      {selected.modelPath}
-                      {selectedModel?.manifestSha256 && (
-                        <div className="kx-muted kx-mono" style={{ fontSize: "0.68rem" }}>
-                          sha256 {selectedModel.manifestSha256.slice(0, 24)}…
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="kx-muted">{t("ai.expectedWeights")}</td>
-                    <td className="kx-mono">
-                      {selectedModel
-                        ? `${formatBytes(selectedModel.expectedWeightsBytes)} · ${selectedModel.tensorCount} tensors`
-                        : "—"}
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="kx-muted">{t("ai.actualWeights")}</td>
-                    <td className="kx-mono">
-                      {inspecting
-                        ? t("ai.inspecting")
-                        : selectedModel
-                          ? selectedModel.weightsState === "present"
-                            ? formatBytes(selectedModel.weightsBytes)
-                            : t("ai.notInstalled")
-                          : "—"}
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              {selectedRuntime ? (
+                <AiTaskRunner
+                  entry={selected}
+                  runtime={selectedRuntime}
+                  preferArabic={preferArabic}
+                />
+              ) : (
+                <>
+                  <div className="kx-card-title" style={{ fontSize: "0.84rem" }}>
+                    <span>{t("ai.modelRequirement")}</span>
+                  </div>
+                  <table className="kx-table" style={{ marginTop: 8 }}>
+                    <tbody>
+                      <tr>
+                        <td className="kx-muted">{t("ai.modelFolder")}</td>
+                        <td className="kx-mono">/models/{selected.modelId}</td>
+                      </tr>
+                      <tr>
+                        <td className="kx-muted">{t("ai.manifest")}</td>
+                        <td className="kx-mono">
+                          {selected.modelPath}
+                          {selectedModel?.manifestSha256 && (
+                            <div className="kx-muted kx-mono" style={{ fontSize: "0.68rem" }}>
+                              sha256 {selectedModel.manifestSha256.slice(0, 24)}…
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="kx-muted">{t("ai.expectedWeights")}</td>
+                        <td className="kx-mono">
+                          {selectedModel
+                            ? `${formatBytes(selectedModel.expectedWeightsBytes)} · ${selectedModel.tensorCount} tensors`
+                            : "—"}
+                        </td>
+                      </tr>
+                      <tr>
+                        <td className="kx-muted">{t("ai.actualWeights")}</td>
+                        <td className="kx-mono">
+                          {inspecting
+                            ? t("ai.inspecting")
+                            : selectedModel
+                              ? selectedModel.weightsState === "present"
+                                ? formatBytes(selectedModel.weightsBytes)
+                                : t("ai.notInstalled")
+                              : "—"}
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
 
-              <div className="kx-notice" data-tone={weightsPresent ? "warn" : "danger"} style={{ marginTop: 12 }}>
-                <Icon name={weightsPresent ? "alert" : "lock"} size={16} />
-                <div>
-                  {weightsPresent
-                    ? t("ai.blockedRuntime")
-                    : t("ai.blockedWeights")}
-                </div>
-              </div>
+                  <div
+                    className="kx-notice"
+                    data-tone={weightsPresent ? "warn" : "danger"}
+                    style={{ marginTop: 12 }}
+                  >
+                    <Icon name={weightsPresent ? "alert" : "lock"} size={16} />
+                    <div>
+                      {weightsPresent
+                        ? t("ai.blockedRuntime")
+                        : t("ai.blockedWeights")}
+                    </div>
+                  </div>
 
-              <button type="button" className="kx-btn kx-btn-primary" disabled style={styles.blockedButton}>
-                <Icon name="play" size={15} />
-                {t("ai.runDisabled")}
-              </button>
+                  <button
+                    type="button"
+                    className="kx-btn kx-btn-primary"
+                    disabled
+                    style={styles.blockedButton}
+                  >
+                    <Icon name="play" size={15} />
+                    {t("ai.runDisabled")}
+                  </button>
+                </>
+              )}
 
               <div className="kx-divider" />
               <div className="kx-card-title" style={{ fontSize: "0.84rem" }}>

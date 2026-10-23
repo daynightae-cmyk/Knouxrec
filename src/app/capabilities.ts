@@ -104,12 +104,12 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "toolbox",
     group: "create",
     labelKey: "toolbox",
-    state: "VERIFIED",
+    state: "PARTIAL",
     summary:
       "Eight local media utilities with real processors: resize, filters, format conversion, video thumbnail, waveform, text image, QR code and colour palette.",
     requirements: ["Canvas 2D encoder", "Web Audio decoder for the visualiser"],
     evidence:
-      "src/services/mediaTools.ts produces encoded bytes through the browser encoders; the QR encoder is verified by an independent decoder in src/services/qrCode.test.ts and the pixel maths by src/services/mediaTools.test.ts.",
+      "Eight processors exist, but the browser smoke confirms end-to-end output for QR, image resize and palette only; the other five require dedicated runtime evidence. Pure QR and pixel-maths unit tests pass.",
   },
   "visual-patch": {
     id: "visual-patch",
@@ -161,23 +161,23 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "offline-ai",
     group: "intelligence",
     labelKey: "offlineAI",
-    state: "MISSING_MODEL",
+    state: "PARTIAL",
     summary:
-      "One unified catalog of 38 on-device tasks with their real model requirement; no task can run until its weight binaries exist.",
-    requirements: ["Weight binaries", "Inference runtime"],
+      "One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist.",
+    requirements: ["Weight binaries for the 23 model tasks", "Inference runtime"],
     evidence:
-      "src/data/aiCatalog.ts merges the English and Arabic catalogs into 38 canonical tasks; the Model Manager measures the weight payload from the manifests.",
+      "src/services/aiTasks.ts executes 15 tasks for real and src/services/aiDsp.ts is unit tested; scripts/ai-tools-smoke.mjs runs them in Chromium and inspects the produced bytes.",
   },
   "arabic-ai": {
     id: "arabic-ai",
     group: "intelligence",
     labelKey: "arabicAI",
-    state: "MISSING_MODEL",
+    state: "PARTIAL",
     summary:
-      "The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel.",
-    requirements: ["Weight binaries", "Inference runtime"],
+      "The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too.",
+    requirements: ["Weight binaries for the 23 model tasks", "Inference runtime"],
     evidence:
-      "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired.",
+      "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired; scripts/ai-tools-smoke.mjs runs a task on the Arabic route.",
   },
   models: {
     id: "models",

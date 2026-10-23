@@ -191,7 +191,11 @@ try {
 
   /* ---------------- model manager ---------------- */
   await page.goto(`${BASE}#/models`, { waitUntil: "domcontentloaded" });
-  await new Promise((r) => setTimeout(r, 2500));
+  await page
+    .waitForFunction(() => document.querySelectorAll(".kx-table tbody tr").length > 0, {
+      timeout: 90000,
+    })
+    .catch(() => undefined);
   const models = await page.evaluate(() => {
     const rows = [...document.querySelectorAll(".kx-table tbody tr")];
     return {

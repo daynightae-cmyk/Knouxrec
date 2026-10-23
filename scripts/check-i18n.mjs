@@ -29,6 +29,11 @@ const VIEW_FILES = [
   "src/views/SettingsView.tsx",
   "src/views/DiagnosticsView.tsx",
   "src/views/ModelsView.tsx",
+  "src/views/AiWorkspaceView.tsx",
+  "src/views/AiTaskRunner.tsx",
+  "src/views/TemplatesView.tsx",
+  "src/views/ToolboxView.tsx",
+  "src/views/VisualPatchView.tsx",
 ];
 
 const TEXT_PATTERN = />\s*([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})\s*</g;
