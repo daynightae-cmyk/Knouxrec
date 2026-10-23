@@ -2,12 +2,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLibrary } from "../state/LibraryContext";
 import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
+import { useJobs } from "../state/JobsContext";
 import { translate } from "../i18n/translate";
 import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { Icon, type IconName } from "../app/icons";
 import BrandMark from "../app/BrandMark";
 import { EmptyState, PreviewDialog, StatCard, StateBadge, Thumbnail } from "./ui";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
+import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
 import type { LibraryItem } from "../state/types";
 
 function LivePreview({ stream }: { stream: MediaStream }) {
@@ -26,6 +28,25 @@ function LivePreview({ stream }: { stream: MediaStream }) {
   return <video ref={ref} muted playsInline autoPlay />;
 }
 
+function relativeAge(timestamp: number, now: number): string {
+  const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
+
+const JOB_STAGE_LABELS: Record<string, { key: string; icon: IconName }> = {
+  validating: { key: "jobs.stageValidating", icon: "search" },
+  processing: { key: "jobs.stageProcessing", icon: "activity" },
+  verifying: { key: "jobs.stageVerifying", icon: "check" },
+  done: { key: "jobs.done", icon: "check" },
+  cancelled: { key: "jobs.cancelled", icon: "x" },
+  error: { key: "jobs.error", icon: "alert" },
+};
+
 const QUICK_TOOLS: { route: RouteId; icon: IconName }[] = [
   { route: "templates", icon: "templates" },
   { route: "toolbox", icon: "toolbox" },
@@ -41,8 +62,43 @@ export default function Dashboard({
   const { items, urlFor } = useLibrary();
   const recorder = useRecorder();
   const { settings, updateRecorder } = useSettings();
+  const { jobs, activeJobs } = useJobs();
   const t = (key: string) => translate(settings.language, key);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
+  const [models, setModels] = useState<{
+    checked: boolean;
+    present: number;
+    missing: number;
+    total: number;
+  }>({ checked: false, present: 0, missing: 0, total: MODEL_IDS.length });
+
+  useEffect(() => {
+    let active = true;
+    const deadline = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 4000),
+    );
+    void Promise.race([inspectModels(MODEL_IDS), deadline])
+      .then((rows) => {
+        if (!active) return;
+        if (!rows) {
+          setModels((previous) => ({ ...previous, checked: true }));
+          return;
+        }
+        const present = rows.filter((row) => row.weightsState === "present").length;
+        setModels({
+          checked: true,
+          present,
+          missing: rows.length - present,
+          total: rows.length,
+        });
+      })
+      .catch(() => {
+        if (active) setModels((previous) => ({ ...previous, checked: true }));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const stats = useMemo(() => {
     const totalBytes = items.reduce((sum, item) => sum + item.size, 0);
@@ -54,6 +110,10 @@ export default function Dashboard({
   }, [items]);
 
   const rendering = recorder.status === "recording" || recorder.status === "paused";
+  const now = Date.now();
+  const finishedJobs = jobs
+    .filter((job) => job.stage === "done" || job.stage === "cancelled" || job.stage === "error")
+    .slice(0, 4);
 
   return (
     <div className="kx-content">
@@ -177,6 +237,67 @@ export default function Dashboard({
           }
           icon="video"
         />
+      </section>
+
+      <section className="kx-card">
+        <div className="kx-row-between">
+          <div className="kx-card-title">
+            <span>{t("jobs.title")}</span>
+            {activeJobs.length > 0 && (
+              <span className="kx-badge" data-state="LIVE">
+                {activeJobs.length}
+              </span>
+            )}
+          </div>
+          <button type="button" className="kx-btn kx-btn-sm" onClick={() => onNavigate("toolbox")}>
+            {t("jobs.runTool")}
+            <Icon name="chevronRight" size={15} />
+          </button>
+        </div>
+
+        {jobs.length === 0 ? (
+          <p className="kx-card-sub" style={{ marginTop: 10 }}>
+            {t("jobs.noneHint")}
+          </p>
+        ) : (
+          <div className="kx-jobs-list" style={{ marginTop: 12 }}>
+            {activeJobs.map((job) => {
+              const stage = JOB_STAGE_LABELS[job.stage] ?? JOB_STAGE_LABELS.processing;
+              return (
+                <div className="kx-job-row" data-active="true" key={job.id}>
+                  <span className="kx-job-icon">
+                    <Icon name={stage.icon} size={15} />
+                  </span>
+                  <span className="kx-job-tool">{job.toolName}</span>
+                  <span className="kx-job-stage">{t(stage.key)}</span>
+                  <span className="kx-job-progress" aria-hidden="true">
+                    <span
+                      style={{ width: `${Math.round(Math.min(1, Math.max(0, job.progress)) * 100)}%` }}
+                    />
+                  </span>
+                  <span className="kx-job-age kx-mono">
+                    {relativeAge(job.startedAt, now)}
+                  </span>
+                </div>
+              );
+            })}
+            {finishedJobs.map((job) => {
+              const stage = JOB_STAGE_LABELS[job.stage] ?? JOB_STAGE_LABELS.done;
+              return (
+                <div className="kx-job-row" key={job.id}>
+                  <span className="kx-job-icon">
+                    <Icon name={stage.icon} size={15} />
+                  </span>
+                  <span className="kx-job-tool">{job.toolName}</span>
+                  <span className="kx-job-stage">{t(stage.key)}</span>
+                  <span className="kx-job-age kx-mono">
+                    {relativeAge(job.finishedAt ?? job.startedAt, now)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </section>
 
       <section className="kx-card">
@@ -332,17 +453,57 @@ export default function Dashboard({
               );
             })}
           </div>
+          <div className="kx-card">
+            <div className="kx-row-between">
+              <div className="kx-card-title">
+                <span>{t("dashboard.modelsTitle")}</span>
+                <Icon name="models" size={17} />
+              </div>
+              <button
+                type="button"
+                className="kx-btn kx-btn-quiet kx-btn-sm"
+                onClick={() => onNavigate("models")}
+              >
+                {t("viewAll")}
+              </button>
+            </div>
+            {models.checked ? (
+              <div className="kx-models-meter" style={{ marginTop: 12 }}>
+                <span className="kx-models-meter-label kx-mono">
+                  {models.present}/{models.total} {t("dashboard.modelsUnits")}
+                </span>
+                <span className="kx-models-meter-track" aria-hidden="true">
+                  <span
+                    className="kx-models-meter-fill"
+                    style={{
+                      width: `${models.total === 0 ? 0 : Math.round((models.present / models.total) * 100)}%`,
+                    }}
+                  />
+                </span>
+                <p className="kx-card-sub" style={{ marginTop: 8 }}>
+                  {models.present > 0
+                    ? t("dashboard.modelsPartial")
+                    : t("dashboard.modelsNone")}
+                </p>
+              </div>
+            ) : (
+              <p className="kx-card-sub" style={{ marginTop: 12 }}>
+                {t("dashboard.modelsChecking")}
+              </p>
+            )}
+          </div>
           <div className="kx-notice" data-tone="warn">
             <Icon name="info" size={18} />
             <div>
-              <strong>{t("dashboard.aiGated")}</strong> {t("dashboard.aiGatedBody")} See{" "}
+              <strong>{t("dashboard.aiGated")}</strong> {t("dashboard.aiGatedBody")}{" "}
+              {t("dashboard.aiGatedSee")}{" "}
               <button
                 type="button"
                 className="kx-btn kx-btn-quiet kx-btn-sm"
                 style={{ height: "auto", padding: 0, display: "inline" }}
                 onClick={() => onNavigate("diagnostics")}
               >
-                diagnostics
+                {t("diag.title")}
               </button>
               .
             </div>

@@ -95,8 +95,9 @@ try {
   check("splash renders brand", splashState.name === "KNOUXREC", splashState.name);
   check(
     "splash shows real step states",
-    splashState.steps.length === 4 &&
-      splashState.steps.every((s) => s.state !== undefined),
+    splashState.steps.length === 5 &&
+      splashState.steps.every((s) => s.state !== undefined) &&
+      ["active", "done", "warn"].includes(splashState.steps[4]?.state),
     splashState.steps,
   );
 

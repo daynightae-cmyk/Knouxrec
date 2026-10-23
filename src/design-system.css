@@ -1971,3 +1971,189 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+/* =====================================================================
+   SOVEREIGN BATCH C — typography scale, job instrumentation, models meter
+   ===================================================================== */
+
+:root {
+  /* Type scale tokens. New surfaces adopt the scale; legacy rules migrate
+     progressively so existing layouts stay stable. */
+  --kx-text-2xs: 0.66rem;
+  --kx-text-xs: 0.74rem;
+  --kx-text-sm: 0.82rem;
+  --kx-text-md: 0.9rem;
+  --kx-text-lg: 1.05rem;
+  --kx-text-xl: 1.3rem;
+  --kx-text-2xl: 1.7rem;
+  --kx-text-3xl: 2.4rem;
+  --kx-leading-tight: 1.2;
+  --kx-leading: 1.5;
+  --kx-leading-loose: 1.7;
+}
+
+/* ---------- top bar: running jobs chip ---------- */
+
+.kx-jobs-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  max-width: 280px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+  color: var(--kx-accent);
+  font-size: var(--kx-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--kx-motion), border-color var(--kx-motion);
+}
+
+.kx-jobs-chip:hover {
+  background: var(--kx-surface-hover);
+  border-color: var(--kx-accent);
+}
+
+.kx-jobs-chip-label {
+  white-space: nowrap;
+}
+
+.kx-jobs-chip-stage {
+  color: var(--kx-text-soft);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kx-jobs-chip-bar {
+  width: 44px;
+  height: 3px;
+  flex: 0 0 44px;
+  border-radius: 3px;
+  background: var(--kx-surface-strong);
+  overflow: hidden;
+}
+
+.kx-jobs-chip-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--kx-accent);
+  transition: width 300ms ease;
+}
+
+/* ---------- dashboard: media jobs list ---------- */
+
+.kx-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kx-job-row {
+  display: grid;
+  grid-template-columns: 22px minmax(120px, 1fr) auto minmax(140px, 260px) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 9px 12px;
+  border-radius: var(--kx-radius-xs);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-surface);
+  font-size: var(--kx-text-sm);
+}
+
+.kx-job-row[data-active="true"] {
+  border-color: var(--kx-accent-line);
+}
+
+.kx-job-icon {
+  display: grid;
+  place-items: center;
+  color: var(--kx-accent);
+}
+
+.kx-job-tool {
+  font-weight: 600;
+  color: var(--kx-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kx-job-stage {
+  color: var(--kx-text-soft);
+  font-size: var(--kx-text-xs);
+  white-space: nowrap;
+}
+
+.kx-job-progress {
+  height: 4px;
+  border-radius: 4px;
+  background: var(--kx-surface-strong);
+  overflow: hidden;
+}
+
+.kx-job-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--kx-accent);
+  transition: width var(--kx-motion);
+}
+
+.kx-job-age {
+  color: var(--kx-text-faint);
+  font-size: var(--kx-text-xs);
+  text-align: end;
+  white-space: nowrap;
+}
+
+@media (max-width: 860px) {
+  .kx-job-row {
+    grid-template-columns: 22px 1fr auto;
+  }
+  .kx-job-stage,
+  .kx-job-progress {
+    display: none;
+  }
+}
+
+/* ---------- dashboard: model readiness meter ---------- */
+
+.kx-models-meter-track {
+  display: block;
+  height: 6px;
+  border-radius: 6px;
+  background: var(--kx-surface-strong);
+  overflow: hidden;
+}
+
+.kx-models-meter-fill {
+  display: block;
+  height: 100%;
+  border-radius: 6px;
+  background: linear-gradient(90deg, var(--kx-violet), var(--kx-cyan));
+  transition: width var(--kx-motion);
+}
+
+.kx-models-meter-label {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--kx-text-soft);
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

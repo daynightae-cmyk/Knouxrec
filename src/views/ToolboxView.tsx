@@ -12,11 +12,8 @@ import {
   type MediaToolDescriptor,
   type MediaToolId,
 } from "../services/mediaTools";
-import {
-  executeMediaJob,
-  type CancellationToken,
-  type MediaJobProgress,
-} from "../services/mediaJobs";
+import type { CancellationToken, MediaJobProgress } from "../services/mediaJobs";
+import { useJobs } from "../state/JobsContext";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 
 const CATEGORY_ICONS: Record<MediaToolCategory, IconName> = {
@@ -83,6 +80,7 @@ export default function ToolboxView() {
   const { settings } = useSettings();
   const { items, add, urlFor } = useLibrary();
   const { push } = useToast();
+  const { runJob } = useJobs();
   const t = useCallback(
     (key: string) => translate(settings.language, key),
     [settings.language],
@@ -220,7 +218,7 @@ export default function ToolboxView() {
     setSaved(false);
     setProgress({ stage: "validating", progress: 0.05, message: t("toolbox.stageValidating") });
     try {
-      const output = await executeMediaJob(
+      const output = await runJob(
         {
           toolId: tool.id,
           file: file?.blob,
@@ -228,13 +226,16 @@ export default function ToolboxView() {
           text,
           options: options as unknown as Record<string, unknown>,
         },
-        (update) =>
-          setProgress({
-            stage: update.stage,
-            progress: update.progress,
-            message: update.message,
-          }),
-        tokenRef.current,
+        {
+          route: "toolbox",
+          token: tokenRef.current,
+          onProgress: (update) =>
+            setProgress({
+              stage: update.stage,
+              progress: update.progress,
+              message: update.message,
+            }),
+        },
       );
       setResult({
         blob: output.blob,
@@ -262,7 +263,7 @@ export default function ToolboxView() {
       setProgress({ stage: "error", progress: 0, message });
       push("error", `${tool.name} failed`, message);
     }
-  }, [file, options, push, t, text, tool]);
+  }, [file, options, push, runJob, t, text, tool]);
 
   const cancel = useCallback(() => {
     tokenRef.current.cancelled = true;

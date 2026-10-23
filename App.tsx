@@ -4,6 +4,7 @@ import { ToastProvider } from "./src/state/ToastContext";
 import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
 import { RecorderProvider } from "./src/state/RecorderContext";
+import { JobsProvider } from "./src/state/JobsContext";
 
 /**
  * Thin application entry. The previous 149 KB inline prototype was corrupted
@@ -17,7 +18,9 @@ export default function App() {
       <SettingsProvider>
         <LibraryProvider>
           <RecorderProvider>
-            <AppRoot />
+            <JobsProvider>
+              <AppRoot />
+            </JobsProvider>
           </RecorderProvider>
         </LibraryProvider>
       </SettingsProvider>

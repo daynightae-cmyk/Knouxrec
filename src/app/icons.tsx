@@ -55,7 +55,8 @@ export type IconName =
   | "info"
   | "lock"
   | "star"
-  | "arrowLeft";
+  | "arrowLeft"
+  | "activity";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -320,6 +321,16 @@ const PATHS: Record<IconName, React.ReactNode> = {
     <path d="m12 3.2 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z" />
   ),
   arrowLeft: <path d="M19 12H5m0 0 6-6m-6 6 6 6" />,
+  activity: (
+    <path
+      d="M3 12h4l2-6 4 12 2-6h6"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    />
+  ),
 };
 
 export function Icon({

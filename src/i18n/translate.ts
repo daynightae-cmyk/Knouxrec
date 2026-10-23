@@ -12,6 +12,7 @@ const STRINGS: Dictionary = {
   "splash.fonts": { en: "Loading bundled fonts", ar: "تحميل الخطوط المضمنة" },
   "splash.library": { en: "Opening local library", ar: "فتح المكتبة المحلية" },
   "splash.media": { en: "Probing capture devices", ar: "فحص أجهزة الالتقاط" },
+  "splash.models": { en: "Checking model assets", ar: "فحص أصول النماذج" },
   "splash.ready": { en: "Studio ready", ar: "الاستوديو جاهز" },
 
   dashboard: { en: "Dashboard", ar: "لوحة التحكم" },
@@ -168,6 +169,7 @@ const STRINGS: Dictionary = {
     en: "AI features are gated, not simulated.",
     ar: "ميزات الذكاء الاصطناعي مقيَّدة، وليست مُحاكاة.",
   },
+  "dashboard.aiGatedSee": { en: "See", ar: "انظر" },
   "dashboard.storedInDb": {
     en: "Stored in IndexedDB on this device",
     ar: "مخزَّن في IndexedDB على هذا الجهاز",
@@ -229,6 +231,34 @@ const STRINGS: Dictionary = {
     en: "Model weights are absent from this build, so offline AI, Arabic AI, MorphCore, and the body editor are catalog-only.",
     ar: "أوزان النماذج غير موجودة في هذه النسخة، لذا تبقى أدوات الذكاء الاصطناعي العربية ومحرك MorphCore ومحرر الجسم كتالوجات فقط.",
   },
+  "dashboard.modelsTitle": { en: "AI model readiness", ar: "جاهزية نماذج الذكاء الاصطناعي" },
+  "dashboard.modelsChecking": { en: "Inspecting local model manifests…", ar: "جارٍ فحص ملفات النماذج المحلية…" },
+  "dashboard.modelsUnits": { en: "weight files present", ar: "ملف أوزان موجود" },
+  "dashboard.modelsNone": {
+    en: "All model manifests are catalog-only; no weights are bundled.",
+    ar: "جميع ملفات النماذج كتالوجية فقط؛ لا توجد أوزان مضمّنة.",
+  },
+  "dashboard.modelsPartial": {
+    en: "Weight files were found on this device; verify compatibility on the Models page.",
+    ar: "تم العثور على ملفات أوزان على هذا الجهاز؛ تحقق من التوافق في صفحة النماذج.",
+  },
+
+  // Jobs
+  "jobs.title": { en: "Media jobs", ar: "مهام الوسائط" },
+  "jobs.activeOne": { en: "job running", ar: "مهمة قيد التشغيل" },
+  "jobs.activePlural": { en: "jobs running", ar: "مهام قيد التشغيل" },
+  "jobs.openWorkspace": { en: "Open the running job workspace", ar: "فتح مساحة عمل المهمة الجارية" },
+  "jobs.runTool": { en: "Run a tool", ar: "تشغيل أداة" },
+  "jobs.noneHint": {
+    en: "No jobs yet. Open the Toolbox to run an image, video, audio, or text tool.",
+    ar: "لا توجد مهام بعد. افتح صندوق الأدوات لتشغيل أداة صور أو فيديو أو صوت أو نص.",
+  },
+  "jobs.stageValidating": { en: "Validating", ar: "جارٍ التحقق" },
+  "jobs.stageProcessing": { en: "Processing", ar: "جارٍ المعالجة" },
+  "jobs.stageVerifying": { en: "Verifying", ar: "جارٍ التدقيق" },
+  "jobs.done": { en: "Done", ar: "اكتملت" },
+  "jobs.cancelled": { en: "Cancelled", ar: "أُلغيت" },
+  "jobs.error": { en: "Failed", ar: "فشلت" },
 
   // Recorder
   "studio.description": {

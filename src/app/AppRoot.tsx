@@ -17,6 +17,7 @@ import ToastViewport from "./ToastViewport";
 import SplashScreen, { type SplashStep } from "./SplashScreen";
 import ErrorBoundary from "./ErrorBoundary";
 import { SectionLoading } from "../views/ui";
+import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
 import Dashboard from "../views/Dashboard";
 import StudioView from "../views/StudioView";
 import ScreenshotsView from "../views/ScreenshotsView";
@@ -69,6 +70,8 @@ export default function AppRoot() {
   const [bootTimeout, setBootTimeout] = useState(false);
   const [leaving, setLeaving] = useState(false);
   const [splashDone, setSplashDone] = useState(false);
+  const [modelsChecked, setModelsChecked] = useState(false);
+  const [modelsPresent, setModelsPresent] = useState(0);
   const [holdSplash] = useState(
     () =>
       typeof window !== "undefined" &&
@@ -124,6 +127,27 @@ export default function AppRoot() {
       CAPABILITIES[route].labelKey,
     )} \u2014 KNOUX REC`;
   }, [route, settings.language]);
+
+  useEffect(() => {
+    let active = true;
+    const deadline = new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), 3500),
+    );
+    void Promise.race([inspectModels(MODEL_IDS), deadline])
+      .then((rows) => {
+        if (!active) return;
+        setModelsPresent(
+          rows ? rows.filter((row) => row.weightsState === "present").length : 0,
+        );
+        setModelsChecked(true);
+      })
+      .catch(() => {
+        if (active) setModelsChecked(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -244,6 +268,11 @@ export default function AppRoot() {
       id: "media",
       label: t("splash.media"),
       state: recorder.support.webcam ? "done" : "warn",
+    },
+    {
+      id: "models",
+      label: t("splash.models"),
+      state: !modelsChecked ? "active" : modelsPresent > 0 ? "done" : "warn",
     },
   ];
   const completed = steps.filter((step) => step.state === "done" || step.state === "warn").length;
