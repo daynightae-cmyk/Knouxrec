@@ -205,6 +205,12 @@ export default function VisualPatchView() {
     setHistoryState({ undo: service.canUndo(), redo: service.canRedo() });
   }, [showOriginal]);
 
+  // The comparison toggle must repaint immediately; without this effect the
+  // button only changed its label while the canvas kept the previous pixels.
+  useEffect(() => {
+    paintService();
+  }, [paintService]);
+
   const loadFile = useCallback(
     async (blob: Blob, name: string) => {
       const service = serviceRef.current;
@@ -315,8 +321,19 @@ export default function VisualPatchView() {
         resolution: "original",
         includeMetadata: false,
       });
-      const response = await fetch(dataUrl);
-      const blob = await response.blob();
+      // The production CSP forbids fetching data: URLs; decode the base64
+      // payload directly so the exported bytes reach the library.
+      const comma = dataUrl.indexOf(",");
+      if (comma < 0) throw new Error("The exporter returned no pixel payload.");
+      const header = dataUrl.slice(0, comma);
+      const mimeType = /data:([^;]+)/.exec(header)?.[1] ?? "image/png";
+      const binary = atob(dataUrl.slice(comma + 1));
+      const bytes = new Uint8Array(binary.length);
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+      const blob = new Blob([bytes], { type: mimeType });
+      if (blob.size === 0) throw new Error("The exporter produced an empty file.");
       const name = `${(fileName ?? "image").replace(/\.[^.]+$/, "")}-patched.png`;
       downloadBlob(blob, name);
       await add({
@@ -442,6 +459,9 @@ export default function VisualPatchView() {
                     height: "100%",
                     cursor: "crosshair",
                     touchAction: "none",
+                    pointerEvents: showOriginal ? "none" : "auto",
+                    opacity: showOriginal ? 0 : 1,
+                    transition: "opacity 160ms ease",
                   }}
                   onPointerDown={(event) => {
                     const point = pointerPosition(event);

@@ -56,7 +56,7 @@ function initialCollapsed(): boolean {
 
 export default function AppRoot() {
   const { settings } = useSettings();
-  const { ready: libraryReady, error: libraryError } = useLibrary();
+  const { ready: libraryReady, error: libraryError, add: addToLibrary } = useLibrary();
   const recorder = useRecorder();
   const t = (key: string) => translate(settings.language, key);
 
@@ -328,7 +328,22 @@ export default function AppRoot() {
           <div className="kx-content">
             <ToolSection route="elysian">
               <Suspense fallback={<SectionLoading label="Loading Elysian Canvas" />}>
-                <ElysianCanvas onClose={() => navigate("dashboard")} />
+                <ElysianCanvas
+                  onClose={() => navigate("dashboard")}
+                  onArchive={async (blob, fileName, width, height) => {
+                    await addToLibrary({
+                      name: fileName,
+                      kind: "image",
+                      mimeType: "image/png",
+                      blob,
+                      duration: 0,
+                      width,
+                      height,
+                      source: "toolbox",
+                      thumbnail: null,
+                    });
+                  }}
+                />
               </Suspense>
             </ToolSection>
           </div>

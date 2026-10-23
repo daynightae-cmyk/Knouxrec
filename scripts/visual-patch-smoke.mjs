@@ -303,6 +303,110 @@ try {
     { edited: edited?.sha256, redone: redone?.sha256 },
   );
 
+  /* ---------------- before / after comparison ---------------- */
+  const findToggle = () =>
+    page.evaluate(() => {
+      const button = [...document.querySelectorAll(".kx-btn")].find((element) =>
+        ["Show original", "Show result"].includes(
+          element.textContent?.trim() ?? "",
+        ),
+      );
+      return button ? button.textContent?.trim() : null;
+    });
+  const clickToggle = () =>
+    page.evaluate(() => {
+      const button = [...document.querySelectorAll(".kx-btn")].find((element) =>
+        ["Show original", "Show result"].includes(
+          element.textContent?.trim() ?? "",
+        ),
+      );
+      button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+    });
+
+  check("comparison toggle is available", (await findToggle()) === "Show original", await findToggle());
+  await clickToggle();
+  await new Promise((r) => setTimeout(r, 500));
+  const compared = await canvasHash(page);
+  check(
+    "before/after shows the untouched original pixels",
+    Boolean(compared && original && compared.sha256 === original.sha256),
+    { original: original?.sha256, compared: compared?.sha256 },
+  );
+  await shot(page, "04-visual-patch-before");
+  await clickToggle();
+  await new Promise((r) => setTimeout(r, 500));
+  const comparedBack = await canvasHash(page);
+  check(
+    "comparison returns to the edited result",
+    Boolean(comparedBack && edited && comparedBack.sha256 === edited.sha256),
+    { edited: edited?.sha256, comparedBack: comparedBack?.sha256 },
+  );
+
+  /* ---------------- export persists a real PNG ---------------- */
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll(".kx-btn")].find(
+      (element) => element.textContent?.trim() === "Export PNG",
+    );
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  await new Promise((r) => setTimeout(r, 1400));
+  const stored = await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const open = indexedDB.open("knoux-rec.library");
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const db = open.result;
+          const transaction = db.transaction("items", "readonly");
+          const request = transaction.objectStore("items").getAll();
+          request.onerror = () => reject(request.error);
+          request.onsuccess = async () => {
+            const items = request.result ?? [];
+            const latest = items.reduce(
+              (best, item) => (!best || item.createdAt > best.createdAt ? item : best),
+              null,
+            );
+            if (!latest) return resolve(null);
+            const head = new Uint8Array(await latest.blob.slice(0, 8).arrayBuffer());
+            resolve({
+              name: latest.name,
+              size: latest.blob.size,
+              type: latest.blob.type,
+              magic: Array.from(head)
+                .map((value) => value.toString(16).padStart(2, "0"))
+                .join(" "),
+            });
+          };
+        };
+      }),
+  );
+  check(
+    "the exported artwork is persisted in the library",
+    Boolean(stored && /-patched\.png$/.test(stored.name) && stored.size > 100),
+    stored,
+  );
+  check(
+    "the stored artifact carries the real PNG signature",
+    Boolean(stored && stored.magic.startsWith("89 50 4e 47 0d 0a 1a 0a")),
+    stored,
+  );
+
+  /* ---------------- reset ---------------- */
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll(".kx-btn")].find(
+      (element) => element.textContent?.trim() === "Reset",
+    );
+    button?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
+  });
+  await new Promise((r) => setTimeout(r, 800));
+  const reset = await canvasHash(page);
+  check(
+    "reset restores the original pixels",
+    Boolean(reset && original && reset.sha256 === original.sha256),
+    { original: original?.sha256, reset: reset?.sha256 },
+  );
+  await shot(page, "05-visual-patch-reset");
+
   check("no uncaught page errors", report.pageErrors.length === 0, report.pageErrors);
   check("no console errors", report.consoleErrors.length === 0, report.consoleErrors.slice(0, 4));
 } finally {

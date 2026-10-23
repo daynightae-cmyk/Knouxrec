@@ -1,6 +1,6 @@
 # KNOUX REC capability registry
 
-Generated 2026-10-23T22:41:41.692Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
+Generated 2026-10-23T22:52:08.962Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
 
 Counts: routes=16, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
 
@@ -18,7 +18,7 @@ Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catal
 | toolbox | create | VERIFIED | Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette. |
 | visual-patch | create | PARTIAL | Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export. |
 | morphcore | create | MISSING_ENGINE | Body-shape tool catalog preserved, but it depended on fictional .exe modules and fabricated output paths. |
-| elysian | create | PARTIAL | Image editing workspace with slider filters, real presets and PNG export. The AI inference pipeline is not part of the bundle. |
+| elysian | create | PARTIAL | Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle. |
 | body-editor | create | MISSING_MODEL | Age-gated body editor UI preserved. It depends on segmentation models whose weight files are not distributed. |
 | offline-ai | intelligence | PARTIAL | One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist. |
 | arabic-ai | intelligence | PARTIAL | The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too. |

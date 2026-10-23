@@ -125,7 +125,7 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
       "Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export.",
     requirements: ["An image to edit"],
     evidence:
-      "services/visualPatchLabService.ts applies the pinch, warp, sculpt, brush, smooth, curve and mirror processors to the painted region; the exported PNG comes from the same canvas.",
+      "scripts/visual-patch-smoke.mjs now verifies the full pipeline (21/21): paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven.",
   },
   morphcore: {
     id: "morphcore",
@@ -145,10 +145,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "elysian",
     state: "PARTIAL",
     summary:
-      "Image editing workspace with slider filters, real presets and PNG export. The AI inference pipeline is not part of the bundle.",
+      "Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle.",
     requirements: ["Image input", "Model weights for the AI pipeline"],
     evidence:
-      "scripts/elysian-smoke.mjs drives the packaged binary: age gate, upload, preset filter and a PNG export whose pixels carry the filter.",
+      "scripts/elysian-smoke.mjs drives the packaged binary (18/18): age gate, upload, preset filter, compare repaint, verified PNG export with independently decoded pixels, and the saved library blob signature.",
     adult: true,
   },
   "body-editor": {

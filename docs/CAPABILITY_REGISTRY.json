@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-23T22:41:41.692Z",
+  "generatedAt": "2026-10-23T22:52:08.962Z",
   "source": {
     "repository": "https://github.com/daynightae-cmyk/Knouxrec.git",
     "commit": "05a542957a62730301972361c1300ccd7d66ca54",
@@ -88,7 +88,7 @@
       "requirements": [
         "An image to edit"
       ],
-      "evidence": "services/visualPatchLabService.ts applies the pinch, warp, sculpt, brush, smooth, curve and mirror processors to the painted region; the exported PNG comes from the same canvas."
+      "evidence": "scripts/visual-patch-smoke.mjs now verifies the full pipeline (21/21): paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven."
     },
     {
       "id": "morphcore",
@@ -105,12 +105,12 @@
       "id": "elysian",
       "group": "create",
       "state": "PARTIAL",
-      "summary": "Image editing workspace with slider filters, real presets and PNG export. The AI inference pipeline is not part of the bundle.",
+      "summary": "Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle.",
       "requirements": [
         "Image input",
         "Model weights for the AI pipeline"
       ],
-      "evidence": "scripts/elysian-smoke.mjs drives the packaged binary: age gate, upload, preset filter and a PNG export whose pixels carry the filter."
+      "evidence": "scripts/elysian-smoke.mjs drives the packaged binary (18/18): age gate, upload, preset filter, compare repaint, verified PNG export with independently decoded pixels, and the saved library blob signature."
     },
     {
       "id": "body-editor",

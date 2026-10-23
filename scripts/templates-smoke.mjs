@@ -616,6 +616,47 @@ try {
     },
   );
 
+  /* ------------------------------------- text customizations reach pixels */
+  const customized = await page.evaluate(async () => {
+    const inputs = [...document.querySelectorAll("input.kx-input")];
+    if (!inputs.length) return { targeted: false, reason: "no text input" };
+    const input = inputs[0];
+    const setter = Object.getOwnPropertyDescriptor(
+      window.HTMLInputElement.prototype,
+      "value",
+    ).set;
+    setter.call(input, "KNOUX PIXEL PROOF");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const button = [...document.querySelectorAll(".kx-btn")].find((element) =>
+      ["Render frame", "Render again"].includes(element.textContent?.trim() ?? ""),
+    );
+    if (!button) return { targeted: false, reason: "render button missing" };
+    button.click();
+    return { targeted: true, value: input.value };
+  });
+  await page.waitForFunction(
+    () => Boolean(document.querySelector(".kx-preview img")),
+    { timeout: 30000 },
+  );
+  await sleep(350);
+  const customizedFrame = await page.evaluate(() => window.__KX.inspect(".kx-preview img"));
+  check(
+    "templates: text customizations reach the rendered pixels",
+    Boolean(
+      customized.targeted &&
+        customizedFrame.width === 1920 &&
+        customizedFrame.height === 1080 &&
+        customizedFrame.pixelSha256 !== frame.pixelSha256,
+    ),
+    {
+      customized,
+      original: frame.pixelSha256,
+      customizedSha: customizedFrame.pixelSha256,
+    },
+  );
+  await shot(page, "02b-frame-customized");
+
   /* ------------------------------------------------------------ cancel */
   const cancelStart = await page.evaluate(async () => {
     const button = [...document.querySelectorAll(".kx-btn")].find(
