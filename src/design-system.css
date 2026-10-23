@@ -924,6 +924,13 @@ html[data-theme="light"] .kx-topbar {
   background: #050507;
 }
 
+.kx-preview audio {
+  width: min(90%, 560px);
+  display: block;
+  background: #050507;
+  border-radius: 999px;
+}
+
 .kx-preview-idle {
   display: flex;
   flex-direction: column;

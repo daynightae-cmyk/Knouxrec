@@ -1,6 +1,6 @@
 # KNOUX REC capability registry
 
-Generated 2026-10-22T05:37:12.482Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
+Generated 2026-10-23T21:16:57.607Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
 
 Counts: routes=15, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
 
@@ -14,14 +14,14 @@ Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catal
 | studio | capture | VERIFIED | Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output. |
 | screenshots | capture | VERIFIED | Real pixel capture from the display stream with PNG/JPEG/WebP encoding. |
 | library | library | VERIFIED | Persistent local library with preview, rename, delete, export and trim. |
-| templates | create | BLOCKED | Template browser preserved, but it is not mounted: its dependency graph does not compile or run as shipped. |
-| toolbox | create | BLOCKED | Media utility panel preserved, but it is not mounted: the shared tool card has no default export and broken handlers. |
-| visual-patch | create | BLOCKED | Region-based image editor preserved, but it is not mounted because its processing pipeline is incomplete. |
+| templates | create | VERIFIED | Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content. |
+| toolbox | create | VERIFIED | Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette. |
+| visual-patch | create | PARTIAL | Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export. |
 | morphcore | create | MISSING_ENGINE | Body-shape tool catalog preserved, but it depended on fictional .exe modules and fabricated output paths. |
 | elysian | create | PARTIAL | Image editing workspace with slider filters, real presets and PNG export. The AI inference pipeline is not part of the bundle. |
 | body-editor | create | MISSING_MODEL | Age-gated body editor UI preserved. It depends on segmentation models whose weight files are not distributed. |
-| offline-ai | intelligence | MISSING_MODEL | 38-tool catalog recovered. The previous service returned synthetic images/transcripts; it is now marked unavailable instead of faking output. |
-| arabic-ai | intelligence | MISSING_ENGINE | 38-tool Arabic catalog preserved for future engines; the prior handler only waited and logged. |
+| offline-ai | intelligence | PARTIAL | One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist. |
+| arabic-ai | intelligence | PARTIAL | The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too. |
 | models | intelligence | MISSING_MODEL | Model manifest inventory with explicit weight-file verification. |
 | settings | system | VERIFIED | Persisted appearance, language and recording defaults. |
 | diagnostics | system | VERIFIED | Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB. |
@@ -122,7 +122,7 @@ Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catal
 | arabic-ai-26 | كاشف اللغة | 420 | 3 | MISSING_ENGINE |
 | arabic-ai-27 | كشف الأجسام | 45 | 2 | MISSING_ENGINE |
 | arabic-ai-28 | كشف الحركة | 45 | 25 | MISSING_ENGINE |
-| arabic-ai-29 | كشف الحواف ��التفاصيل | 45 | 2 | MISSING_ENGINE |
+| arabic-ai-29 | كشف الحواف والتفاصيل | 45 | 2 | MISSING_ENGINE |
 | arabic-ai-30 | كشف الوجوه | 10 | 1 | MISSING_ENGINE |
 | arabic-ai-31 | كشف فترات الصمت | 25 | 8 | MISSING_ENGINE |
 | arabic-ai-32 | محلل الضوضاء | 15 | 12 | MISSING_ENGINE |

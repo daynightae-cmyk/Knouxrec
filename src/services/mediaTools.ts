@@ -10,6 +10,7 @@
  */
 
 import { encodeQrCode, drawQrCode, type QrEcLevel } from "./qrCode";
+import { parseWavHeader } from "./aiDsp";
 
 export type MediaToolId =
   | "image-resize"
@@ -677,9 +678,31 @@ export async function extractVideoThumbnail(
       video.src = url;
     });
 
-    const duration = Number.isFinite(video.duration) ? video.duration : 0;
-    const requested = options.time ?? Math.min(1, duration * 0.25);
-    const timestamp = Math.max(0, Math.min(duration || 0, requested));
+    if (!Number.isFinite(video.duration) || video.duration <= 0) {
+      // MediaRecorder output (and many screen recordings) carries no duration
+      // in the header, so Chromium reports Infinity. Seeking far past the end
+      // makes it scan the clusters and publish the real duration.
+      await new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          window.clearTimeout(timer);
+          resolve();
+        };
+        const timer = window.setTimeout(finish, 5000);
+        video.addEventListener("durationchange", finish, { once: true });
+        video.currentTime = 1e9;
+      });
+      try {
+        video.currentTime = 0;
+      } catch {
+        // The requested seek below will position the actual frame.
+      }
+    }
+    const resolvedDuration = Number.isFinite(video.duration) ? video.duration : 0;
+    const requested = options.time ?? Math.min(1, resolvedDuration * 0.25);
+    const timestamp = Math.max(0, Math.min(resolvedDuration || 0, requested));
 
     await new Promise<void>((resolve, reject) => {
       const timer = window.setTimeout(
@@ -710,7 +733,7 @@ export async function extractVideoThumbnail(
     const format = options.format ?? "png";
     const mimeType = mimeForFormat(format);
     const blob = await canvasToBlob(canvas, mimeType, options.quality ?? 0.92);
-    return { blob, width, height, mimeType, duration, timestamp };
+    return { blob, width, height, mimeType, duration: resolvedDuration, timestamp };
   } finally {
     URL.revokeObjectURL(url);
   }
@@ -742,10 +765,29 @@ export async function renderAudioWaveform(
   if (!AudioContextCtor) {
     throw new Error("The Web Audio API is unavailable in this runtime.");
   }
-  const context = new AudioContextCtor();
+  const arrayBuffer = await source.arrayBuffer();
+  // Chrome's decodeAudioData resamples to the AudioContext rate. For PCM WAV
+  // the real rate is in the header, so request a context at that rate and keep
+  // the samples (and the reported sampleRate) untouched.
+  let declaredRate: number | undefined;
   try {
-    const arrayBuffer = await source.arrayBuffer();
-    const audioBuffer = await context.decodeAudioData(arrayBuffer);
+    const header = parseWavHeader(new Uint8Array(arrayBuffer.slice(0, 64)));
+    if (header && header.sampleRate >= 8000 && header.sampleRate <= 192000) {
+      declaredRate = header.sampleRate;
+    }
+  } catch {
+    // not a WAV or unreadable header - use the runtime default rate
+  }
+  let context: AudioContext;
+  try {
+    context = declaredRate
+      ? new AudioContextCtor({ sampleRate: declaredRate })
+      : new AudioContextCtor();
+  } catch {
+    context = new AudioContextCtor();
+  }
+  try {
+    const audioBuffer = await context.decodeAudioData(arrayBuffer.slice(0));
     const channel = audioBuffer.getChannelData(0);
     const width = clamp(Math.round(options.width ?? 1200), 64, 4096);
     const height = clamp(Math.round(options.height ?? 400), 64, 2048);

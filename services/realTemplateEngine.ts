@@ -73,6 +73,8 @@ export class RealTemplateEngine {
   private renderCanvas!: HTMLCanvasElement;
   private renderContext!: CanvasRenderingContext2D;
   private loadedAssets: Map<string, any> = new Map();
+  /** Playhead used by the time-aware renderer (seconds). */
+  private renderTime = 0;
 
   constructor() {
     this.initializeCanvas();
@@ -738,11 +740,14 @@ export class RealTemplateEngine {
     templateId: string,
     customizations: Record<string, any> = {},
     settings: TemplateRenderSettings,
+    timeSeconds = 0,
   ): Promise<HTMLCanvasElement> {
     const template = this.templates.get(templateId);
     if (!template) {
       throw new Error(`لم يتم العثور على القالب: ${templateId}`);
     }
+
+    this.renderTime = Number.isFinite(timeSeconds) ? Math.max(0, timeSeconds) : 0;
 
     // تطبيق الإعدادات
     this.renderCanvas.width = settings.resolution.width;
@@ -783,11 +788,35 @@ export class RealTemplateEngine {
     customizations: Record<string, any>,
     _settings: TemplateRenderSettings,
   ): Promise<void> {
+    if (element.duration) {
+      const { start, end } = element.duration;
+      if (this.renderTime < start) return;
+      // `end <= start` means "always visible" for the loop templates.
+      if (end > start && this.renderTime > end) return;
+    }
+
+    const animation = this.evaluateAnimation(element, this.renderTime);
+    const animatedElement =
+      Object.keys(animation.properties).length > 0
+        ? {
+            ...element,
+            properties: { ...element.properties, ...animation.properties },
+          }
+        : element;
+
     this.renderContext.save();
 
     // تطبيق التحويلات
     const centerX = element.position.x + element.size.width / 2;
     const centerY = element.position.y + element.size.height / 2;
+
+    const pulse =
+      element.properties.animation === "pulse"
+        ? 0.55 + 0.45 * Math.abs(Math.sin(this.renderTime * Math.PI * 2))
+        : 1;
+
+    this.renderContext.globalAlpha =
+      (element.opacity ?? 1) * animation.opacity * pulse;
 
     this.renderContext.translate(centerX, centerY);
 
@@ -795,29 +824,161 @@ export class RealTemplateEngine {
       this.renderContext.rotate((element.rotation * Math.PI) / 180);
     }
 
-    if (element.opacity !== undefined) {
-      this.renderContext.globalAlpha = element.opacity;
+    if (animation.translateX !== 0 || animation.translateY !== 0) {
+      this.renderContext.translate(animation.translateX, animation.translateY);
+    }
+    if (animation.rotation !== 0) {
+      this.renderContext.rotate((animation.rotation * Math.PI) / 180);
+    }
+    if (animation.scale !== 1) {
+      this.renderContext.scale(animation.scale, animation.scale);
     }
 
     this.renderContext.translate(-centerX, -centerY);
 
     // رسم حسب نوع العنصر
-    switch (element.type) {
+    switch (animatedElement.type) {
       case "text":
-        await this.renderTextElement(element, customizations);
+        await this.renderTextElement(animatedElement, customizations);
         break;
       case "shape":
-        await this.renderShapeElement(element, customizations);
+        await this.renderShapeElement(animatedElement, customizations);
         break;
       case "image":
-        await this.renderImageElement(element, customizations);
+        await this.renderImageElement(animatedElement, customizations);
         break;
       case "effect":
-        await this.renderEffectElement(element, customizations);
+        await this.renderEffectElement(animatedElement, customizations);
         break;
     }
 
     this.renderContext.restore();
+  }
+
+  /** Evaluate keyframe opacity, transforms and numeric properties at `time`. */
+  private evaluateAnimation(
+    element: RealTemplateElement,
+    time: number,
+  ): {
+    opacity: number;
+    translateX: number;
+    translateY: number;
+    scale: number;
+    rotation: number;
+    properties: Record<string, any>;
+  } {
+    const blank = () => ({
+      opacity: 1,
+      translateX: 0,
+      translateY: 0,
+      scale: 1,
+      rotation: 0,
+      properties: {} as Record<string, any>,
+    });
+
+    const frames = element.animations;
+    if (!frames || frames.length === 0) return blank();
+
+    const sorted = [...frames].sort((a, b) => a.time - b.time);
+    if (time < sorted[0].time) return blank();
+
+    const stateAt = (target: number) => {
+      const state = blank();
+      for (const frame of sorted) {
+        if (frame.time > target) break;
+        const properties = frame.properties ?? {};
+        for (const [key, value] of Object.entries(properties)) {
+          if (key === "transform" && typeof value === "string") {
+            const transform = this.parseTransform(value);
+            state.translateX = transform.translateX;
+            state.translateY = transform.translateY;
+            state.scale = transform.scale;
+            state.rotation = transform.rotation;
+          } else if (key === "opacity" && typeof value === "number") {
+            state.opacity = value;
+          } else {
+            state.properties[key] = value;
+          }
+        }
+      }
+      return state;
+    };
+
+    const lastFrame = sorted[sorted.length - 1];
+    if (time >= lastFrame.time) return stateAt(lastFrame.time);
+
+    const nextFrame = sorted.find((frame) => frame.time > time);
+    if (!nextFrame) return stateAt(time);
+    const previousFrame = [...sorted]
+      .reverse()
+      .find((frame) => frame.time <= time);
+    const from = stateAt(previousFrame?.time ?? sorted[0].time);
+    const to = stateAt(nextFrame.time);
+    const startTime = previousFrame?.time ?? sorted[0].time;
+    const span = nextFrame.time - startTime;
+    const raw = span <= 0 ? 1 : (time - startTime) / span;
+    const eased = this.easeAnimation(raw, previousFrame?.easing ?? "linear");
+
+    const result = {
+      opacity: from.opacity + (to.opacity - from.opacity) * eased,
+      translateX: from.translateX + (to.translateX - from.translateX) * eased,
+      translateY: from.translateY + (to.translateY - from.translateY) * eased,
+      scale: from.scale + (to.scale - from.scale) * eased,
+      rotation: from.rotation + (to.rotation - from.rotation) * eased,
+      properties: {} as Record<string, any>,
+    };
+
+    const keys = new Set([
+      ...Object.keys(from.properties),
+      ...Object.keys(to.properties),
+    ]);
+    for (const key of keys) {
+      const startValue = from.properties[key];
+      const endValue = to.properties[key];
+      if (typeof startValue === "number" && typeof endValue === "number") {
+        result.properties[key] = startValue + (endValue - startValue) * eased;
+      } else {
+        result.properties[key] = endValue ?? startValue;
+      }
+    }
+
+    return result;
+  }
+
+  private parseTransform(value: string): {
+    translateX: number;
+    translateY: number;
+    scale: number;
+    rotation: number;
+  } {
+    const translateX = value.match(/translateX\(\s*(-?[\d.]+)px\s*\)/);
+    const translateY = value.match(/translateY\(\s*(-?[\d.]+)px\s*\)/);
+    const scale = value.match(/scale\(\s*(-?[\d.]+)\s*\)/);
+    const rotation = value.match(/rotate\(\s*(-?[\d.]+)deg\s*\)/);
+    return {
+      translateX: translateX ? Number(translateX[1]) : 0,
+      translateY: translateY ? Number(translateY[1]) : 0,
+      scale: scale ? Number(scale[1]) : 1,
+      rotation: rotation ? Number(rotation[1]) : 0,
+    };
+  }
+
+  private easeAnimation(t: number, easing: string): number {
+    const clamped = Math.max(0, Math.min(1, t));
+    switch (easing) {
+      case "ease-in":
+        return clamped * clamped;
+      case "ease-out":
+        return clamped * (2 - clamped);
+      case "ease-in-out":
+        return clamped < 0.5
+          ? 2 * clamped * clamped
+          : -1 + (4 - 2 * clamped) * clamped;
+      case "ease":
+        return clamped * clamped * (3 - 2 * clamped);
+      default:
+        return clamped;
+    }
   }
 
   // رسم عنصر نص

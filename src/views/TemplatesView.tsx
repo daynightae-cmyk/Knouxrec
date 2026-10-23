@@ -34,6 +34,8 @@ interface TemplateEngine {
       format: "mp4" | "webm" | "gif" | "png-sequence";
       backgroundColor?: string;
     },
+    /** Playhead in seconds for the time-aware keyframe renderer. */
+    timeSeconds?: number,
   ): Promise<HTMLCanvasElement>;
 }
 
@@ -78,9 +80,34 @@ export default function TemplatesView() {
   const [renderedUrl, setRenderedUrl] = useState<string | null>(null);
   const [renderedBytes, setRenderedBytes] = useState(0);
   const [saved, setSaved] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [videoBytes, setVideoBytes] = useState(0);
+  const [videoDuration, setVideoDuration] = useState(0);
+  const [videoSaved, setVideoSaved] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportProgress, setExportProgress] = useState(0);
+  const [previewKind, setPreviewKind] = useState<"frame" | "video">("frame");
 
   const urlRef = useRef<string | null>(null);
+  const videoUrlRef = useRef<string | null>(null);
+  const frameBlobRef = useRef<Blob | null>(null);
+  const videoBlobRef = useRef<Blob | null>(null);
+  const cancelExportRef = useRef(false);
   const engineRef = useRef<TemplateEngine | null>(null);
+
+  const clearVideo = useCallback(() => {
+    if (videoUrlRef.current) {
+      URL.revokeObjectURL(videoUrlRef.current);
+      videoUrlRef.current = null;
+    }
+    videoBlobRef.current = null;
+    setVideoUrl(null);
+    setVideoBytes(0);
+    setVideoDuration(0);
+    setVideoSaved(false);
+    setExportProgress(0);
+    setPreviewKind("frame");
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,7 +161,9 @@ export default function TemplatesView() {
 
   useEffect(
     () => () => {
+      cancelExportRef.current = true;
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+      if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
     },
     [],
   );
@@ -160,16 +189,19 @@ export default function TemplatesView() {
           format: "png-sequence",
           backgroundColor: "#05050a",
         },
+        0,
       );
       const blob = await new Promise<Blob | null>((resolve) =>
         canvas.toBlob((value) => resolve(value), "image/png"),
       );
       if (!blob) throw new Error("The frame could not be encoded.");
+      frameBlobRef.current = blob;
       if (urlRef.current) URL.revokeObjectURL(urlRef.current);
       urlRef.current = URL.createObjectURL(blob);
       setRenderedUrl(urlRef.current);
       setRenderedBytes(blob.size);
       setSaved(false);
+      setPreviewKind("frame");
     } catch (cause) {
       setRenderError(
         cause instanceof Error ? cause.message : "The template could not be rendered.",
@@ -180,12 +212,12 @@ export default function TemplatesView() {
   }, [customizations, selected]);
 
   const saveToLibrary = useCallback(async () => {
-    if (!renderedUrl || !selected) return;
+    const blob = frameBlobRef.current;
+    if (!blob || !selected) return;
+    const name = `${selected.id}-frame.png`;
     try {
-      const response = await fetch(renderedUrl);
-      const blob = await response.blob();
       await add({
-        name: `${selected.id}-frame.png`,
+        name,
         kind: "image",
         mimeType: blob.type || "image/png",
         blob,
@@ -193,17 +225,194 @@ export default function TemplatesView() {
         width: selected.width,
         height: selected.height,
         source: "toolbox",
-        thumbnail: renderedUrl,
+        thumbnail: null,
       });
       setSaved(true);
-      push("success", t("templates.saved"), `${selected.id}-frame.png`);
+      push("success", t("templates.saved"), name);
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "The frame could not be saved.";
       setRenderError(message);
       push("error", t("templates.saveFailed"), message);
     }
-  }, [add, push, renderedUrl, selected, t]);
+  }, [add, push, selected, t]);
+
+  const cancelExport = useCallback(() => {
+    cancelExportRef.current = true;
+  }, []);
+
+  const exportVideo = useCallback(async () => {
+    const engine = engineRef.current;
+    if (!engine || !selected || exporting) return;
+    setExporting(true);
+    setRenderError(null);
+    setExportProgress(0);
+    cancelExportRef.current = false;
+
+    const fps = Math.max(12, Math.min(30, Math.round(selected.fps || 30)));
+    const duration = selected.duration > 0 ? selected.duration : 5;
+    const settings = {
+      resolution: { width: selected.width, height: selected.height },
+      fps,
+      quality: "export" as const,
+      format: "webm" as const,
+      backgroundColor: "#05050a",
+    };
+
+    let stream: MediaStream | null = null;
+    let recorder: MediaRecorder | null = null;
+
+    try {
+      const canvas = await engine.renderTemplate(
+        selected.id,
+        customizations,
+        settings,
+        0,
+      );
+      if (typeof canvas.captureStream !== "function") {
+        throw new Error("This browser cannot capture a canvas stream.");
+      }
+      if (typeof MediaRecorder === "undefined") {
+        throw new Error("This browser has no MediaRecorder encoder.");
+      }
+      const mimeType = [
+        "video/webm;codecs=vp9",
+        "video/webm;codecs=vp8",
+        "video/webm",
+      ].find((type) => MediaRecorder.isTypeSupported(type));
+      if (!mimeType) {
+        throw new Error("This browser cannot encode WebM video.");
+      }
+
+      stream = canvas.captureStream(fps);
+      recorder = new MediaRecorder(stream, {
+        mimeType,
+        videoBitsPerSecond: 8_000_000,
+      });
+      const chunks: BlobPart[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+      const stopped = new Promise<void>((resolve, reject) => {
+        recorder!.onstop = () => resolve();
+        recorder!.onerror = () =>
+          reject(new Error("The WebM encoder failed."));
+      });
+      void stopped.catch(() => undefined);
+
+      recorder.start(100);
+      const startedAt = performance.now();
+      await new Promise<void>((resolve) => {
+        const tick = async () => {
+          if (cancelExportRef.current) {
+            resolve();
+            return;
+          }
+          const elapsed = (performance.now() - startedAt) / 1000;
+          const time = Math.min(elapsed, duration);
+          await engine.renderTemplate(
+            selected.id,
+            customizations,
+            settings,
+            time,
+          );
+          const percent = Math.min(
+            100,
+            Math.round((time / duration) * 100),
+          );
+          setExportProgress((current) =>
+            current === percent ? current : percent,
+          );
+          if (elapsed >= duration) {
+            resolve();
+            return;
+          }
+          window.setTimeout(() => void tick(), 1000 / fps);
+        };
+        void tick();
+      });
+
+      // Give the encoder a moment to capture the final frame.
+      await new Promise((resolve) => window.setTimeout(resolve, 120));
+      if (recorder.state !== "inactive") recorder.stop();
+      await stopped;
+
+      if (cancelExportRef.current) {
+        setExportProgress(0);
+        return;
+      }
+
+      const blob = new Blob(chunks, { type: mimeType.split(";")[0] });
+      if (blob.size < 1000) {
+        throw new Error("The encoder produced an empty video.");
+      }
+
+      if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
+      videoUrlRef.current = URL.createObjectURL(blob);
+      videoBlobRef.current = blob;
+      setVideoUrl(videoUrlRef.current);
+      setVideoBytes(blob.size);
+      setVideoDuration(duration);
+      setVideoSaved(false);
+      setExportProgress(100);
+      setPreviewKind("video");
+      push(
+        "success",
+        t("templates.videoReady"),
+        `${selected.id}-${duration.toFixed(1)}s.webm`,
+      );
+    } catch (cause) {
+      const message =
+        cause instanceof Error
+          ? cause.message
+          : "The video could not be exported.";
+      setRenderError(message);
+      push("error", t("templates.videoFailed"), message);
+    } finally {
+      if (recorder && recorder.state !== "inactive") {
+        try {
+          recorder.stop();
+        } catch {
+          // The recorder may already be stopping.
+        }
+      }
+      stream?.getTracks().forEach((track) => track.stop());
+      cancelExportRef.current = false;
+      setExporting(false);
+    }
+  }, [customizations, exporting, push, selected, t]);
+
+  const saveVideoToLibrary = useCallback(async () => {
+    const blob = videoBlobRef.current;
+    if (!blob || !selected) return;
+    const name = `${selected.id}-${videoDuration.toFixed(1)}s.webm`;
+    try {
+      await add({
+        name,
+        kind: "video",
+        mimeType: blob.type || "video/webm",
+        blob,
+        duration: videoDuration,
+        width: selected.width,
+        height: selected.height,
+        source: "toolbox",
+        thumbnail: null,
+      });
+      setVideoSaved(true);
+      push("success", t("templates.videoSaved"), name);
+    } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : "The video could not be saved.";
+      setRenderError(message);
+      push("error", t("templates.saveFailed"), message);
+    }
+  }, [add, push, selected, t, videoDuration]);
+
+  const downloadVideo = useCallback(() => {
+    const blob = videoBlobRef.current;
+    if (!blob || !selected) return;
+    downloadBlob(blob, `${selected.id}-${videoDuration.toFixed(1)}s.webm`);
+  }, [selected, videoDuration]);
 
   return (
     <div className="kx-section">
@@ -214,8 +423,8 @@ export default function TemplatesView() {
         actions={<StateBadge state={capability.state} />}
       />
 
-      <div className="kx-notice" data-tone="warn" style={{ marginBottom: 16 }}>
-        <Icon name="info" size={18} />
+      <div className="kx-notice" data-tone="ok" style={{ marginBottom: 16 }}>
+        <Icon name="check" size={18} />
         <div>{t("templates.exporting")}</div>
       </div>
 
@@ -247,8 +456,17 @@ export default function TemplatesView() {
                     onClick={() => {
                       setSelectedId(template.id);
                       setCustomizations({});
+                      if (urlRef.current) {
+                        URL.revokeObjectURL(urlRef.current);
+                        urlRef.current = null;
+                      }
+                      frameBlobRef.current = null;
                       setRenderedUrl(null);
+                      setRenderedBytes(0);
+                      setSaved(false);
                       setRenderError(null);
+                      clearVideo();
+                      setPreviewKind("frame");
                     }}
                   >
                     <span className="kx-ai-row-icon">
@@ -321,8 +539,8 @@ export default function TemplatesView() {
               <div className="kx-card">
                 <div className="kx-card-title">
                   <span>{selected.name}</span>
-                  <span className="kx-badge" data-state="PARTIAL">
-                    {t("templates.frameOnly")}
+                  <span className="kx-badge" data-state="VERIFIED">
+                    {t("templates.videoExport")}
                   </span>
                 </div>
                 <p className="kx-card-sub" style={{ marginTop: 6 }}>
@@ -348,7 +566,16 @@ export default function TemplatesView() {
                                 ...current,
                                 [element.id]: event.target.value,
                               }));
+                              if (urlRef.current) {
+                                URL.revokeObjectURL(urlRef.current);
+                                urlRef.current = null;
+                              }
+                              frameBlobRef.current = null;
                               setRenderedUrl(null);
+                              setRenderedBytes(0);
+                              setSaved(false);
+                              clearVideo();
+                              setPreviewKind("frame");
                             }}
                           />
                         </label>
@@ -362,7 +589,7 @@ export default function TemplatesView() {
                     type="button"
                     className="kx-btn kx-btn-primary"
                     onClick={() => void render()}
-                    disabled={rendering}
+                    disabled={rendering || exporting}
                   >
                     {rendering ? (
                       <>
@@ -378,6 +605,72 @@ export default function TemplatesView() {
                       </>
                     )}
                   </button>
+
+                  <button
+                    type="button"
+                    className="kx-btn"
+                    onClick={() => void exportVideo()}
+                    disabled={exporting || rendering}
+                  >
+                    {exporting ? (
+                      <>
+                        <span className="kx-spin">
+                          <Icon name="refresh" size={15} />
+                        </span>
+                        {t("templates.exportingVideo")}
+                      </>
+                    ) : (
+                      <>
+                        <Icon name="video" size={15} />
+                        {t("templates.exportVideo")}
+                      </>
+                    )}
+                  </button>
+
+                  {exporting && (
+                    <button
+                      type="button"
+                      className="kx-btn kx-btn-quiet"
+                      onClick={cancelExport}
+                    >
+                      <Icon name="stop" size={15} />
+                      {t("templates.cancelExport")}
+                    </button>
+                  )}
+
+                  {videoUrl && (
+                    <>
+                      <button
+                        type="button"
+                        className="kx-btn"
+                        onClick={() => void saveVideoToLibrary()}
+                      >
+                        <Icon name="download" size={15} />
+                        {videoSaved
+                          ? t("templates.videoSaved")
+                          : t("templates.saveVideo")}
+                      </button>
+                      <button
+                        type="button"
+                        className="kx-btn"
+                        onClick={downloadVideo}
+                      >
+                        <Icon name="external" size={15} />
+                        {t("templates.downloadVideo")}
+                      </button>
+                      {previewKind === "frame" && (
+                        <button
+                          type="button"
+                          className="kx-btn kx-btn-quiet"
+                          onClick={() => setPreviewKind("video")}
+                        >
+                          <Icon name="video" size={15} />
+                          {t("templates.showVideo")}
+                        </button>
+                      )}
+                    </>
+                  )}
+
                   {renderedUrl && (
                     <>
                       <button
@@ -386,23 +679,54 @@ export default function TemplatesView() {
                         onClick={() => void saveToLibrary()}
                       >
                         <Icon name="download" size={15} />
-                        {saved ? t("templates.saved") : t("templates.saveToLibrary")}
+                        {saved
+                          ? t("templates.saved")
+                          : t("templates.saveToLibrary")}
                       </button>
                       <button
                         type="button"
                         className="kx-btn"
-                        onClick={async () => {
-                          const response = await fetch(renderedUrl);
-                          const blob = await response.blob();
-                          downloadBlob(blob, `${selected.id}-frame.png`);
+                        onClick={() => {
+                          const blob = frameBlobRef.current;
+                          if (blob) {
+                            downloadBlob(blob, `${selected.id}-frame.png`);
+                          }
                         }}
                       >
                         <Icon name="external" size={15} />
                         {t("templates.exportFrame")}
                       </button>
+                      {videoUrl && previewKind === "video" && (
+                        <button
+                          type="button"
+                          className="kx-btn kx-btn-quiet"
+                          onClick={() => setPreviewKind("frame")}
+                        >
+                          <Icon name="image" size={15} />
+                          {t("templates.showFrame")}
+                        </button>
+                      )}
                     </>
                   )}
                 </div>
+
+                {exporting && (
+                  <div style={{ marginTop: 12 }}>
+                    <div className="kx-row-between">
+                      <span>{t("templates.exportingVideo")}</span>
+                      <span className="kx-mono">{exportProgress}%</span>
+                    </div>
+                    <div
+                      className="kx-progress"
+                      role="progressbar"
+                      aria-valuemin={0}
+                      aria-valuemax={100}
+                      aria-valuenow={exportProgress}
+                    >
+                      <span style={{ width: `${exportProgress}%` }} />
+                    </div>
+                  </div>
+                )}
 
                 {renderError && (
                   <div className="kx-notice" data-tone="danger" style={{ marginTop: 12 }}>
@@ -413,7 +737,9 @@ export default function TemplatesView() {
               </div>
 
               <div className="kx-preview">
-                {renderedUrl ? (
+                {previewKind === "video" && videoUrl ? (
+                  <video src={videoUrl} controls playsInline />
+                ) : renderedUrl ? (
                   <img src={renderedUrl} alt={selected.name} />
                 ) : (
                   <div className="kx-preview-idle">
@@ -424,7 +750,16 @@ export default function TemplatesView() {
                 )}
               </div>
 
-              {renderedUrl && (
+              {previewKind === "video" && videoUrl ? (
+                <div className="kx-row" style={{ gap: 8, flexWrap: "wrap" }}>
+                  <span className="kx-chip">
+                    {selected.width}×{selected.height}
+                  </span>
+                  <span className="kx-chip">{formatBytes(videoBytes)}</span>
+                  <span className="kx-chip">{videoDuration.toFixed(1)}s</span>
+                  <span className="kx-chip">video/webm</span>
+                </div>
+              ) : renderedUrl ? (
                 <div className="kx-row" style={{ gap: 8, flexWrap: "wrap" }}>
                   <span className="kx-chip">
                     {selected.width}×{selected.height}
@@ -432,7 +767,7 @@ export default function TemplatesView() {
                   <span className="kx-chip">{formatBytes(renderedBytes)}</span>
                   <span className="kx-chip">image/png</span>
                 </div>
-              )}
+              ) : null}
             </>
           )}
         </div>

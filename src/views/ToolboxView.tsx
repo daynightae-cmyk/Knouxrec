@@ -374,6 +374,8 @@ export default function ToolboxView() {
   };
 
   const running = progress?.stage === "validating" || progress?.stage === "processing" || progress?.stage === "verifying";
+  const sourceIsAudioVideo =
+    tool?.accepts.some((type) => type.startsWith("video/") || type.startsWith("audio/")) ?? false;
 
   const slider = (
     label: string,
@@ -632,7 +634,25 @@ export default function ToolboxView() {
             {resultUrl ? (
               <img src={resultUrl} alt={result?.fileName ?? ""} />
             ) : sourceUrl && tool.inputKind === "file" ? (
-              <img src={sourceUrl} alt={file?.name ?? ""} />
+              tool.accepts.some((type) => type.startsWith("video/")) ? (
+                <video
+                  src={sourceUrl}
+                  controls
+                  muted
+                  playsInline
+                  preload="metadata"
+                  aria-label={file?.name ?? tool.name}
+                />
+              ) : tool.accepts.some((type) => type.startsWith("audio/")) ? (
+                <audio
+                  src={sourceUrl}
+                  controls
+                  preload="metadata"
+                  aria-label={file?.name ?? tool.name}
+                />
+              ) : (
+                <img src={sourceUrl} alt={file?.name ?? ""} />
+              )
             ) : (
               <div className="kx-preview-idle">
                 <Icon name={CATEGORY_ICONS[tool.category]} size={34} />
@@ -642,7 +662,7 @@ export default function ToolboxView() {
             )}
           </div>
 
-          {sourceUrl && resultUrl && (
+          {sourceUrl && resultUrl && !sourceIsAudioVideo && (
             <div className="kx-compare">
               <figure>
                 <figcaption className="kx-muted">{t("toolbox.before")}</figcaption>

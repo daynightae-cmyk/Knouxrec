@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-22T05:37:12.482Z",
+  "generatedAt": "2026-10-23T21:16:57.607Z",
   "source": {
     "repository": "https://github.com/daynightae-cmyk/Knouxrec.git",
     "commit": "05a542957a62730301972361c1300ccd7d66ca54",
@@ -60,35 +60,35 @@
     {
       "id": "templates",
       "group": "create",
-      "state": "BLOCKED",
-      "summary": "Template browser preserved, but it is not mounted: its dependency graph does not compile or run as shipped.",
+      "state": "VERIFIED",
+      "summary": "Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content.",
       "requirements": [
-        "Repaired VisualPatchToolCard exports",
-        "Runtime verification"
+        "Canvas 2D renderer",
+        "MediaRecorder WebM encoder"
       ],
-      "evidence": "components/TemplatesPanel.tsx imports a VisualPatchTool export that does not exist; its tool cards call missing service methods."
+      "evidence": "services/realTemplateEngine.ts evaluates element lifetimes and animation keyframes per frame; the PNG frame and WebM video are encoded from the same canvas. scripts/templates-smoke.mjs verifies the WebM container, dimensions, duration and animated frame differences."
     },
     {
       "id": "toolbox",
       "group": "create",
-      "state": "BLOCKED",
-      "summary": "Media utility panel preserved, but it is not mounted: the shared tool card has no default export and broken handlers.",
+      "state": "VERIFIED",
+      "summary": "Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette.",
       "requirements": [
-        "Repaired VisualPatchToolCard",
-        "Per-tool runtime verification"
+        "Canvas 2D encoder",
+        "Web Audio decoder for the visualiser",
+        "Video decoder for the thumbnail"
       ],
-      "evidence": "components/ToolboxPanel.tsx default-imports VisualPatchToolCard, which only exposes named exports; handlers call absent processor APIs."
+      "evidence": "scripts/toolbox-smoke.mjs drove all eight tools through the UI (99/99 checks): real fixture inputs, invalid-input rejection, preview/saved/export SHA-256 equality, PNG/JPEG/WEBP signatures, cancellation, reload persistence and Arabic RTL."
     },
     {
       "id": "visual-patch",
       "group": "create",
-      "state": "BLOCKED",
-      "summary": "Region-based image editor preserved, but it is not mounted because its processing pipeline is incomplete.",
+      "state": "PARTIAL",
+      "summary": "Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export.",
       "requirements": [
-        "Repaired processor methods",
-        "Runtime pixel diffing"
+        "An image to edit"
       ],
-      "evidence": "components/VisualPatchLabPanel.tsx and VisualPatchToolCard.tsx call extractAudio/detectObjects/applyStyle methods that do not exist on the services."
+      "evidence": "services/visualPatchLabService.ts applies the pinch, warp, sculpt, brush, smooth, curve and mirror processors to the painted region; the exported PNG comes from the same canvas."
     },
     {
       "id": "morphcore",
@@ -127,23 +127,24 @@
     {
       "id": "offline-ai",
       "group": "intelligence",
-      "state": "MISSING_MODEL",
-      "summary": "38-tool catalog recovered. The previous service returned synthetic images/transcripts; it is now marked unavailable instead of faking output.",
+      "state": "PARTIAL",
+      "summary": "One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist.",
       "requirements": [
-        "Model weights",
+        "Weight binaries for the 23 model tasks",
         "Inference runtime"
       ],
-      "evidence": "Weights binaries are absent from public/models; the old service produced canvas placeholders."
+      "evidence": "src/services/aiTasks.ts executes 15 tasks for real and src/services/aiDsp.ts is unit tested; scripts/ai-tools-smoke.mjs runs them in Chromium and inspects the produced bytes."
     },
     {
       "id": "arabic-ai",
       "group": "intelligence",
-      "state": "MISSING_ENGINE",
-      "summary": "38-tool Arabic catalog preserved for future engines; the prior handler only waited and logged.",
+      "state": "PARTIAL",
+      "summary": "The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too.",
       "requirements": [
-        "Per-tool inference engine"
+        "Weight binaries for the 23 model tasks",
+        "Inference runtime"
       ],
-      "evidence": "components/ArabicAIToolsPanel.tsx handleToolRun performed no processing."
+      "evidence": "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired; scripts/ai-tools-smoke.mjs runs a task on the Arabic route."
     },
     {
       "id": "models",
@@ -841,7 +842,7 @@
     },
     {
       "id": "arabic-ai-29",
-      "title": "كشف الحواف ��التفاصيل",
+      "title": "كشف الحواف والتفاصيل",
       "description": "استخراج الحواف والتفاصيل من الصور باستخدام Canny",
       "modelSize": 45,
       "minutes": 2,

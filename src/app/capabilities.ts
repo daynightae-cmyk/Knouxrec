@@ -93,23 +93,27 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "templates",
     group: "create",
     labelKey: "templates",
-    state: "PARTIAL",
+    state: "VERIFIED",
     summary:
-      "Five templates render real frames through the preserved engine; the 51 generated entries stay labelled as mock because they carry no template content.",
-    requirements: ["Canvas 2D renderer", "A video encoder for real video export"],
+      "Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content.",
+    requirements: ["Canvas 2D renderer", "MediaRecorder WebM encoder"],
     evidence:
-      "services/realTemplateEngine.ts draws the elements of each template onto a canvas; the export is a PNG frame because no video encoder ships with this build.",
+      "services/realTemplateEngine.ts evaluates element lifetimes and animation keyframes per frame; the PNG frame and WebM video are encoded from the same canvas. scripts/templates-smoke.mjs verifies the WebM container, dimensions, duration and animated frame differences.",
   },
   toolbox: {
     id: "toolbox",
     group: "create",
     labelKey: "toolbox",
-    state: "PARTIAL",
+    state: "VERIFIED",
     summary:
-      "Eight local media utilities with real processors: resize, filters, format conversion, video thumbnail, waveform, text image, QR code and colour palette.",
-    requirements: ["Canvas 2D encoder", "Web Audio decoder for the visualiser"],
+      "Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette.",
+    requirements: [
+      "Canvas 2D encoder",
+      "Web Audio decoder for the visualiser",
+      "Video decoder for the thumbnail",
+    ],
     evidence:
-      "Eight processors exist, but the browser smoke confirms end-to-end output for QR, image resize and palette only; the other five require dedicated runtime evidence. Pure QR and pixel-maths unit tests pass.",
+      "scripts/toolbox-smoke.mjs drove all eight tools through the UI (99/99 checks): real fixture inputs, invalid-input rejection, preview/saved/export SHA-256 equality, PNG/JPEG/WEBP signatures, cancellation, reload persistence and Arabic RTL.",
   },
   "visual-patch": {
     id: "visual-patch",
