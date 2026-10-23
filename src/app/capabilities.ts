@@ -207,9 +207,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "system",
     labelKey: "diagnostics",
     state: "VERIFIED",
-    summary: "Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB.",
+    summary:
+      "Runtime capability matrix measured from MediaDevices, MediaRecorder, IndexedDB, the Electron bridge and the bundled model folders.",
     requirements: [],
-    evidence: "Values computed in-browser; model availability proven by bundle inspection.",
+    evidence:
+      "Values are computed in-browser; the packaged smoke asserts the live desktop bridge row and the real 0/24 weight inventory from inside Electron.",
   },
   "live-studio": {
     id: "live-studio",

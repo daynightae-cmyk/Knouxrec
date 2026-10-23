@@ -24,6 +24,8 @@ dist-ssr
 release
 release-fresh
 release-next
+release-g
+release-g2
 artifacts
 
 # Editor directories and files

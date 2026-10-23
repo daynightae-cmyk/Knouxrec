@@ -1,6 +1,6 @@
 # KNOUX REC capability registry
 
-Generated 2026-10-23T22:58:22.899Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
+Generated 2026-10-23T23:02:29.026Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
 
 Counts: routes=16, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
 
@@ -24,7 +24,7 @@ Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catal
 | arabic-ai | intelligence | PARTIAL | The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too. |
 | models | intelligence | MISSING_MODEL | Model manifest inventory with explicit weight-file verification. |
 | settings | system | VERIFIED | Persisted appearance, language and recording defaults. |
-| diagnostics | system | VERIFIED | Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB. |
+| diagnostics | system | VERIFIED | Runtime capability matrix measured from MediaDevices, MediaRecorder, IndexedDB, the Electron bridge and the bundled model folders. |
 | live-studio | create | VERIFIED | Shared execution workspace for every real job: media tools, template WebM exports and recordings, with live lifecycle events, media previews, verification and save/export. |
 
 ## Core runtime

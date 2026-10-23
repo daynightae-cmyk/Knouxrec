@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-23T22:58:22.899Z",
+  "generatedAt": "2026-10-23T23:02:29.026Z",
   "source": {
     "repository": "https://github.com/daynightae-cmyk/Knouxrec.git",
     "commit": "05a542957a62730301972361c1300ccd7d66ca54",
@@ -168,9 +168,9 @@
       "id": "diagnostics",
       "group": "system",
       "state": "VERIFIED",
-      "summary": "Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB.",
+      "summary": "Runtime capability matrix measured from MediaDevices, MediaRecorder, IndexedDB, the Electron bridge and the bundled model folders.",
       "requirements": [],
-      "evidence": "Values computed in-browser; model availability proven by bundle inspection."
+      "evidence": "Values are computed in-browser; the packaged smoke asserts the live desktop bridge row and the real 0/24 weight inventory from inside Electron."
     },
     {
       "id": "live-studio",

@@ -51,6 +51,7 @@ const ROUTES = [
   "models",
   "settings",
   "diagnostics",
+  "live-studio",
 ];
 
 const result = {
@@ -325,6 +326,35 @@ async function runChecks(client) {
     check(`route ${route} has no error boundary`, !state.errorBoundary, state.heading);
     check(`route ${route} is not an error page`, !state.errorPage, state.heading);
   }
+
+  // Diagnostics must report the live Electron bridge and the real model probe.
+  await evaluate(client, `window.location.hash = "#/diagnostics"; true`);
+  let diagnosticsRows = { bridge: false, models: false, text: "" };
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    await sleep(400);
+    diagnosticsRows = await evaluate(
+      client,
+      `(() => {
+        const text = document.body.innerText || "";
+        return {
+          bridge: /Connected · \\d+ channels/.test(text),
+          models: /\\d+ \\/ 24 weight files present/.test(text),
+          text: text.slice(0, 400)
+        };
+      })()`,
+    );
+    if (diagnosticsRows.bridge && diagnosticsRows.models) break;
+  }
+  check(
+    "diagnostics reports the live desktop bridge",
+    diagnosticsRows.bridge,
+    diagnosticsRows.text,
+  );
+  check(
+    "diagnostics reports the real model inventory",
+    diagnosticsRows.models,
+    diagnosticsRows.text,
+  );
 
   const external = await evaluate(
     client,

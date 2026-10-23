@@ -204,6 +204,9 @@ export default function LiveStudioView({
   if (!record) {
     return (
       <section className="kx-content kx-live">
+        <h1 className="kx-live-title" style={{ margin: 0 }}>
+          {t("liveStudio")}
+        </h1>
         <EmptyState
           icon="activity"
           title={t("liveStudio.emptyTitle")}

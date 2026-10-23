@@ -7,6 +7,7 @@ import {
   pickMimeType,
   type CaptureSupport,
 } from "../services/recordingEngine";
+import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
 import { SectionHeader, StateBadge } from "./ui";
 import { formatBytes } from "../lib/format";
 import { useToast } from "../state/ToastContext";
@@ -26,6 +27,8 @@ interface RuntimeInfo {
   userAgent: string;
   platform: string;
   online: boolean;
+  bridge: { present: boolean; channels: string[] };
+  models: { total: number; present: number; missing: number; unknown: number };
 }
 
 function checkIndexedDb(): Promise<boolean> {
@@ -80,6 +83,19 @@ export default function DiagnosticsView() {
       }
       if (cancelled) return;
       const navigatorWithMemory = navigator as Navigator & { deviceMemory?: number };
+      // Model folders are probed with the same real inspection the Models page
+      // uses; a slow bridge must not hold the whole diagnostics page hostage.
+      const deadline = new Promise<null>((resolve) =>
+        setTimeout(() => resolve(null), 6000),
+      );
+      const inspected = await Promise.race([
+        inspectModels(MODEL_IDS),
+        deadline,
+      ]).catch(() => null);
+      if (cancelled) return;
+      const bridgeChannels = Object.entries(window.knouxDesktop ?? {})
+        .filter(([, value]) => typeof value === "function")
+        .map(([name]) => name);
       setInfo({
         support: detectCaptureSupport(),
         mime: pickMimeType(),
@@ -107,6 +123,21 @@ export default function DiagnosticsView() {
         userAgent: navigator.userAgent,
         platform: navigator.platform,
         online: navigator.onLine,
+        bridge: {
+          present: typeof window.knouxDesktop !== "undefined",
+          channels: bridgeChannels,
+        },
+        models: inspected
+          ? {
+              total: inspected.length,
+              present: inspected.filter((row) => row.weightsState === "present")
+                .length,
+              missing: inspected.filter((row) => row.weightsState === "missing")
+                .length,
+              unknown: inspected.filter((row) => row.weightsState === "unknown")
+                .length,
+            }
+          : { total: MODEL_IDS.length, present: 0, missing: 0, unknown: MODEL_IDS.length },
       });
     };
     void run();
@@ -270,6 +301,27 @@ export default function DiagnosticsView() {
                     <td>
                       {info.support.webcam ? t("diag.cameraPresent") : t("diag.unavailable")} ·{" "}
                       {info.support.microphone ? t("diag.microphonePath") : t("diag.noMicrophonePath")}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>{t("diag.desktopBridge")}</td>
+                    <td className="kx-mono">
+                      {info.bridge.present
+                        ? `${t("diag.bridgeConnected")} · ${info.bridge.channels.length} ${t("diag.bridgeChannels")}`
+                        : t("diag.bridgeBrowser")}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td>{t("diag.models")}</td>
+                    <td className="kx-mono">
+                      {info.models.present} / {info.models.total}{" "}
+                      {t("diag.modelsPresent")}
+                      {info.models.missing > 0
+                        ? ` · ${info.models.missing} ${t("diag.modelsMissing")}`
+                        : ""}
+                      {info.models.unknown > 0
+                        ? ` · ${info.models.unknown} ${t("diag.modelsUnknown")}`
+                        : ""}
                     </td>
                   </tr>
                   <tr>
