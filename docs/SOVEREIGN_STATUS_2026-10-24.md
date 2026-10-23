@@ -47,6 +47,11 @@ Sovereign commits:
 
 ## Test evidence (this checkout)
 
+`npm run smoke:all` was executed sequentially on 2026-10-24 and exited `0`
+with every suite green: ui, recording, screen, error, electron (15/15),
+packaged (59/59), elysian (18/18), toolbox (99/99), ai (19/19), ai-tools
+(79/79), templates (26/26), visual-patch (21/21), live-studio (30/30).
+
 | Suite | Command | Result |
 | --- | --- | --- |
 | TypeScript / ESLint / i18n / unit / build | `npm run verify` | PASS — i18n 618 strings, 71/71 tests, build ok |
