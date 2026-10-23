@@ -18,6 +18,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { writeSolidPng, decodePng } from "./lib/png.mjs";
+import { cleanElectronEnv } from "./lib/app-session.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const evidenceDir = path.join(root, "artifacts", "evidence");
@@ -186,6 +187,7 @@ const sourcePng = writeTestPng(downloadDir);
 
 const child = spawn(EXE, [`--remote-debugging-port=${port}`, `--user-data-dir=${userDataDir}`], {
   cwd: root,
+  env: cleanElectronEnv(process.env),
   stdio: ["ignore", "pipe", "pipe"],
 });
 let stdout = "";

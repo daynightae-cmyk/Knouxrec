@@ -20,6 +20,21 @@ export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Returns a copy of the environment with ELECTRON_RUN_AS_NODE removed.
+ *
+ * Qoder's tool shells (and some CI workers) set ELECTRON_RUN_AS_NODE=1 so
+ * that child Electron processes execute their entry as plain Node: the
+ * DevTools server never starts, `require("electron")` throws, and a bare
+ * launch exits like a script-less `node` REPL. Every Electron binary spawned
+ * by the smokes must therefore receive a sanitised environment.
+ */
+export function cleanElectronEnv(env) {
+  const cleaned = { ...env };
+  delete cleaned.ELECTRON_RUN_AS_NODE;
+  return cleaned;
+}
+
 export function freePort() {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -209,7 +224,7 @@ export async function startAndAttach({
       let childStderr = "";
       child = spawn(executable, launchArgs, {
         cwd,
-        env: env ?? process.env,
+        env: cleanElectronEnv(env ?? process.env),
         stdio: ["ignore", "pipe", "pipe"],
       });
       // The renderer pipes must be consumed: with ELECTRON_ENABLE_LOGGING the

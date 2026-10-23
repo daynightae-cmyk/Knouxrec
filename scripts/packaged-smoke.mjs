@@ -21,6 +21,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { cleanElectronEnv } from "./lib/app-session.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const evidenceDir = path.join(root, "artifacts", "evidence");
@@ -223,7 +224,7 @@ const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "knoux-packaged-"));
 
 const child = spawn(EXE, [`--remote-debugging-port=${port}`, `--user-data-dir=${userDataDir}`], {
   cwd: root,
-  env: { ...process.env, ELECTRON_ENABLE_LOGGING: "1" },
+  env: { ...cleanElectronEnv(process.env), ELECTRON_ENABLE_LOGGING: "1" },
   stdio: ["ignore", "pipe", "pipe"],
 });
 let stdout = "";
