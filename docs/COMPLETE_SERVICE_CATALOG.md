@@ -265,6 +265,24 @@ back into the next two, so the artefacts are proven usable, not just non-empty.
 | Capture → Trim → Thumbnail → Export as a single automatic chain | — | NOT-IMPLEMENTED (the display capture path still needs a user gesture; the pieces are verified separately) |
 | Audio analyse → silence removal → normalise | — | NOT-IMPLEMENTED (no verified audio DSP chain yet) |
 
+## Known limitations of the real-time media paths
+
+Template WebM export and `trimMedia` both record by playing media into a
+`MediaRecorder` in real time. Two consequences are accepted and visible in the
+code rather than papered over:
+
+- The encoded clip's length depends on how many frames the compositor actually
+  presents. A machine that cannot sustain the requested frame rate produces a
+  shorter clip. The service now measures the produced file and returns
+  `duration`, `requestedDuration` and `durationMeasured`, so a shortfall is
+  reported instead of being hidden behind the requested number.
+- Chromium occasionally hands a capture session no frames at all. Both paths
+  retry once; a second empty session still fails the job with a clear message.
+  Across repeated runs of `smoke:workflows`, four of five were fully clean and
+  one exercised the retry.
+
+No assertion was relaxed to accommodate either effect.
+
 ## Definition of done for the next increments
 
 1. Every advertised service has a real processor and a test that reads its bytes.
