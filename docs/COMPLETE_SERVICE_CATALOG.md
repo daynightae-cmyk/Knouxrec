@@ -94,13 +94,17 @@ text image, QR, palette (99 checks).
 | Image pixelate | LOCAL | Implemented + smoke-verified |
 | Colour parameters (waveform / text / QR modules + background) | LOCAL | Implemented + smoke-verified (a QR colour change alters the encoded pixels) |
 
-Toolbox now exposes 11 tools and the suite covers 128 checks.
+Toolbox now exposes 13 tools and the suite covers 148 checks.
 
-Still open (real, no model): compress, sharpen, watermark, batch resize/convert,
-video frames/contact sheet/trim/mute/extract audio, audio trim/reverse/normalize/
-channel conversion/frequency filter/spectrogram, HEX/RGB/HSL utilities, gradient
-creator, filename cleaning. Each requires a verified processor; none are
-advertised before they exist.
+| New local utilities (this milestone) | Mode | Status |
+| --- | --- | --- |
+| Image compressor: chosen lossy format, quality and long-edge limit, with the saving measured against the source bytes | LOCAL | VERIFIED |
+| Video frame sheet: evenly spaced seeks composed into a labelled contact sheet, including clips whose container reports no duration until scanned | LOCAL | VERIFIED |
+
+Still open in this hub (real, no model): sharpen and watermark presets, video
+trim/mute/extract-audio, HEX/RGB/HSL utilities, gradient creator and filename
+cleaning. Audio trim/reverse/normalise/filters live in Audio Studio, and batch
+resize/convert/crop/watermark live in Batch Processing; both are verified there.
 
 ## HUB 07 — Visual Patch Lab
 

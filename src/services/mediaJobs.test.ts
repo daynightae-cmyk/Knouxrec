@@ -17,8 +17,8 @@ function fileRequest(tool: MediaToolDescriptor, blob: Blob): MediaJobRequest {
 
 describe("validateRequest", () => {
   it("covers every Toolbox tool", () => {
-    expect(MEDIA_TOOLS).toHaveLength(11);
-    expect(fileTools).toHaveLength(9);
+    expect(MEDIA_TOOLS).toHaveLength(13);
+    expect(fileTools).toHaveLength(11);
     expect(textTools).toHaveLength(2);
   });
 

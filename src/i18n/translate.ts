@@ -1161,6 +1161,19 @@ const STRINGS: Dictionary = {
     ar: "النتيجة الصريحة:",
   },
 
+  "toolbox.compressFormat": { en: "Output format", ar: "صيغة الخرج" },
+  "toolbox.maxEdge": { en: "Long-edge limit", ar: "حدّ الضلع الأطول" },
+  "toolbox.compressHint": {
+    en: "The saving is measured from the real bytes of your file against the encoded result; 0 keeps the original size.",
+    ar: "الوفر مقاس من بايتات ملفك الفعلية مقابل الناتج المرمَّز؛ والقيمة 0 تحافظ على الحجم الأصلي.",
+  },
+  "toolbox.frameCount": { en: "Frames to sample", ar: "عدد الإطارات" },
+  "toolbox.columns": { en: "Columns", ar: "الأعمدة" },
+  "toolbox.tileWidth": { en: "Tile width", ar: "عرض الإطار" },
+  "toolbox.frameSheetHint": {
+    en: "Every tile is a real seeked frame with its timestamp burned into the sheet.",
+    ar: "كل مربع إطار حقيقي بعد القفز إليه، وطابعه الزمني محفور في اللوحة.",
+  },
   "toolbox.subtitle": {
     en: "Local utilities that process real media on this machine.",
     ar: "أدوات محلية تعالج ملفات حقيقية على هذا الجهاز.",

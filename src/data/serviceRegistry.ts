@@ -156,9 +156,10 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "tb-text-image", hub: "toolbox", labelEn: "Text to image", label: "النص إلى صورة", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-qr", hub: "toolbox", labelEn: "QR code generator", label: "مولّد رموز QR", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-palette", hub: "toolbox", labelEn: "Colour palette extraction", label: "استخراج لوحة الألوان", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
-  entry({ id: "tb-compress", hub: "toolbox", labelEn: "Image compressor", label: "ضغط الصور", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A verified encoder preset with measured output" }),
+  entry({ id: "tb-compress", hub: "toolbox", labelEn: "Image compressor with measured saving", label: "ضغط صور بوفر مقاس", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
+  entry({ id: "tb-frame-sheet", hub: "toolbox", labelEn: "Video frame sheet (contact sheet)", label: "لوحة إطارات الفيديو", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-batch", hub: "toolbox", labelEn: "Batch resize and convert", label: "المعالجة الجماعية", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A job queue over the existing processors" }),
-  entry({ id: "tb-frames", hub: "toolbox", labelEn: "Video frames and contact sheet", label: "إطارات الفيديو والملصق", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A seekable decode pipeline" }),
+  entry({ id: "tb-frames", hub: "toolbox", labelEn: "Single video frame at a timecode", label: "إطار فيديو عند زمن محدد", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-audio-tools", hub: "toolbox", labelEn: "Audio trim, reverse, normalise, filters", label: "أدوات الصوت", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Verified DSP processors with byte checks" }),
 
   /* ------------------------------------------------------------ batch */

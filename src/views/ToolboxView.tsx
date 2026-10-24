@@ -27,6 +27,10 @@ const CATEGORY_ICONS: Record<MediaToolCategory, IconName> = {
 
 interface ToolOptions {
   mode: string;
+  compressFormat: string;
+  maxEdge: number;
+  columns: number;
+  tileWidth: number;
   width: number;
   height: number;
   percentage: number;
@@ -67,6 +71,10 @@ const DEFAULT_OPTIONS: ToolOptions = {
   height: 720,
   percentage: 100,
   format: "png",
+  compressFormat: "jpeg",
+  maxEdge: 1600,
+  columns: 3,
+  tileWidth: 320,
   quality: 92,
   exposure: 0,
   brightness: 0,
@@ -527,6 +535,24 @@ export default function ToolboxView({
             {slider(t("toolbox.blockSize"), "block", 2, 64)}
             {segmented(t("toolbox.format"), "format", ["png", "jpeg", "webp"])}
             {options.format !== "png" && slider(t("toolbox.quality"), "quality", 30, 100)}
+          </>
+        );
+      case "image-compress":
+        return (
+          <>
+            {segmented(t("toolbox.compressFormat"), "compressFormat", ["jpeg", "webp"])}
+            {slider(t("toolbox.quality"), "quality", 10, 100)}
+            {slider(t("toolbox.maxEdge"), "maxEdge", 0, 4096, 32)}
+            <p className="kx-card-sub">{t("toolbox.compressHint")}</p>
+          </>
+        );
+      case "video-frame-sheet":
+        return (
+          <>
+            {slider(t("toolbox.frameCount"), "count", 2, 12)}
+            {segmented(t("toolbox.columns"), "columns", ["2", "3", "4"])}
+            {slider(t("toolbox.tileWidth"), "tileWidth", 160, 640, 16)}
+            <p className="kx-card-sub">{t("toolbox.frameSheetHint")}</p>
           </>
         );
       case "video-thumbnail":
