@@ -16,9 +16,9 @@ function fileRequest(tool: MediaToolDescriptor, blob: Blob): MediaJobRequest {
 }
 
 describe("validateRequest", () => {
-  it("covers all eight Toolbox tools", () => {
-    expect(MEDIA_TOOLS).toHaveLength(8);
-    expect(fileTools).toHaveLength(6);
+  it("covers every Toolbox tool", () => {
+    expect(MEDIA_TOOLS).toHaveLength(11);
+    expect(fileTools).toHaveLength(9);
     expect(textTools).toHaveLength(2);
   });
 
@@ -59,7 +59,7 @@ describe("validateRequest", () => {
 });
 
 describe("executeMediaJob cancellation", () => {
-  it("honours a cancelled token before doing any work for all eight tools", async () => {
+  it("honours a cancelled token before doing any work for every tool", async () => {
     for (const tool of MEDIA_TOOLS) {
       const request: MediaJobRequest =
         tool.inputKind === "text"

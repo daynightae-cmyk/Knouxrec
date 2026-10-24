@@ -2,6 +2,7 @@ import type { CapabilityState } from "../state/types";
 
 export type RouteId =
   | "dashboard"
+  | "discover"
   | "studio"
   | "screenshots"
   | "library"
@@ -9,6 +10,8 @@ export type RouteId =
   | "toolbox"
   | "visual-patch"
   | "morphcore"
+  | "audio-studio"
+  | "batch"
   | "elysian"
   | "body-editor"
   | "offline-ai"
@@ -36,12 +39,25 @@ export interface SectionGroup {
 }
 
 export const NAVIGATION: SectionGroup[] = [
-  { id: "capture", labelKey: "groupRecord", routes: ["dashboard", "studio", "screenshots"] },
+  {
+    id: "capture",
+    labelKey: "groupRecord",
+    routes: ["dashboard", "discover", "studio", "screenshots"],
+  },
   { id: "library", labelKey: "groupLibrary", routes: ["library"] },
   {
     id: "create",
     labelKey: "groupCreate",
-    routes: ["templates", "toolbox", "visual-patch", "morphcore", "elysian", "body-editor"],
+    routes: [
+      "templates",
+      "toolbox",
+      "audio-studio",
+      "batch",
+      "visual-patch",
+      "morphcore",
+      "elysian",
+      "body-editor",
+    ],
   },
   { id: "intelligence", labelKey: "groupIntelligence", routes: ["offline-ai", "arabic-ai", "models"] },
   { id: "system", labelKey: "groupSystem", routes: ["settings", "diagnostics"] },
@@ -61,6 +77,17 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     requirements: [],
     evidence: "Rendered shell; navigation and recorder state wired to a single provider.",
   },
+  discover: {
+    id: "discover",
+    group: "capture",
+    labelKey: "discover",
+    state: "VERIFIED",
+    summary:
+      "One place to find every service: global search across the canonical registry of 121 entries in 17 hubs, hub filters, favourites and recents, with the execution mode (local, model-local, hybrid, online) and the honest run state of each entry. Blocked services name the missing dependency and link to the model manager.",
+    requirements: [],
+    evidence:
+      "src/data/serviceRegistry.ts is the single source and src/data/serviceRegistry.test.ts fails when an entry claims VERIFIED without a route or is BLOCKED without a dependency. scripts/discover-smoke.mjs drives search, filters, favourites persistence across a reload, badge accuracy against the registry, the Live Studio and model-manager links, and Arabic RTL.",
+  },
   studio: {
     id: "studio",
     group: "capture",
@@ -77,9 +104,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "capture",
     labelKey: "screenshots",
     state: "VERIFIED",
-    summary: "Real pixel capture from the display stream with PNG/JPEG/WebP encoding.",
+    summary:
+      "Real display capture plus a full editor: crop, arrows, shapes, highlight, text, blur/pixelate, undo/redo, compare, library save and verified PNG export; fresh captures open directly in the editor.",
     requirements: ["Screen capture permission"],
-    evidence: "Canvas drawImage from a live display stream; blob signature checked before saving.",
+    evidence:
+      "scripts/screenshot-editor-smoke.mjs captures a real frame from the display stream and drives the editor (16 checks): crop geometry, pixel-changing annotations and blur, undo, compare, the stored PNG and the exported bytes.",
   },
   library: {
     id: "library",
@@ -96,10 +125,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "templates",
     state: "VERIFIED",
     summary:
-      "Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content.",
+      "Five real templates presented as a visual gallery with rendered thumbnails, editable text, frame export and WebM video export; the 51 placeholders stay behind a clearly labelled development catalog.",
     requirements: ["Canvas 2D renderer", "MediaRecorder WebM encoder"],
     evidence:
-      "services/realTemplateEngine.ts evaluates element lifetimes and animation keyframes per frame; the PNG frame and WebM video are encoded from the same canvas. scripts/templates-smoke.mjs verifies the WebM container, dimensions, duration and animated frame differences.",
+      "services/realTemplateEngine.ts evaluates element lifetimes and keyframes per frame. scripts/templates-smoke.mjs verifies the gallery thumbnails (480×270 PNG data), customization→pixels, PNG/WebM exports, cancellation and RTL (27 checks).",
   },
   toolbox: {
     id: "toolbox",
@@ -107,14 +136,14 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "toolbox",
     state: "VERIFIED",
     summary:
-      "Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette.",
+      "Eleven local media utilities with real processors: resize, filters, format conversion, rotate/flip, crop, pixelate, video thumbnail, waveform, text image, QR code and colour palette.",
     requirements: [
       "Canvas 2D encoder",
       "Web Audio decoder for the visualiser",
       "Video decoder for the thumbnail",
     ],
     evidence:
-      "scripts/toolbox-smoke.mjs drove all eight tools through the UI (99/99 checks): real fixture inputs, invalid-input rejection, preview/saved/export SHA-256 equality, PNG/JPEG/WEBP signatures, cancellation, reload persistence and Arabic RTL.",
+      "scripts/toolbox-smoke.mjs drives all eleven tools through the UI (127/127 checks): real fixtures, invalid-input rejection, preview/saved/export SHA-256 equality, signatures, cancellation, reload persistence and Arabic RTL.",
   },
   "visual-patch": {
     id: "visual-patch",
@@ -131,13 +160,35 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "morphcore",
     group: "create",
     labelKey: "morphCore",
-    state: "MISSING_ENGINE",
+    state: "PARTIAL",
     summary:
-      "Body-shape tool catalog preserved, but it depended on fictional .exe modules and fabricated output paths.",
-    requirements: ["Native morphology engine", "Per-tool validated model"],
+      "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective and a sine warp, with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
+    requirements: ["An image to transform"],
     evidence:
-      "services/knouxMorphCore.ts only simulates execution; no executable module or pixel pipeline exists.",
+      "scripts/morphcore-smoke.mjs drives the studio in Chromium (51/51): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control.",
     adult: true,
+  },
+  "audio-studio": {
+    id: "audio-studio",
+    group: "create",
+    labelKey: "audioStudio",
+    state: "PARTIAL",
+    summary:
+      "Local audio workspace on a non-destructive step stack: waveform with drag selection, real playback, trim, split into segments, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo conversion and browser biquad low-pass, high-pass and band-pass filters. Exports 16-bit WAV always and WebM/Opus only when the runtime reports it can.",
+    requirements: ["An audio file, or a stored library item", "Web Audio decode support"],
+    evidence:
+      "src/services/audioOps.ts is pure sample math covered by 25 unit tests (exact frame counts, +6 dB doubling, peak landing on the requested dBFS, detected silence intervals and their removal, split segments adding back up, WAV header round-trip). scripts/audio-studio-smoke.mjs drives the workspace in Chromium and checks the decoded rate and duration, waveform pixels, real playback position, every operation's measured effect on samples, the filter's measured high-frequency attenuation, WebM support probing, saved library bytes and exported file magic.",
+  },
+  batch: {
+    id: "batch",
+    group: "create",
+    labelKey: "batchHub",
+    state: "PARTIAL",
+    summary:
+      "Queue many files through the already-verified image processors with bounded concurrency: batch resize, format conversion, crop presets and watermarking. Per-file progress, failure isolation, cancellation, output verification and a multi-file export of everything that succeeded.",
+    requirements: ["Two or more images"],
+    evidence:
+      "src/services/batchQueue.ts runs a fixed worker pool over the real mediaTools processors and records measured output bytes and dimensions per file; scripts/batch-smoke.mjs asserts concurrency never exceeds the cap, a poisoned file fails alone, cancellation stops the queue, every output decodes at the requested size, and the multi-file export writes each artefact.",
   },
   elysian: {
     id: "elysian",
@@ -145,10 +196,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "elysian",
     state: "PARTIAL",
     summary:
-      "Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle.",
+      "Full creative image studio on a non-destructive layer stack: crop, resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, sharpen, pixelate, borders, text and tiled watermarks, plus eight presets built from the same operations. The effect browser renders its thumbnails by running those operations on the working image.",
     requirements: ["Image input", "Model weights for the AI pipeline"],
     evidence:
-      "scripts/elysian-smoke.mjs drives the packaged binary (18/18): age gate, upload, preset filter, compare repaint, verified PNG export with independently decoded pixels, and the saved library blob signature.",
+      "src/services/imageOps.ts is a pure RGBA pipeline covered by 29 numeric unit tests (exact crop rectangles, bilinear mapping, radius-limited blur, unsharp overshoot, grey-channel presets). scripts/elysian-studio-smoke.mjs drives the workspace in Chromium (51/51): age gate, unique per-card thumbnails, stacked and reordered layers, history replay, pixel-identical undo/redo, drag crop, rotate, text and watermark rendering, split compare, IndexedDB save with an identical re-open, PNG and half-scale JPEG exports decoded independently, and Arabic RTL. The neural services stay listed as blocked with no preview.",
     adult: true,
   },
   "body-editor": {
@@ -189,9 +240,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "intelligence",
     labelKey: "models",
     state: "MISSING_MODEL",
-    summary: "Model manifest inventory with explicit weight-file verification.",
+    summary:
+      "Model manifest inventory with explicit weight-file probes plus a local validation workflow (size against the manifest, SHA-256 of the chosen file); nothing is installed or executed.",
     requirements: ["Weight binaries"],
-    evidence: "Only model.json graph metadata ships; no weights.bin present.",
+    evidence:
+      "Only model.json graph metadata ships; no weights.bin present. The validation panel hashes a selected file in-browser and reports the size verdict without claiming installation.",
   },
   settings: {
     id: "settings",
@@ -228,6 +281,7 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
 
 export const ROUTE_TITLES: Record<RouteId, string> = {
   dashboard: "dashboard",
+  discover: "discover",
   studio: "studio",
   screenshots: "screenshots",
   library: "library",
@@ -235,6 +289,8 @@ export const ROUTE_TITLES: Record<RouteId, string> = {
   toolbox: "toolbox",
   "visual-patch": "visualPatch",
   morphcore: "morphCore",
+  "audio-studio": "audioStudio",
+  batch: "batchHub",
   elysian: "elysian",
   "body-editor": "bodyEditor",
   "offline-ai": "offlineAI",

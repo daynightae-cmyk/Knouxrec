@@ -45,6 +45,50 @@ Sovereign commits:
 | Diagnostics | `diagnostics` | Measured MediaDevices/MediaRecorder/IndexedDB/storage/fonts, live Electron bridge channels, real 0/24 model inventory, capability ledger | packaged smoke 59/59 asserts bridge + models rows | VERIFIED |
 | Live Studio (workspace) | `live-studio` | Shared workspace for tool/template/recording jobs: real lifecycle timeline, media-adaptive previews, before/after slider, fit/fill/zoom/fullscreen, inspector, verified dock, save/export/retry/reopen, real cancellation | live-studio 30/30 | VERIFIED |
 
+## UI modernization and service hubs (2026-10-24, post-checkpoint)
+
+Open-source adoption (see `UI_COMPONENT_ADOPTION.md`, `THIRD_PARTY_NOTICES.md`):
+Radix Tooltip, react-resizable-panels, react-compare-slider,
+react-zoom-pan-pinch, wavesurfer.js and react-colorful — all MIT/BSD-3, all
+bundled locally. Existing dialogs/cards/switches were kept where already
+accessible; no Tailwind or router migration.
+
+Product direction updates committed on top of the checkpoint:
+
+- Live Studio: user-resizable preview/inspector, keyboard-accessible
+  before/after slider, zoom/pan for image results, decoded interactive
+  waveform for audio sources with real playback.
+- Toolbox: 11 verified tools (rotate/flip, crop and pixelate added) plus
+  colour parameters for waveform, text and QR; suite 128/128.
+- Templates: visual gallery with genuine rendered thumbnails and category
+  filters; the 51 placeholders moved into a labelled development catalog;
+  suite 27/27.
+- Service inventory: `COMPLETE_SERVICE_CATALOG.md` records every hub, its real
+  services, modes, statuses and remaining gaps.
+
+## Creative hubs increment (2026-10-24, second pass)
+
+- **Screenshot Studio**: a real editor now opens from fresh captures or any
+  library image — drag-crop, arrow/rectangle/ellipse/highlight/text,
+  pixelate/blur regions, undo/redo, before/after, save-as-new and verified
+  PNG export. Suite: screenshot-editor-smoke 16/16 with real capture bytes.
+- **Templates**: thumbnails now scan four playhead samples and keep the frame
+  with the highest luminance variance, so dark openings no longer represent a
+  template; cards keep real thumbnails and a labelled development catalog.
+- **Model Manager**: a local validation workflow hashes a selected weight file
+  (SHA-256), compares its size against the manifest and states explicitly that
+  nothing is installed or executed.
+- **Modal shell**: dialogs now portal to document.body, fixing clipping by
+  transformed route containers for every dialog in the product.
+
+## Delivered after this section
+
+The remaining hub work (Screenshot delayed capture/watermark/OS region picker,
+MorphCore geometric suite, Elysian broadening, dashboard global search,
+workflow chains, model installation pipeline) is specified in
+`COMPLETE_SERVICE_CATALOG.md` and must not be reported as implemented until
+each processor is verified.
+
 ## Test evidence (this checkout)
 
 `npm run smoke:all` was executed sequentially on 2026-10-24 and exited `0`
@@ -84,6 +128,73 @@ not headless Chromium alone. Browser smokes use real Chromium + real fixtures.
   not part of the bundle.
 - **Visual Patch** — the shared pipeline is proven end-to-end; individual
   algorithm families beyond the driven tool are not each independently tested.
+
+## Product implementation batch (same day, after the Sovereign batches)
+
+Four priorities from the NEXT PRODUCT IMPLEMENTATION BATCH directive, each
+delivered with real pixels, real bytes and a targeted browser test.
+
+| Priority | What exists now | Evidence | Status |
+| --- | --- | --- | --- |
+| 1 — Elysian Canvas | Non-destructive layer stack over a pure RGBA pipeline: crop (drag), resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, unsharp, pixelate, border, text, tiled watermark, 8 presets as editable layers, split compare, zoom/pan stage, output dock with measured bytes | 29 unit tests in `src/services/imageOps.test.ts`, 51 checks in `scripts/elysian-studio-smoke.mjs`, 26 checks in the retargeted packaged `scripts/elysian-smoke.mjs` | VERIFIED |
+| 2 — MorphCore | Manual geometry studio: independent stretch, free rotation with mirrors, radial pinch/bulge, trapezoid perspective, sine warp, apply/undo/redo/reset, before-after, verified save and export; 18+ safeguard kept session-scoped; the 50 body-aware tools stay listed as blocked with no run control | 51 checks in `scripts/morphcore-smoke.mjs` | PARTIAL (geometry VERIFIED, body-aware BLOCKED) |
+| 3 — Unified discovery | `src/data/serviceRegistry.ts` (121 services, 17 hubs, execution mode + honest status + destination + missing dependency) behind a searchable Discover section with hub/mode filters, favourites, recents and links to Live Studio and the model manager | 11 audit unit tests, 26 checks in `scripts/discover-smoke.mjs` | VERIFIED |
+| 4 — Workflow chains | Four named chains sequencing only already-verified processors, with per-step bytes, timing, codec and frame counts, shared cancellation token, library archive and download | 30 checks in `scripts/workflow-smoke.mjs`, which feeds the WebM encoded by one chain into the next two | VERIFIED |
+
+Defects found by these tests and fixed in the product, not in the assertions:
+
+- MorphCore `apply()` re-rendered through a stale closure and kept the flips
+  active, so the visible frame disagreed with the snapshot pushed into history.
+- A MorphCore history restore could leave the previous frame on screen because
+  React bails out when the shared defaults object is set again.
+- The Elysian stage canvas stayed blank after split compare unmounted it.
+- Panning fought the crop drag, so the stage now has explicit Crop and Pan modes.
+- The motion-ident chain asked the template engine for an id that does not
+  exist, and the "share box" came out 1200x667 because fill covers without
+  cropping; a crop step now asserts the exact 1200x630 result.
+- The visual-patch compare overlay and CSP-blocked data-URL export (earlier in
+  the session) were fixed the same way.
+
+Navigation grew from 15 to 16 routes, so `scripts/ui-smoke.mjs` now asserts 16 —
+an updated contract, still an exact count. The i18n gate gained
+`MorphCoreView`, `ElysianStudioView`, `WorkflowChains` and the preset registry's
+`labelKey` fields, closing a hole where dynamically-built translation keys were
+never checked. `src/views/ToolSection.tsx` became unreachable once every route
+drew its own header; the 18+ notice it carried moved into `UnavailableView`
+through the capability's `adult` flag.
+
+## Creative milestone batch — audio, batch, integration (same day)
+
+Accepted as a local engineering checkpoint, not production readiness.
+
+| Item | Delivered | Evidence |
+| --- | --- | --- |
+| Audio creative hub | Waveform with drag selection, real playback, trim, split, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo, browser biquad low/high/band-pass, WAV always and WebM/Opus only when the runtime reports support | 25 unit tests on the sample math + 42 browser checks |
+| Batch processing hub | Bounded worker pool over the already-verified processors: resize, convert, centred crop presets, watermark; per-file progress, failure isolation, cancellation, output re-decode before a row may say done, multi-file export and save-all | 12 pool/preset unit tests + 33 browser checks decoding the exported files outside the app |
+| Cross-hub integration | Library "Open in" to the workspaces that can take that kind of file, adoption without re-import, provenance chain appended on every derived save, originals left byte-identical, handoff held until an age gate is passed | 23 browser checks including a measured three-hop chain |
+| Final gate | 21 smoke commands, 765 assertions, 765 passing, 0 failing, `smoke:all` exit 0; 148 unit tests; CI 4/4 | `node scripts/count-smoke.mjs` exits 0 only when every report is present and clean |
+| Verification accounting | `docs/VERIFICATION_METHOD.md` fixing the counting definitions, `scripts/count-smoke.mjs` computing totals from the reports, `docs/PR_PLAN.md` re-based on the merged remote main | totals quoted by this file come from the counter, never from console lines |
+
+Defects found by the new tests and fixed in the product rather than in the
+assertions:
+
+- The audio waveform was auto-fitted to its own peak, so a gain step changed the
+  audio and left the picture pixel-identical. It is now drawn at true amplitude.
+- The batch pool recorded a cancelled item as failed, because the status came
+  from the global flag instead of the thrown error.
+- Elysian consumed a pending handoff while its 18+ gate was still closed, so the
+  user passed the gate to an empty studio and the file was gone.
+- A saving hub recorded only where a file came from, never that it had produced
+  a new one, so the provenance chain stopped one hop early.
+- `smoke:ai` read the manifest detail panel 400 ms after a click, which passed
+  alone and failed under the load of the full sequential suite. It now waits for
+  the real condition; the assertions are unchanged.
+
+Incident worth recording: while inspecting the packaged build, an
+`asar extract-file` run from the repository root overwrote the source
+`index.html` with the built one. `npm run verify` caught it on the next run and
+the file was restored from git with no loss; the packaged app is now repacked in
+a temporary directory instead.
 
 ## Environment notes
 

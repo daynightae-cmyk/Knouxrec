@@ -2,7 +2,7 @@
 /**
  * KNOUX REC Toolbox end-to-end smoke.
  *
- * Every one of the eight tools is driven through the real UI in Chromium with
+ * Every implemented tool is driven through the real UI in Chromium with
  * real input bytes:
  *
  *   image-resize, image-filters, image-convert, video-thumbnail,
@@ -371,6 +371,29 @@ async function chooseSegment(page, groupLabel, optionText) {
   );
   if (!clicked) throw new Error(`Segment not found: ${groupLabel} / ${optionText}`);
   await sleep(200);
+}
+
+async function setHexColor(page, labelPrefix, value) {
+  const changed = await page.evaluate(
+    ({ prefix, next }) => {
+      const field = [...document.querySelectorAll(".kx-tool-settings .kx-field")].find(
+        (element) =>
+          (element.querySelector(".kx-label")?.textContent?.trim() ?? "").startsWith(prefix),
+      );
+      const input = field?.querySelector("input.kx-color-hex");
+      if (!input) return false;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value",
+      ).set;
+      setter.call(input, next);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    },
+    { prefix: labelPrefix, next: value },
+  );
+  if (!changed) throw new Error(`Colour field not found: ${labelPrefix}`);
+  await sleep(150);
 }
 
 async function readDanger(page) {
@@ -833,13 +856,16 @@ try {
     })),
   );
   report.catalog = catalog;
-  check("toolbox catalog lists eight tools", catalog.length === 8, catalog.length);
+  check("toolbox catalog lists eleven tools", catalog.length === 11, catalog.length);
   check(
-    "catalog shows the eight documented tools",
+    "catalog shows the eleven documented tools",
     [
       "Image Resizer",
       "Image Filters",
       "Format Converter",
+      "Image Rotator",
+      "Image Cropper",
+      "Image Pixelator",
       "Video Thumbnail",
       "Audio Visualizer",
       "Text Image Generator",
@@ -892,6 +918,18 @@ try {
     });
     report.tools.push({ tool: "qr-code", preview, meta, persisted, exported });
     await shot(page, "02-qr-result");
+
+    // Colour parameters must reach the encoded pixels, not just the UI.
+    await setHexColor(page, "Modules colour", "#ff0000");
+    await clickButton(page, "Run");
+    await waitForResult(page);
+    const recolored = await inspectPreview(page);
+    check(
+      "qr-code: colour parameters reach the encoded pixels",
+      recolored.width === preview.width &&
+        recolored.pixelSha256 !== preview.pixelSha256,
+      { before: preview.pixelSha256, after: recolored.pixelSha256 },
+    );
   }
 
   /* ------------------------------------------------------- Image Filters */
@@ -1036,6 +1074,118 @@ try {
     });
     report.tools.push({ tool: "image-resize", before, preview, meta, persisted, exported });
     await shot(page, "05-resize-result");
+  }
+
+  /* ------------------------------------------------------- Image Rotator */
+  {
+    await openTool(page, "Image Rotator");
+    await assertWrongMime(page, "Image Rotator");
+    await uploadFile(page, SOURCE_PNG);
+    await waitForSourceImage(page);
+    await clickButton(page, "Run");
+    await waitForResult(page);
+    const preview = await inspectPreview(page);
+    const meta = await resultMeta(page);
+    check(
+      "image-rotate: a 90° turn swaps the real dimensions",
+      preview.width === 480 && preview.height === 640,
+      { width: preview.width, height: preview.height },
+    );
+    check(
+      "image-rotate: the result reports the applied rotation",
+      meta.chips.some((chip) => chip.includes("rotation") && chip.includes("90")),
+      meta.chips,
+    );
+    await saveToLibrary(page);
+    const persisted = await readPersisted(page, "rotated");
+    const exported = await exportAndVerify(page, persisted);
+    verifyArtifact({
+      label: "image-rotate",
+      preview,
+      meta,
+      persisted,
+      exported,
+      expectedWidth: 480,
+      expectedHeight: 640,
+      expectedMime: "image/png",
+      expectedMagic: "89 50 4e 47",
+      expectedExtension: "png",
+    });
+    report.tools.push({ tool: "image-rotate", preview, meta, persisted, exported });
+    await shot(page, "05b-rotate-result");
+  }
+
+  /* --------------------------------------------------------- Image Cropper */
+  {
+    await openTool(page, "Image Cropper");
+    await assertWrongMime(page, "Image Cropper");
+    await uploadFile(page, SOURCE_PNG);
+    await waitForSourceImage(page);
+    await setRange(page, "Crop width", 300);
+    await setRange(page, "Crop height", 200);
+    await clickButton(page, "Run");
+    await waitForResult(page);
+    const preview = await inspectPreview(page);
+    const meta = await resultMeta(page);
+    check(
+      "image-crop: the output is exactly the requested rectangle",
+      preview.width === 300 && preview.height === 200,
+      { width: preview.width, height: preview.height },
+    );
+    await saveToLibrary(page);
+    const persisted = await readPersisted(page, "cropped");
+    const exported = await exportAndVerify(page, persisted);
+    verifyArtifact({
+      label: "image-crop",
+      preview,
+      meta,
+      persisted,
+      exported,
+      expectedWidth: 300,
+      expectedHeight: 200,
+      expectedMime: "image/png",
+      expectedMagic: "89 50 4e 47",
+      expectedExtension: "png",
+    });
+    report.tools.push({ tool: "image-crop", preview, meta, persisted, exported });
+    await shot(page, "05c-crop-result");
+  }
+
+  /* ------------------------------------------------------- Image Pixelator */
+  {
+    await openTool(page, "Image Pixelator");
+    await assertWrongMime(page, "Image Pixelator");
+    await uploadFile(page, SOURCE_PNG);
+    await waitForSourceImage(page);
+    const before = await inspectPreview(page);
+    await clickButton(page, "Run");
+    await waitForResult(page);
+    const preview = await inspectPreview(page);
+    const meta = await resultMeta(page);
+    check(
+      "image-pixelate: the mosaic changes real pixels but keeps the frame",
+      preview.width === 640 &&
+        preview.height === 480 &&
+        preview.pixelSha256 !== before.pixelSha256,
+      { width: preview.width, height: preview.height },
+    );
+    await saveToLibrary(page);
+    const persisted = await readPersisted(page, "pixelated");
+    const exported = await exportAndVerify(page, persisted);
+    verifyArtifact({
+      label: "image-pixelate",
+      preview,
+      meta,
+      persisted,
+      exported,
+      expectedWidth: 640,
+      expectedHeight: 480,
+      expectedMime: "image/png",
+      expectedMagic: "89 50 4e 47",
+      expectedExtension: "png",
+    });
+    report.tools.push({ tool: "image-pixelate", preview, meta, persisted, exported });
+    await shot(page, "05d-pixelate-result");
   }
 
   /* -------------------------------------------------------- Video Thumbnail */

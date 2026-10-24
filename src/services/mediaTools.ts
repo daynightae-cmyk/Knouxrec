@@ -16,6 +16,9 @@ export type MediaToolId =
   | "image-resize"
   | "image-filters"
   | "image-convert"
+  | "image-rotate"
+  | "image-crop"
+  | "image-pixelate"
   | "video-thumbnail"
   | "audio-visualizer"
   | "text-image"
@@ -143,6 +146,45 @@ export const MEDIA_TOOLS: MediaToolDescriptor[] = [
     category: "image",
     description: "Sample the real pixels and return the dominant colours.",
     descriptionAr: "أخذ عينة من البكسلات الحقيقية واستخراج الألوان الغالبة.",
+    accepts: ["image/png", "image/jpeg", "image/webp"],
+    outputMime: "image/png",
+    outputExtension: "png",
+    inputKind: "file",
+    runnable: true,
+  },
+  {
+    id: "image-rotate",
+    name: "Image Rotator",
+    nameAr: "تدوير الصور وقلبها",
+    category: "image",
+    description: "Rotate in 90° steps and flip with a real canvas transform.",
+    descriptionAr: "تدوير بخطوات 90° وقلب عبر تحويل حقيقي على لوحة الرسم.",
+    accepts: ["image/png", "image/jpeg", "image/webp"],
+    outputMime: "image/png",
+    outputExtension: "png",
+    inputKind: "file",
+    runnable: true,
+  },
+  {
+    id: "image-crop",
+    name: "Image Cropper",
+    nameAr: "قص الصور",
+    category: "image",
+    description: "Crop an exact pixel rectangle from the decoded image.",
+    descriptionAr: "قص مستطيل دقيق بالبكسل من الصورة المفكوكة.",
+    accepts: ["image/png", "image/jpeg", "image/webp"],
+    outputMime: "image/png",
+    outputExtension: "png",
+    inputKind: "file",
+    runnable: true,
+  },
+  {
+    id: "image-pixelate",
+    name: "Image Pixelator",
+    nameAr: "تمويه البكسلات",
+    category: "image",
+    description: "Mosaic the image by resampling through a low-resolution grid.",
+    descriptionAr: "تجميع الصورة عبر شبكة منخفضة الدقة ثم إعادة تكبيرها.",
     accepts: ["image/png", "image/jpeg", "image/webp"],
     outputMime: "image/png",
     outputExtension: "png",
@@ -601,6 +643,132 @@ export async function resizeImage(
   const mimeType = mimeForFormat(format);
   const blob = await canvasToBlob(canvas, mimeType, options.quality ?? 0.92);
   return { blob, width, height, mimeType };
+}
+
+export interface ImageRotateOptions {
+  background?: string;
+  /** Rotation in degrees, snapped to the nearest quarter turn. */
+  rotation: number;
+  flipHorizontal?: boolean;
+  flipVertical?: boolean;
+  format?: ImageFormat;
+  quality?: number;
+}
+
+export interface ImageCropOptions {
+  background?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  format?: ImageFormat;
+  quality?: number;
+}
+
+export interface ImagePixelateOptions {
+  background?: string;
+  /** Block size in source pixels; larger means coarser mosaic. */
+  block: number;
+  format?: ImageFormat;
+  quality?: number;
+}
+
+export async function rotateImage(
+  source: Blob,
+  options: ImageRotateOptions,
+): Promise<{ blob: Blob; width: number; height: number; mimeType: string }> {
+  const image = await loadImageElement(source);
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const quarter = ((Math.round((options.rotation || 0) / 90) % 4) + 4) % 4;
+  const width = quarter % 2 === 0 ? sourceWidth : sourceHeight;
+  const height = quarter % 2 === 0 ? sourceHeight : sourceWidth;
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("The 2D canvas context is unavailable.");
+  const format = options.format ?? "png";
+  if (format !== "png") {
+    context.fillStyle = options.background ?? "#000000";
+    context.fillRect(0, 0, width, height);
+  }
+  context.save();
+  context.translate(width / 2, height / 2);
+  context.rotate((quarter * Math.PI) / 2);
+  if (options.flipHorizontal) context.scale(-1, 1);
+  if (options.flipVertical) context.scale(1, -1);
+  context.drawImage(image, -sourceWidth / 2, -sourceHeight / 2);
+  context.restore();
+  const mimeType = mimeForFormat(format);
+  const blob = await canvasToBlob(canvas, mimeType, options.quality ?? 0.92);
+  return { blob, width, height, mimeType };
+}
+
+export async function cropImage(
+  source: Blob,
+  options: ImageCropOptions,
+): Promise<{ blob: Blob; width: number; height: number; mimeType: string }> {
+  const image = await loadImageElement(source);
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const width = Math.max(
+    2,
+    Math.min(Math.round(options.width) || sourceWidth, sourceWidth),
+  );
+  const height = Math.max(
+    2,
+    Math.min(Math.round(options.height) || sourceHeight, sourceHeight),
+  );
+  const x = Math.max(0, Math.min(Math.round(options.x) || 0, sourceWidth - width));
+  const y = Math.max(0, Math.min(Math.round(options.y) || 0, sourceHeight - height));
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("The 2D canvas context is unavailable.");
+  const format = options.format ?? "png";
+  if (format !== "png") {
+    context.fillStyle = options.background ?? "#000000";
+    context.fillRect(0, 0, width, height);
+  }
+  context.drawImage(image, x, y, width, height, 0, 0, width, height);
+  const mimeType = mimeForFormat(format);
+  const blob = await canvasToBlob(canvas, mimeType, options.quality ?? 0.92);
+  return { blob, width, height, mimeType };
+}
+
+export async function pixelateImage(
+  source: Blob,
+  options: ImagePixelateOptions,
+): Promise<{ blob: Blob; width: number; height: number; mimeType: string }> {
+  const image = await loadImageElement(source);
+  const sourceWidth = image.naturalWidth || image.width;
+  const sourceHeight = image.naturalHeight || image.height;
+  const block = Math.max(2, Math.min(128, Math.round(options.block) || 12));
+  const reduced = document.createElement("canvas");
+  reduced.width = Math.max(1, Math.ceil(sourceWidth / block));
+  reduced.height = Math.max(1, Math.ceil(sourceHeight / block));
+  const reducedContext = reduced.getContext("2d");
+  if (!reducedContext) throw new Error("The 2D canvas context is unavailable.");
+  reducedContext.imageSmoothingEnabled = false;
+  reducedContext.drawImage(image, 0, 0, reduced.width, reduced.height);
+
+  const canvas = document.createElement("canvas");
+  canvas.width = sourceWidth;
+  canvas.height = sourceHeight;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("The 2D canvas context is unavailable.");
+  const format = options.format ?? "png";
+  if (format !== "png") {
+    context.fillStyle = options.background ?? "#000000";
+    context.fillRect(0, 0, sourceWidth, sourceHeight);
+  }
+  context.imageSmoothingEnabled = false;
+  context.drawImage(reduced, 0, 0, sourceWidth, sourceHeight);
+  const mimeType = mimeForFormat(format);
+  const blob = await canvasToBlob(canvas, mimeType, options.quality ?? 0.92);
+  return { blob, width: sourceWidth, height: sourceHeight, mimeType };
 }
 
 export async function filterImage(

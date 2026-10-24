@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -91,7 +92,10 @@ const Modal: React.FC<ModalProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  // A route ancestor may carry a transform/filter, which would scope
+  // position:fixed to that container and clip the dialog. Portaling to
+  // document.body keeps every dialog centred over the whole window.
+  return createPortal(
     <div
       className="knoux-modal-backdrop"
       role="presentation"
@@ -131,7 +135,8 @@ const Modal: React.FC<ModalProps> = ({
         <div className="knoux-modal-body">{children}</div>
         {footer && <footer className="knoux-modal-footer">{footer}</footer>}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

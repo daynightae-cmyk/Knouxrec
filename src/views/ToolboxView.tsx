@@ -14,6 +14,7 @@ import {
 } from "../services/mediaTools";
 import type { CancellationToken, MediaJobProgress } from "../services/mediaJobs";
 import { useJobs } from "../state/JobsContext";
+import { ColorField } from "../ui/ColorField";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 
 const CATEGORY_ICONS: Record<MediaToolCategory, IconName> = {
@@ -48,6 +49,16 @@ interface ToolOptions {
   moduleSize: number;
   margin: number;
   count: number;
+  rotation: string;
+  flipH: boolean;
+  flipV: boolean;
+  cropX: number;
+  cropY: number;
+  cropWidth: number;
+  cropHeight: number;
+  block: number;
+  dark: string;
+  light: string;
 }
 
 const DEFAULT_OPTIONS: ToolOptions = {
@@ -74,6 +85,16 @@ const DEFAULT_OPTIONS: ToolOptions = {
   moduleSize: 8,
   margin: 4,
   count: 6,
+  rotation: "90",
+  flipH: false,
+  flipV: false,
+  cropX: 0,
+  cropY: 0,
+  cropWidth: 512,
+  cropHeight: 512,
+  block: 12,
+  dark: "#000000",
+  light: "#ffffff",
 };
 
 export default function ToolboxView({
@@ -428,6 +449,20 @@ export default function ToolboxView({
     </div>
   );
 
+  const toggle = (label: string, key: keyof ToolOptions) => (
+    <label className="kx-switch">
+      <input
+        type="checkbox"
+        checked={Boolean(options[key])}
+        onChange={(event) =>
+          update({ [key]: event.target.checked } as Partial<ToolOptions>)
+        }
+      />
+      <span className="kx-switch-track" />
+      <span className="kx-switch-label">{label}</span>
+    </label>
+  );
+
   const settingsFor = (descriptor: MediaToolDescriptor) => {
     switch (descriptor.id) {
       case "image-resize":
@@ -465,6 +500,35 @@ export default function ToolboxView({
             {options.format !== "png" && slider(t("toolbox.quality"), "quality", 30, 100)}
           </>
         );
+      case "image-rotate":
+        return (
+          <>
+            {segmented(t("toolbox.rotation"), "rotation", ["0", "90", "180", "270"])}
+            {toggle(t("toolbox.flipHorizontal"), "flipH")}
+            {toggle(t("toolbox.flipVertical"), "flipV")}
+            {segmented(t("toolbox.format"), "format", ["png", "jpeg", "webp"])}
+            {options.format !== "png" && slider(t("toolbox.quality"), "quality", 30, 100)}
+          </>
+        );
+      case "image-crop":
+        return (
+          <>
+            {slider(t("toolbox.cropWidth"), "cropWidth", 8, 4096)}
+            {slider(t("toolbox.cropHeight"), "cropHeight", 8, 4096)}
+            {slider(t("toolbox.cropX"), "cropX", 0, 4096)}
+            {slider(t("toolbox.cropY"), "cropY", 0, 4096)}
+            {segmented(t("toolbox.format"), "format", ["png", "jpeg", "webp"])}
+            {options.format !== "png" && slider(t("toolbox.quality"), "quality", 30, 100)}
+          </>
+        );
+      case "image-pixelate":
+        return (
+          <>
+            {slider(t("toolbox.blockSize"), "block", 2, 64)}
+            {segmented(t("toolbox.format"), "format", ["png", "jpeg", "webp"])}
+            {options.format !== "png" && slider(t("toolbox.quality"), "quality", 30, 100)}
+          </>
+        );
       case "video-thumbnail":
         return (
           <>
@@ -476,6 +540,16 @@ export default function ToolboxView({
         return (
           <>
             {segmented(t("toolbox.waveStyle"), "style", ["wave", "bars"])}
+            <ColorField
+              label={t("toolbox.waveColor")}
+              value={options.color}
+              onChange={(next) => update({ color: next })}
+            />
+            <ColorField
+              label={t("toolbox.backgroundColor")}
+              value={options.background}
+              onChange={(next) => update({ background: next })}
+            />
             {slider(t("toolbox.width"), "width", 320, 2400, 20)}
             {slider(t("toolbox.height"), "height", 120, 1200, 20)}
           </>
@@ -483,6 +557,16 @@ export default function ToolboxView({
       case "text-image":
         return (
           <>
+            <ColorField
+              label={t("toolbox.textColor")}
+              value={options.color}
+              onChange={(next) => update({ color: next })}
+            />
+            <ColorField
+              label={t("toolbox.backgroundColor")}
+              value={options.background}
+              onChange={(next) => update({ background: next })}
+            />
             {slider(t("toolbox.fontSize"), "fontSize", 12, 240)}
             {slider(t("toolbox.width"), "width", 320, 2400, 20)}
             {slider(t("toolbox.height"), "height", 200, 1600, 20)}
@@ -495,6 +579,16 @@ export default function ToolboxView({
             {segmented(t("toolbox.ecLevel"), "ecLevel", ["L", "M", "Q", "H"])}
             {slider(t("toolbox.moduleSize"), "moduleSize", 2, 20)}
             {slider(t("toolbox.margin"), "margin", 0, 8)}
+            <ColorField
+              label={t("toolbox.qrDark")}
+              value={options.dark}
+              onChange={(next) => update({ dark: next })}
+            />
+            <ColorField
+              label={t("toolbox.qrLight")}
+              value={options.light}
+              onChange={(next) => update({ light: next })}
+            />
           </>
         );
       case "color-palette":

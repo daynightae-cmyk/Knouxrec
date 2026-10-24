@@ -144,6 +144,14 @@ export default function UnavailableView({ route }: { route: RouteId }) {
         description={capability.summary}
         actions={<StateBadge state={capability.state} />}
       />
+      {capability.adult && (
+        <div className="kx-notice" data-tone="danger">
+          <Icon name="lock" size={18} />
+          <div>
+            <strong>{t("adult.title")}</strong> {t("adult.body")}
+          </div>
+        </div>
+      )}
       <CapabilityNotice capability={capability} />
 
       <div className="kx-grid kx-grid-2">

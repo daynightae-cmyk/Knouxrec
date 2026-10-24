@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRecorder } from "../state/RecorderContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useSettings } from "../state/SettingsContext";
@@ -11,6 +11,7 @@ import {
   StatCard,
   Thumbnail,
 } from "./ui";
+import ScreenshotEditor from "./ScreenshotEditor";
 import { downloadBlob, formatBytes } from "../lib/format";
 import type { LibraryItem } from "../state/types";
 
@@ -20,6 +21,18 @@ export default function ScreenshotsView() {
   const { settings, update } = useSettings();
   const t = (key: string) => translate(settings.language, key);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
+  const [editing, setEditing] = useState<LibraryItem | null>(null);
+  const openedCaptureRef = useRef<string | null>(null);
+
+  // A fresh capture opens straight into the editor once its library row exists.
+  const lastCaptureId = recorder.lastCapture?.id ?? null;
+  useEffect(() => {
+    if (!lastCaptureId || openedCaptureRef.current === lastCaptureId) return;
+    const item = items.find((entry) => entry.id === lastCaptureId);
+    if (!item || item.kind !== "image") return;
+    openedCaptureRef.current = lastCaptureId;
+    setEditing(item);
+  }, [lastCaptureId, items]);
 
   const images = useMemo(() => items.filter((item) => item.kind === "image"), [items]);
   const totalBytes = images.reduce((sum, item) => sum + item.size, 0);
@@ -141,6 +154,14 @@ export default function ScreenshotsView() {
                 <div className="kx-media-actions">
                   <button
                     type="button"
+                    className="kx-btn kx-btn-sm kx-btn-primary"
+                    onClick={() => setEditing(item)}
+                  >
+                    <Icon name="pencil" size={14} />
+                    {t("screenshots.openEditor")}
+                  </button>
+                  <button
+                    type="button"
                     className="kx-btn kx-btn-sm"
                     onClick={() => setPreview(item)}
                   >
@@ -167,6 +188,13 @@ export default function ScreenshotsView() {
         url={preview ? urlFor(preview.id) : null}
         onClose={() => setPreview(null)}
         onExport={(item) => downloadBlob(item.blob, item.name)}
+      />
+
+      <ScreenshotEditor
+        open={Boolean(editing)}
+        blob={editing?.blob ?? null}
+        name={editing?.name ?? ""}
+        onClose={() => setEditing(null)}
       />
     </div>
   );

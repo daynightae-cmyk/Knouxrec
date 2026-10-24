@@ -107,7 +107,17 @@ try {
       .querySelector(".kx-ai-row")
       ?.dispatchEvent(new MouseEvent("click", { bubbles: true }));
   });
-  await new Promise((r) => setTimeout(r, 400));
+  // Wait for the panel to finish populating instead of racing a fixed delay:
+  // the manifest rows are hashed asynchronously, and under the load of the full
+  // sequential suite a static 400 ms read has caught the panel mid-render with
+  // "Expected" still empty. The assertions below are unchanged.
+  await page.waitForFunction(
+    () => {
+      const body = document.querySelector(".kx-ai-detail")?.textContent ?? "";
+      return /sha256\s+[0-9a-f]{16,}/.test(body) && /Expected\s+\S/.test(body);
+    },
+    { timeout: 20000 },
+  ).catch(() => undefined);
   const detail = await page.evaluate(() => ({
     title: document.querySelector(".kx-ai-detail .kx-card-title")?.textContent?.trim() ?? "",
     body: document.querySelector(".kx-ai-detail")?.textContent ?? "",

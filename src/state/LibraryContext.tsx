@@ -21,6 +21,8 @@ export interface NewLibraryItem {
   height: number;
   source: LibraryItem["source"];
   thumbnail: string | null;
+  /** Hubs this result was derived through; the source file itself is untouched. */
+  provenance?: LibraryItem["provenance"];
 }
 
 export interface LibraryContextValue {
@@ -117,6 +119,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         source: input.source,
         blob: input.blob,
         thumbnail: input.thumbnail?.startsWith("blob:") ? null : input.thumbnail,
+        provenance: input.provenance?.length ? input.provenance : undefined,
       };
       // The row is written first: a failed write must not leave a ghost entry
       // in the UI or an object URL that nothing owns.

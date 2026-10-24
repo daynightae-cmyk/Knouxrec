@@ -75,9 +75,9 @@ async function clickButton(page, labels, wait = 100) {
 
 async function selectRow(page, matcher) {
   const selected = await page.evaluate((needle) => {
-    const rows = [...document.querySelectorAll(".kx-ai-row")];
+    const rows = [...document.querySelectorAll(".kx-template-card")];
     const row = rows.find((element) => {
-      const text = element.querySelector(".kx-ai-row-sub")?.textContent ?? "";
+      const text = element.querySelector(".kx-template-sub")?.textContent ?? "";
       return text.includes(needle);
     });
     if (!row) return false;
@@ -481,10 +481,10 @@ try {
 
   await page.goto(`${BASE}#/templates`, { waitUntil: "domcontentloaded" });
   await waitForApp(page);
-  await page.waitForSelector(".kx-ai-row", { timeout: 30000 });
+  await page.waitForSelector(".kx-template-card", { timeout: 30000 });
 
   const catalog = await page.evaluate(() => ({
-    renderable: document.querySelectorAll(".kx-ai-row").length,
+    renderable: document.querySelectorAll(".kx-template-card").length,
     badge: document.querySelector(".kx-view-head .kx-badge")?.textContent?.trim() ?? "",
     badgeState:
       document.querySelector(".kx-view-head .kx-badge")?.getAttribute("data-state") ?? "",
@@ -494,18 +494,38 @@ try {
       (badge) => badge.textContent?.trim() ?? "",
     ),
     mockTotal:
-      document
-        .querySelector(".kx-table")
-        ?.closest(".kx-card")
-        ?.querySelector(".kx-card-title .kx-badge")
-        ?.textContent?.trim() ?? "",
-    rows: [...document.querySelectorAll(".kx-ai-row")].map((row) => ({
-      title: row.querySelector(".kx-ai-row-title")?.textContent?.trim() ?? "",
-      sub: row.querySelector(".kx-ai-row-sub")?.textContent?.trim() ?? "",
+      document.querySelector(".kx-dev-count")?.textContent?.trim() ?? "",
+    rows: [...document.querySelectorAll(".kx-template-card")].map((row) => ({
+      title: row.querySelector(".kx-template-name")?.textContent?.trim() ?? "",
+      sub: row.querySelector(".kx-template-sub")?.textContent?.trim() ?? "",
     })),
   }));
   report.catalog = catalog;
   check("templates: five renderable templates are listed", catalog.renderable === 5, catalog.renderable);
+  await page
+    .waitForFunction(
+      () => document.querySelectorAll(".kx-template-card img").length >= 5,
+      { timeout: 25000 },
+    )
+    .catch(() => undefined);
+  const thumbs = await page.evaluate(() =>
+    [...document.querySelectorAll(".kx-template-card img")].map((image) => ({
+      width: image.naturalWidth,
+      height: image.naturalHeight,
+      src: image.src.slice(0, 24),
+    })),
+  );
+  check(
+    "templates: the gallery paints real rendered thumbnails",
+    thumbs.length === 5 &&
+      thumbs.every(
+        (thumb) =>
+          thumb.width === 480 &&
+          thumb.height === 270 &&
+          thumb.src.startsWith("data:image/png"),
+      ),
+    thumbs,
+  );
   check(
     "templates: the capability is marked VERIFIED",
     catalog.badgeState === "VERIFIED" && /verif/i.test(catalog.badge),
@@ -822,7 +842,7 @@ try {
   });
   // The dashboard legitimately renders its own .kx-preview, so wait for the
   // templates catalog rows to leave the DOM instead.
-  await page.waitForFunction(() => !document.querySelector(".kx-ai-row"), {
+  await page.waitForFunction(() => !document.querySelector(".kx-template-card"), {
     timeout: 15000,
   });
   await sleep(500);
@@ -837,7 +857,7 @@ try {
   await page.evaluate(() => {
     window.location.hash = "#/templates";
   });
-  await page.waitForSelector(".kx-ai-row", { timeout: 20000 });
+  await page.waitForSelector(".kx-template-card", { timeout: 20000 });
   await page.evaluate(() => {
     const button = [...document.querySelectorAll(".kx-topbar button")].find(
       (element) => element.textContent?.trim() === "AR",
