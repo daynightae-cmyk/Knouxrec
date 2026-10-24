@@ -4,6 +4,7 @@ import { Icon, type IconName } from "./icons";
 import { CAPABILITIES, NAVIGATION, type RouteId } from "./capabilities";
 import { useSettings } from "../state/SettingsContext";
 import { translate } from "../i18n/translate";
+import { KxTooltip } from "../ui/Tooltip";
 import type { CapabilityState } from "../state/types";
 
 const ROUTE_ICONS: Record<RouteId, IconName> = {
@@ -78,15 +79,15 @@ export default function Sidebar({
               const capability = CAPABILITIES[id];
               const label = t(capability.labelKey);
               const active = route === id;
-              return (
+              const stateText = capability.state.replace(/_/g, " ").toLowerCase();
+              const item = (
                 <button
-                  key={id}
                   type="button"
                   className="kx-nav-item"
                   data-route={id}
                   aria-current={active ? "page" : undefined}
                   onClick={() => onNavigate(id)}
-                  title={`${label} — ${capability.state.replace(/_/g, " ").toLowerCase()}`}
+                  title={collapsed ? undefined : `${label} — ${stateText}`}
                 >
                   <span className="kx-nav-icon">
                     <Icon name={ROUTE_ICONS[id]} size={19} />
@@ -99,6 +100,17 @@ export default function Sidebar({
                   />
                 </button>
               );
+              return collapsed ? (
+                <KxTooltip
+                  key={id}
+                  label={`${label} — ${stateText}`}
+                  side="right"
+                >
+                  {item}
+                </KxTooltip>
+              ) : (
+                item
+              );
             })}
           </React.Fragment>
         ))}
@@ -108,10 +120,18 @@ export default function Sidebar({
         <p className="kx-sidebar-note">
           {t("shell.localFirstNote")}
         </p>
-        <button type="button" className="kx-collapse-btn" onClick={onToggle}>
-          <Icon name={collapsed ? "expand" : "collapse"} size={16} />
-          {!collapsed && <span>{t("shell.collapse")}</span>}
-        </button>
+        {collapsed ? (
+          <KxTooltip label={t("shell.expand")} side="right">
+            <button type="button" className="kx-collapse-btn" onClick={onToggle}>
+              <Icon name="expand" size={16} />
+            </button>
+          </KxTooltip>
+        ) : (
+          <button type="button" className="kx-collapse-btn" onClick={onToggle}>
+            <Icon name="collapse" size={16} />
+            <span>{t("shell.collapse")}</span>
+          </button>
+        )}
       </div>
     </aside>
   );

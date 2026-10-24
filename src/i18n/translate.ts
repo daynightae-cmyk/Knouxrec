@@ -146,6 +146,7 @@ const STRINGS: Dictionary = {
   "a11y.switchToEnglish": { en: "Switch to English", ar: "التبديل إلى الإنجليزية" },
   "a11y.dismissNotification": { en: "Dismiss notification", ar: "إغلاق الإشعار" },
   "shell.collapse": { en: "Collapse", ar: "طي" },
+  "shell.expand": { en: "Expand sidebar", ar: "توسيع الشريط الجانبي" },
   "shell.localFirstNote": {
     en: "Local-first. Recordings and screenshots never leave this device.",
     ar: "محلي بالكامل. لا تغادر التسجيلات ولقطات الشاشة هذا الجهاز أبدًا.",
@@ -279,6 +280,14 @@ const STRINGS: Dictionary = {
   "liveStudio.fullscreen": { en: "Full screen", ar: "شاشة كاملة" },
   "liveStudio.zoomIn": { en: "Zoom in", ar: "تكبير" },
   "liveStudio.zoomOut": { en: "Zoom out", ar: "تصغير" },
+  "liveStudio.resetZoom": { en: "Reset zoom", ar: "إعادة ضبط التكبير" },
+  "liveStudio.playAudio": { en: "Play audio", ar: "تشغيل الصوت" },
+  "liveStudio.pauseAudio": { en: "Pause audio", ar: "إيقاف الصوت مؤقتًا" },
+  "liveStudio.decodingAudio": { en: "Decoding samples…", ar: "جارٍ فك ترميز العينات…" },
+  "liveStudio.audioFallback": {
+    en: "The container could not be decoded into peaks; native playback is used.",
+    ar: "تعذّر فك ترميز الحاوية إلى قمم موجية؛ سيُستخدم التشغيل الأصلي.",
+  },
   "liveStudio.elapsed": { en: "Elapsed", ar: "المدة" },
   "liveStudio.noInputFile": { en: "Typed input", ar: "مدخل مكتوب" },
   "liveStudio.sourceAudio": { en: "Source audio", ar: "صوت المصدر" },

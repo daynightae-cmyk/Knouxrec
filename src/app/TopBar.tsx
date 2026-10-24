@@ -5,6 +5,7 @@ import { useRecorder } from "../state/RecorderContext";
 import { useJobs } from "../state/JobsContext";
 import { translate } from "../i18n/translate";
 import { formatDuration } from "../lib/format";
+import { KxTooltip } from "../ui/Tooltip";
 
 export default function TopBar({
   route,
@@ -60,26 +61,28 @@ export default function TopBar({
   return (
     <header className="kx-topbar">
       <div className="kx-history" role="group" aria-label={t("a11y.navigationHistory")}>
-        <button
-          type="button"
-          className="kx-icon-button kx-icon-button-sm"
-          onClick={onBack}
-          disabled={!canBack}
-          title={t("a11y.goBack")}
-          aria-label={t("a11y.goBack")}
-        >
-          <Icon name="arrowLeft" size={16} />
-        </button>
-        <button
-          type="button"
-          className="kx-icon-button kx-icon-button-sm"
-          onClick={onForward}
-          disabled={!canForward}
-          title={t("a11y.goForward")}
-          aria-label={t("a11y.goForward")}
-        >
-          <Icon name="expand" size={16} />
-        </button>
+        <KxTooltip label={t("a11y.goBack")}>
+          <button
+            type="button"
+            className="kx-icon-button kx-icon-button-sm"
+            onClick={onBack}
+            disabled={!canBack}
+            aria-label={t("a11y.goBack")}
+          >
+            <Icon name="arrowLeft" size={16} />
+          </button>
+        </KxTooltip>
+        <KxTooltip label={t("a11y.goForward")}>
+          <button
+            type="button"
+            className="kx-icon-button kx-icon-button-sm"
+            onClick={onForward}
+            disabled={!canForward}
+            aria-label={t("a11y.goForward")}
+          >
+            <Icon name="expand" size={16} />
+          </button>
+        </KxTooltip>
       </div>
 
       <div className="kx-topbar-heading">
@@ -144,50 +147,54 @@ export default function TopBar({
         </button>
       )}
 
-      <button
-        type="button"
-        className="kx-icon-button"
-        title={t("captureScreenshot")}
-        aria-label={t("captureScreenshot")}
-        onClick={() => void recorder.takeScreenshot()}
-        disabled={!recorder.support.display && !recorder.previewStream}
-      >
-        <Icon name="camera" size={18} />
-      </button>
+      <KxTooltip label={t("captureScreenshot")}>
+        <button
+          type="button"
+          className="kx-icon-button"
+          aria-label={t("captureScreenshot")}
+          onClick={() => void recorder.takeScreenshot()}
+          disabled={!recorder.support.display && !recorder.previewStream}
+        >
+          <Icon name="camera" size={18} />
+        </button>
+      </KxTooltip>
 
-      <button
-        type="button"
-        className="kx-icon-button"
-        title={settings.theme === "dark" ? t("light") : t("dark")}
-        aria-label={settings.theme === "dark" ? t("light") : t("dark")}
-        onClick={() => update({ theme: settings.theme === "dark" ? "light" : "dark" })}
-      >
-        <Icon name={settings.theme === "dark" ? "sun" : "moon"} size={18} />
-      </button>
+      <KxTooltip label={settings.theme === "dark" ? t("light") : t("dark")}>
+        <button
+          type="button"
+          className="kx-icon-button"
+          aria-label={settings.theme === "dark" ? t("light") : t("dark")}
+          onClick={() => update({ theme: settings.theme === "dark" ? "light" : "dark" })}
+        >
+          <Icon name={settings.theme === "dark" ? "sun" : "moon"} size={18} />
+        </button>
+      </KxTooltip>
 
-      <button
-        type="button"
-        className="kx-icon-button"
-        title={settings.language === "en" ? "العربية" : "English"}
-        aria-label={
-          settings.language === "en" ? t("a11y.switchToArabic") : t("a11y.switchToEnglish")
-        }
-        onClick={() => update({ language: settings.language === "en" ? "ar" : "en" })}
-        style={{ fontSize: "0.7rem", fontWeight: 700 }}
-      >
-        {settings.language === "en" ? "AR" : "EN"}
-      </button>
+      <KxTooltip label={settings.language === "en" ? "العربية" : "English"}>
+        <button
+          type="button"
+          className="kx-icon-button"
+          aria-label={
+            settings.language === "en" ? t("a11y.switchToArabic") : t("a11y.switchToEnglish")
+          }
+          onClick={() => update({ language: settings.language === "en" ? "ar" : "en" })}
+          style={{ fontSize: "0.7rem", fontWeight: 700 }}
+        >
+          {settings.language === "en" ? "AR" : "EN"}
+        </button>
+      </KxTooltip>
 
-      <button
-        type="button"
-        className="kx-icon-button"
-        data-active={route === "settings"}
-        title={t("settings")}
-        aria-label={t("settings")}
-        onClick={() => onNavigate("settings")}
-      >
-        <Icon name="settings" size={18} />
-      </button>
+      <KxTooltip label={t("settings")}>
+        <button
+          type="button"
+          className="kx-icon-button"
+          data-active={route === "settings"}
+          aria-label={t("settings")}
+          onClick={() => onNavigate("settings")}
+        >
+          <Icon name="settings" size={18} />
+        </button>
+      </KxTooltip>
     </header>
   );
 }

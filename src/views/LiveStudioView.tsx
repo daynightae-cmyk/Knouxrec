@@ -6,6 +6,13 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { ReactCompareSlider } from "react-compare-slider";
+import {
+  TransformComponent,
+  TransformWrapper,
+  type ReactZoomPanPinchContentRef,
+} from "react-zoom-pan-pinch";
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from "react-resizable-panels";
 import { useJobs, type MediaJobRecord, type StudioArtifact } from "../state/JobsContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useRecorder } from "../state/RecorderContext";
@@ -14,6 +21,8 @@ import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
 import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { Icon, type IconName } from "../app/icons";
+import { AudioWaveform } from "../ui/AudioWaveform";
+import { KxTooltip } from "../ui/Tooltip";
 import { EmptyState } from "./ui";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 
@@ -88,9 +97,22 @@ export default function LiveStudioView({
   const [hashId, setHashId] = useState<string | null>(() => readHashJobId());
   const [split, setSplit] = useState(50);
   const [fit, setFit] = useState<"contain" | "cover">("contain");
-  const [zoom, setZoom] = useState(1);
+  const [zoomPercent, setZoomPercent] = useState(100);
+  const [wide, setWide] = useState(() =>
+    typeof window === "undefined"
+      ? true
+      : window.matchMedia("(min-width: 1181px)").matches,
+  );
   const [now, setNow] = useState(() => Date.now());
   const stageRef = useRef<HTMLDivElement | null>(null);
+  const zoomRef = useRef<ReactZoomPanPinchContentRef | null>(null);
+
+  useEffect(() => {
+    const media = window.matchMedia("(min-width: 1181px)");
+    const onChange = (event: MediaQueryListEvent) => setWide(event.matches);
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
 
   useEffect(() => {
     const onHash = () => setHashId(readHashJobId());
@@ -138,7 +160,7 @@ export default function LiveStudioView({
 
   useEffect(() => {
     setSplit(50);
-    setZoom(1);
+    setZoomPercent(100);
     setFit("contain");
   }, [record?.id]);
 
@@ -249,7 +271,6 @@ export default function LiveStudioView({
       src={urls.source}
       alt={t("liveStudio.source")}
       draggable={false}
-      style={zoom !== 1 ? { transform: `scale(${zoom})` } : undefined}
     />
   );
   const sourceVideo = sourceIsVideo && urls.source && (
@@ -261,11 +282,15 @@ export default function LiveStudioView({
       playsInline
     />
   );
-  const sourceAudio = sourceIsAudio && urls.source && (
-    <div className="kx-live-audio">
-      <span className="kx-live-audio-label">{t("liveStudio.sourceAudio")}</span>
-      <audio src={urls.source} controls preload="metadata" />
-    </div>
+  const sourceAudio = sourceIsAudio && sourceBlob && (
+    <AudioWaveform
+      blob={sourceBlob}
+      label={t("liveStudio.sourceAudio")}
+      playLabel={t("liveStudio.playAudio")}
+      pauseLabel={t("liveStudio.pauseAudio")}
+      decodingLabel={t("liveStudio.decodingAudio")}
+      fallbackNote={t("liveStudio.audioFallback")}
+    />
   );
 
   let stageBody: ReactNode;
@@ -288,43 +313,42 @@ export default function LiveStudioView({
     );
   } else if (resultIsImage && urls.result && sourceIsImage && urls.source) {
     stageBody = (
-      <div className="kx-live-compare" dir="ltr">
-        <img
-          className="kx-live-compare-base"
-          src={urls.source}
-          alt={t("liveStudio.source")}
-          draggable={false}
+      <div className="kx-live-compare-wrap" dir="ltr">
+        <ReactCompareSlider
+          key={record.id}
+          className="kx-live-compare"
+          itemOne={
+            <img
+              className="kx-live-compare-img"
+              src={urls.source}
+              alt={t("liveStudio.source")}
+              draggable={false}
+            />
+          }
+          itemTwo={
+            <img
+              className="kx-live-compare-img"
+              src={urls.result}
+              alt={t("liveStudio.result")}
+              draggable={false}
+            />
+          }
+          defaultPosition={split}
+          onPositionChange={setSplit}
+          portrait={false}
         />
-        <div
-          className="kx-live-compare-top"
-          style={{ clipPath: `inset(0 0 0 ${split}%)` }}
-        >
-          <img src={urls.result} alt={t("liveStudio.result")} draggable={false} />
-        </div>
         <span className="kx-live-compare-tag" data-side="left">
           {t("liveStudio.source")}
         </span>
         <span className="kx-live-compare-tag" data-side="right">
           {t("liveStudio.result")}
         </span>
-        <input
-          type="range"
-          className="kx-live-compare-range"
-          min={0}
-          max={100}
-          value={split}
-          onChange={(event) => setSplit(Number(event.target.value))}
-          aria-label={t("liveStudio.compare")}
-        />
       </div>
     );
-  } else if (resultIsImage && urls.result && sourceIsAudio && urls.source) {
+  } else if (resultIsImage && urls.result && sourceIsAudio && sourceBlob) {
     stageBody = (
       <div className="kx-live-audio-stack">
-        <div className="kx-live-audio">
-          <span className="kx-live-audio-label">{t("liveStudio.sourceAudio")}</span>
-          <audio src={urls.source} controls preload="metadata" />
-        </div>
+        {sourceAudio}
         <img
           className="kx-live-media"
           data-fit={fit}
@@ -336,14 +360,34 @@ export default function LiveStudioView({
     );
   } else if (resultIsImage && urls.result) {
     stageBody = (
-      <img
-        className="kx-live-media"
-        data-fit={fit}
-        src={urls.result}
-        alt={t("liveStudio.result")}
-        draggable={false}
-        style={zoom !== 1 ? { transform: `scale(${zoom})` } : undefined}
-      />
+      <TransformWrapper
+        key={record.id}
+        ref={zoomRef}
+        minScale={0.5}
+        maxScale={4}
+        initialScale={1}
+        centerOnInit
+        doubleClick={{ mode: "toggle", step: 0.7 }}
+        wheel={{ disabled: true }}
+        panning={{ velocityDisabled: false }}
+        onTransform={(_ref, state) => {
+          const next = Math.round(state.scale * 100);
+          setZoomPercent((current) => (current === next ? current : next));
+        }}
+      >
+        <TransformComponent
+          wrapperClass="kx-live-zoom"
+          contentClass="kx-live-zoom-content"
+        >
+          <img
+            className="kx-live-media"
+            data-fit={fit}
+            src={urls.result}
+            alt={t("liveStudio.result")}
+            draggable={false}
+          />
+        </TransformComponent>
+      </TransformWrapper>
     );
   } else if (active && (sourceIsImage || sourceIsVideo || sourceIsAudio)) {
     stageBody = (
@@ -385,20 +429,21 @@ export default function LiveStudioView({
     );
   }
 
-  const canZoom = (resultIsImage && !sourceIsImage) || (!artifact && sourceIsImage);
+  const canZoom = resultIsImage && !sourceIsImage && Boolean(artifact);
 
   return (
     <section className="kx-content kx-live">
       <header className="kx-live-header">
-        <button
-          type="button"
-          className="kx-icon-button"
-          onClick={() => onNavigate(record.route as RouteId)}
-          title={t("liveStudio.back")}
-          aria-label={t("liveStudio.back")}
-        >
-          <Icon name="arrowLeft" size={17} />
-        </button>
+        <KxTooltip label={t("liveStudio.back")}>
+          <button
+            type="button"
+            className="kx-icon-button"
+            onClick={() => onNavigate(record.route as RouteId)}
+            aria-label={t("liveStudio.back")}
+          >
+            <Icon name="arrowLeft" size={17} />
+          </button>
+        </KxTooltip>
         <div className="kx-live-heading">
           <div className="kx-live-title-row">
             <h1 className="kx-live-title">{record.title}</h1>
@@ -460,55 +505,84 @@ export default function LiveStudioView({
         </div>
       </header>
 
-      <div className="kx-live-grid">
+      <PanelGroup
+        key={wide ? "wide" : "narrow"}
+        className={wide ? "kx-live-grid" : "kx-live-grid kx-live-stacked"}
+        orientation={wide ? "horizontal" : "vertical"}
+      >
+        <Panel
+          defaultSize={wide ? "64" : "62"}
+          minSize={wide ? "38" : "26"}
+          className="kx-live-main-panel"
+        >
         <div className="kx-live-main">
           <div className="kx-live-stage" ref={stageRef} data-fit={fit}>
             <div className="kx-live-stage-toolbar">
               {canZoom && (
                 <>
-                  <button
-                    type="button"
-                    className="kx-live-tool"
-                    onClick={() => setZoom((value) => Math.max(0.5, Number((value - 0.5).toFixed(1))))}
-                    aria-label={t("liveStudio.zoomOut")}
-                  >
-                    −
-                  </button>
-                  <span className="kx-live-zoom kx-mono">{Math.round(zoom * 100)}%</span>
-                  <button
-                    type="button"
-                    className="kx-live-tool"
-                    onClick={() => setZoom((value) => Math.min(3, Number((value + 0.5).toFixed(1))))}
-                    aria-label={t("liveStudio.zoomIn")}
-                  >
-                    +
-                  </button>
+                  <KxTooltip label={t("liveStudio.zoomOut")}>
+                    <button
+                      type="button"
+                      className="kx-live-tool"
+                      onClick={() => void zoomRef.current?.zoomOut(0.4)}
+                      aria-label={t("liveStudio.zoomOut")}
+                    >
+                      −
+                    </button>
+                  </KxTooltip>
+                  <span className="kx-live-zoom kx-mono">{zoomPercent}%</span>
+                  <KxTooltip label={t("liveStudio.zoomIn")}>
+                    <button
+                      type="button"
+                      className="kx-live-tool"
+                      onClick={() => void zoomRef.current?.zoomIn(0.4)}
+                      aria-label={t("liveStudio.zoomIn")}
+                    >
+                      +
+                    </button>
+                  </KxTooltip>
+                  <KxTooltip label={t("liveStudio.resetZoom")}>
+                    <button
+                      type="button"
+                      className="kx-live-tool"
+                      onClick={() => zoomRef.current?.resetTransform(180)}
+                      aria-label={t("liveStudio.resetZoom")}
+                    >
+                      <Icon name="refresh" size={13} />
+                    </button>
+                  </KxTooltip>
                 </>
               )}
-              <button
-                type="button"
-                className="kx-live-tool"
-                data-active={fit === "contain"}
-                onClick={() => setFit("contain")}
-              >
-                {t("liveStudio.fit")}
-              </button>
-              <button
-                type="button"
-                className="kx-live-tool"
-                data-active={fit === "cover"}
-                onClick={() => setFit("cover")}
-              >
-                {t("liveStudio.fill")}
-              </button>
-              <button
-                type="button"
-                className="kx-live-tool"
-                onClick={goFullscreen}
-                aria-label={t("liveStudio.fullscreen")}
-              >
-                <Icon name="expand" size={14} />
-              </button>
+              <KxTooltip label={t("liveStudio.fit")}>
+                <button
+                  type="button"
+                  className="kx-live-tool"
+                  data-active={fit === "contain"}
+                  onClick={() => setFit("contain")}
+                >
+                  {t("liveStudio.fit")}
+                </button>
+              </KxTooltip>
+              <KxTooltip label={t("liveStudio.fill")}>
+                <button
+                  type="button"
+                  className="kx-live-tool"
+                  data-active={fit === "cover"}
+                  onClick={() => setFit("cover")}
+                >
+                  {t("liveStudio.fill")}
+                </button>
+              </KxTooltip>
+              <KxTooltip label={t("liveStudio.fullscreen")}>
+                <button
+                  type="button"
+                  className="kx-live-tool"
+                  onClick={goFullscreen}
+                  aria-label={t("liveStudio.fullscreen")}
+                >
+                  <Icon name="expand" size={14} />
+                </button>
+              </KxTooltip>
             </div>
             <div className="kx-live-stage-body">{stageBody}</div>
           </div>
@@ -595,7 +669,15 @@ export default function LiveStudioView({
             )}
           </div>
         </div>
+        </Panel>
 
+        <PanelResizeHandle className="kx-live-resize" />
+
+        <Panel
+          defaultSize={wide ? "36" : "38"}
+          minSize={wide ? "22" : "18"}
+          className="kx-live-side-panel"
+        >
         <aside className="kx-live-side">
           <div className="kx-live-panel">
             <div className="kx-live-panel-title">
@@ -702,7 +784,8 @@ export default function LiveStudioView({
             </div>
           </div>
         </aside>
-      </div>
+        </Panel>
+      </PanelGroup>
     </section>
   );
 }

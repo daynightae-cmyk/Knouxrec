@@ -5,6 +5,7 @@ import { SettingsProvider } from "./src/state/SettingsContext";
 import { LibraryProvider } from "./src/state/LibraryContext";
 import { RecorderProvider } from "./src/state/RecorderContext";
 import { JobsProvider } from "./src/state/JobsContext";
+import { TooltipProvider } from "./src/ui/Tooltip";
 
 /**
  * Thin application entry. The previous 149 KB inline prototype was corrupted
@@ -19,7 +20,9 @@ export default function App() {
         <LibraryProvider>
           <JobsProvider>
             <RecorderProvider>
-              <AppRoot />
+              <TooltipProvider>
+                <AppRoot />
+              </TooltipProvider>
             </RecorderProvider>
           </JobsProvider>
         </LibraryProvider>
