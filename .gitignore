@@ -20,12 +20,14 @@ dist-ssr
 *.key
 *.pfx
 
-# Build and audit output
+# Build and audit output. The unpacked runtime under release/ is what the
+# packaged smokes launch, so it is kept locally but never committed.
 release
 release-fresh
 release-next
-release-g
-release-g2
+release-g*
+asar-stage
+.asar-stage
 artifacts
 
 # Editor directories and files
@@ -38,7 +40,3 @@ artifacts
 *.njsproj
 *.sln
 *.sw?
-
-release-g3
-release-g4
-release-g5
