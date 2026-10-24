@@ -133,12 +133,12 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "morphcore",
     group: "create",
     labelKey: "morphCore",
-    state: "MISSING_ENGINE",
+    state: "PARTIAL",
     summary:
-      "Body-shape tool catalog preserved, but it depended on fictional .exe modules and fabricated output paths.",
-    requirements: ["Native morphology engine", "Per-tool validated model"],
+      "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective and a sine warp, with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
+    requirements: ["An image to transform"],
     evidence:
-      "services/knouxMorphCore.ts only simulates execution; no executable module or pixel pipeline exists.",
+      "scripts/morphcore-smoke.mjs drives the studio in Chromium (51/51): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control.",
     adult: true,
   },
   elysian: {

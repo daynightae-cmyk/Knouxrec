@@ -244,6 +244,88 @@ const STRINGS: Dictionary = {
     ar: "تم العثور على ملفات أوزان على هذا الجهاز؛ تحقق من التوافق في صفحة النماذج.",
   },
 
+  // Geometry studio
+  "geo.description": {
+    en: "Manual geometric image transformations with real resampling: independent stretch, free rotation, pinch/bulge, trapezoid perspective and a sine warp, plus history and export.",
+    ar: "تحويلات هندسية يدوية للصور بإعادة أخذ عينات حقيقية: تمدد مستقل، تدوير حر، انقباض/انتفاخ، منظور شبه منحرف، وتمويج جيبي، مع السجل والتصدير.",
+  },
+  "geo.honestTitle": { en: "Manual geometry, not AI body reconstruction.", ar: "هندسة يدوية، وليست إعادة بناء جسم بالذكاء الاصطناعي." },
+  "geo.honestBody": {
+    en: "These transforms resample real pixels. Body-aware operations need segmentation models and a native engine that are not installed, so the legacy catalog stays blocked below.",
+    ar: "التحويلات المذكورة أعلاه تعيد أخذ عينات من بكسلات حقيقية. أما العمليات الواعية بالجسم فتحتاج نماذج تقسيم ومحركًا أصليًا غير مثبتين، لذا يبقى الكتالوج القديم محظورًا أدناه.",
+  },
+  "geo.openImage": { en: "Open an image to transform", ar: "افتح صورة للتحويل" },
+
+  // Geometry studio — 18+ safeguard kept from the legacy route
+  "geo.ageTitle": {
+    en: "This section is restricted to adults.",
+    ar: "هذا القسم مخصّص للبالغين فقط.",
+  },
+  "geo.ageBody": {
+    en: "The preserved body-aware catalog below is 18+ material. Confirm your birth year to open the geometry studio.",
+    ar: "الكتالوج القديم الواعي بالجسم أدناه هو محتوى للبالغين (18+). أكّد سنة ميلادك لفتح استوديو الهندسة.",
+  },
+  "geo.ageBirthYear": { en: "Birth year", ar: "سنة الميلاد" },
+  "geo.ageConfirm": {
+    en: "I confirm that I am 18 or older.",
+    ar: "أؤكد أن عمري 18 عامًا أو أكثر.",
+  },
+  "geo.ageVerify": { en: "Enter the studio", ar: "الدخول إلى الاستوديو" },
+  "geo.ageDenied": {
+    en: "The declared year does not confirm an adult age, or the confirmation is missing.",
+    ar: "السنة المُعلَنة لا تؤكد سن البلوغ، أو أن التأكيد مفقود.",
+  },
+  "geo.agePrivacy": {
+    en: "The declaration is self-declared, held only for this browser session, and never uploaded. Images stay on this device.",
+    ar: "الإقرار تصريح ذاتي، يُحتفظ به في جلسة المتصفح الحالية فقط ولا يُرفع أبدًا. تبقى الصور على هذا الجهاز.",
+  },
+  "geo.openHint": {
+    en: "PNG, JPEG or WebP. The working copy is capped at 1600 px on its long edge so live resampling stays responsive.",
+    ar: "PNG أو JPEG أو WebP. تُحدّ النسخة العاملة عند 1600 بكسل على الضلع الأطول لتبقى المعالجة الحية سريعة.",
+  },
+  "geo.chooseFile": { en: "Choose image", ar: "اختر صورة" },
+  "geo.replace": { en: "Replace", ar: "استبدال" },
+  "geo.notImage": { en: "Choose a PNG, JPEG or WebP image.", ar: "اختر صورة PNG أو JPEG أو WebP." },
+  "geo.transform": { en: "Transform", ar: "التحويل" },
+  "geo.mode.stretch": { en: "Scale / stretch", ar: "تحجيم وتمدد" },
+  "geo.mode.rotate": { en: "Rotate", ar: "تدوير" },
+  "geo.mode.pinch": { en: "Pinch / bulge", ar: "انقباض وانتفاخ" },
+  "geo.mode.perspective": { en: "Perspective", ar: "منظور" },
+  "geo.mode.warp": { en: "Wave warp", ar: "تمويج موجي" },
+  "geo.stretchX": { en: "Horizontal", ar: "أفقي" },
+  "geo.stretchY": { en: "Vertical", ar: "رأسي" },
+  "geo.angle": { en: "Angle", ar: "الزاوية" },
+  "geo.flipH": { en: "Flip horizontally", ar: "قلب أفقي" },
+  "geo.flipV": { en: "Flip vertically", ar: "قلب رأسي" },
+  "geo.strength": { en: "Strength", ar: "القوة" },
+  "geo.radius": { en: "Radius", ar: "نصف القطر" },
+  "geo.centerX": { en: "Center X", ar: "المركز X" },
+  "geo.centerY": { en: "Center Y", ar: "المركز Y" },
+  "geo.topWidth": { en: "Top width", ar: "العرض العلوي" },
+  "geo.bottomWidth": { en: "Bottom width", ar: "العرض السفلي" },
+  "geo.amplitude": { en: "Amplitude", ar: "السعة" },
+  "geo.frequency": { en: "Frequency", ar: "التردد" },
+  "geo.apply": { en: "Apply transform", ar: "تطبيق التحويل" },
+  "geo.reset": { en: "Reset all", ar: "إعادة الكل" },
+  "geo.undo": { en: "Undo", ar: "تراجع" },
+  "geo.redo": { en: "Redo", ar: "إعادة" },
+  "geo.save": { en: "Save to library", ar: "حفظ في المكتبة" },
+  "geo.saved": { en: "Saved", ar: "تم الحفظ" },
+  "geo.export": { en: "Export PNG", ar: "تصدير PNG" },
+  "geo.showOriginal": { en: "Show original", ar: "إظهار الأصل" },
+  "geo.showResult": { en: "Show result", ar: "إظهار النتيجة" },
+  "geo.liveHint": {
+    en: "Changes render on the real pixels of the working image. Apply bakes the current result into history.",
+    ar: "تُرسم التغييرات على بكسلات الصورة العاملة الفعلية. التطبيق يثبّت النتيجة الحالية في السجل.",
+  },
+  "geo.legacyTitle": { en: "Body-aware legacy catalog", ar: "الكتالوج القديم الواعي بالجسم" },
+  "geo.legacyHint": {
+    en: "Preserved names that require missing native executables or segmentation weights. They are not part of the geometry studio and cannot run.",
+    ar: "أسماء محفوظة تتطلب ملفات تنفيذ أصلية أو أوزان تقسيم غير موجودة. ليست جزءًا من استوديو الهندسة ولا يمكن تشغيلها.",
+  },
+  "geo.savedTitle": { en: "Geometry result saved", ar: "حُفظت نتيجة الهندسة" },
+  "geo.saveFailed": { en: "Could not save the result", ar: "تعذّر حفظ النتيجة" },
+
   // Jobs
   "jobs.title": { en: "Media jobs", ar: "مهام الوسائط" },
   "jobs.activeOne": { en: "job running", ar: "مهمة قيد التشغيل" },

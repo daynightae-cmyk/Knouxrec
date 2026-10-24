@@ -113,9 +113,16 @@ advertised before they exist.
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Preserved catalog with per-tool blocker reporting | UNAVAILABLE | BLOCKED (no native morphology engine) |
-| Honest geometric transforms (resize, stretch, perspective, warp) | LOCAL | NOT-IMPLEMENTED as a separate hub; rotate/flip/crop exist in the Toolbox |
-| Body-aware deformation | MODEL-LOCAL | BLOCKED (segmentation weights absent) |
+| Geometry studio: open image, live preview, apply, undo/redo, reset, compare, save, export | LOCAL | VERIFIED (51 checks in `scripts/morphcore-smoke.mjs`) |
+| Independent horizontal/vertical stretch with predicted source-coordinate mapping | LOCAL | VERIFIED |
+| Free rotation to any angle with horizontal/vertical mirror | LOCAL | VERIFIED |
+| Pinch / bulge with radius and centre control | LOCAL | VERIFIED (only pixels inside the declared radius change) |
+| Trapezoid perspective (independent top/bottom width) | LOCAL | VERIFIED (transparent wedges measured) |
+| Sine wave warp (amplitude, frequency) | LOCAL | VERIFIED (per-row displacement differs) |
+| 18+ age gate kept from the legacy route, session-scoped, nothing stored permanently | LOCAL | VERIFIED |
+| Preserved body-aware catalog (50 tools) shown separately with no run control | UNAVAILABLE | BLOCKED (no native morphology engine, no segmentation weights) |
+| Body-aware deformation, masking driven by anatomy | MODEL-LOCAL | BLOCKED (segmentation weights absent) |
+| Mesh warp with draggable control points | LOCAL | NOT-IMPLEMENTED (planned; the current transforms are parametric, not mesh-driven) |
 
 ## HUB 09 — Elysian Canvas
 
@@ -129,7 +136,7 @@ advertised before they exist.
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Manual geometric editing | LOCAL | NOT-IMPLEMENTED as a dedicated hub (canvas processors exist elsewhere) |
+| Manual geometric editing | LOCAL | IMPLEMENTED in the MorphCore geometry studio, not in this hub |
 | Segmentation / pose / body-aware tools | MODEL-LOCAL | BLOCKED (weights absent) |
 | Age gate + privacy | LOCAL | Safeguard preserved; no processing occurs in blocked state |
 

@@ -32,6 +32,7 @@ import AiWorkspaceView from "../views/AiWorkspaceView";
 import TemplatesView from "../views/TemplatesView";
 import VisualPatchView from "../views/VisualPatchView";
 import LiveStudioView from "../views/LiveStudioView";
+import MorphCoreView from "../views/MorphCoreView";
 
 const ElysianCanvas = lazy(() => import("../../elysian-canvas/ElysianCanvas"));
 
@@ -315,6 +316,7 @@ export default function AppRoot() {
       case "visual-patch":
         return <VisualPatchView />;
       case "morphcore":
+        return <MorphCoreView />;
       case "body-editor":
         return <UnavailableView route={route} />;
       case "toolbox":
