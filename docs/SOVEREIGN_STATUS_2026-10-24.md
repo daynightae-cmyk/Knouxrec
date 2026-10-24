@@ -129,6 +129,40 @@ not headless Chromium alone. Browser smokes use real Chromium + real fixtures.
 - **Visual Patch** — the shared pipeline is proven end-to-end; individual
   algorithm families beyond the driven tool are not each independently tested.
 
+## Product implementation batch (same day, after the Sovereign batches)
+
+Four priorities from the NEXT PRODUCT IMPLEMENTATION BATCH directive, each
+delivered with real pixels, real bytes and a targeted browser test.
+
+| Priority | What exists now | Evidence | Status |
+| --- | --- | --- | --- |
+| 1 — Elysian Canvas | Non-destructive layer stack over a pure RGBA pipeline: crop (drag), resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, unsharp, pixelate, border, text, tiled watermark, 8 presets as editable layers, split compare, zoom/pan stage, output dock with measured bytes | 29 unit tests in `src/services/imageOps.test.ts`, 51 checks in `scripts/elysian-studio-smoke.mjs`, 26 checks in the retargeted packaged `scripts/elysian-smoke.mjs` | VERIFIED |
+| 2 — MorphCore | Manual geometry studio: independent stretch, free rotation with mirrors, radial pinch/bulge, trapezoid perspective, sine warp, apply/undo/redo/reset, before-after, verified save and export; 18+ safeguard kept session-scoped; the 50 body-aware tools stay listed as blocked with no run control | 51 checks in `scripts/morphcore-smoke.mjs` | PARTIAL (geometry VERIFIED, body-aware BLOCKED) |
+| 3 — Unified discovery | `src/data/serviceRegistry.ts` (93 services, 15 hubs, execution mode + honest status + destination + missing dependency) behind a searchable Discover section with hub/mode filters, favourites, recents and links to Live Studio and the model manager | 11 audit unit tests, 26 checks in `scripts/discover-smoke.mjs` | VERIFIED |
+| 4 — Workflow chains | Four named chains sequencing only already-verified processors, with per-step bytes, timing, codec and frame counts, shared cancellation token, library archive and download | 30 checks in `scripts/workflow-smoke.mjs`, which feeds the WebM encoded by one chain into the next two | VERIFIED |
+
+Defects found by these tests and fixed in the product, not in the assertions:
+
+- MorphCore `apply()` re-rendered through a stale closure and kept the flips
+  active, so the visible frame disagreed with the snapshot pushed into history.
+- A MorphCore history restore could leave the previous frame on screen because
+  React bails out when the shared defaults object is set again.
+- The Elysian stage canvas stayed blank after split compare unmounted it.
+- Panning fought the crop drag, so the stage now has explicit Crop and Pan modes.
+- The motion-ident chain asked the template engine for an id that does not
+  exist, and the "share box" came out 1200x667 because fill covers without
+  cropping; a crop step now asserts the exact 1200x630 result.
+- The visual-patch compare overlay and CSP-blocked data-URL export (earlier in
+  the session) were fixed the same way.
+
+Navigation grew from 15 to 16 routes, so `scripts/ui-smoke.mjs` now asserts 16 —
+an updated contract, still an exact count. The i18n gate gained
+`MorphCoreView`, `ElysianStudioView`, `WorkflowChains` and the preset registry's
+`labelKey` fields, closing a hole where dynamically-built translation keys were
+never checked. `src/views/ToolSection.tsx` became unreachable once every route
+drew its own header; the 18+ notice it carried moved into `UnavailableView`
+through the capability's `adult` flag.
+
 ## Environment notes
 
 - Qoder tool shells inherit `ELECTRON_RUN_AS_NODE=1`; every smoke sanitises
