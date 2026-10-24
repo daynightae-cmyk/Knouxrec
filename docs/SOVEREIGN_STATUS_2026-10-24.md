@@ -163,6 +163,38 @@ never checked. `src/views/ToolSection.tsx` became unreachable once every route
 drew its own header; the 18+ notice it carried moved into `UnavailableView`
 through the capability's `adult` flag.
 
+## Creative milestone batch — audio, batch, integration (same day)
+
+Accepted as a local engineering checkpoint, not production readiness.
+
+| Item | Delivered | Evidence |
+| --- | --- | --- |
+| Audio creative hub | Waveform with drag selection, real playback, trim, split, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo, browser biquad low/high/band-pass, WAV always and WebM/Opus only when the runtime reports support | 25 unit tests on the sample math + 42 browser checks |
+| Batch processing hub | Bounded worker pool over the already-verified processors: resize, convert, centred crop presets, watermark; per-file progress, failure isolation, cancellation, output re-decode before a row may say done, multi-file export and save-all | 12 pool/preset unit tests + 33 browser checks decoding the exported files outside the app |
+| Cross-hub integration | Library "Open in" to the workspaces that can take that kind of file, adoption without re-import, provenance chain appended on every derived save, originals left byte-identical, handoff held until an age gate is passed | 23 browser checks including a measured three-hop chain |
+| Verification accounting | `docs/VERIFICATION_METHOD.md` fixing the counting definitions, `scripts/count-smoke.mjs` computing totals from the reports, `docs/PR_PLAN.md` re-based on the merged remote main | totals quoted by this file come from the counter, never from console lines |
+
+Defects found by the new tests and fixed in the product rather than in the
+assertions:
+
+- The audio waveform was auto-fitted to its own peak, so a gain step changed the
+  audio and left the picture pixel-identical. It is now drawn at true amplitude.
+- The batch pool recorded a cancelled item as failed, because the status came
+  from the global flag instead of the thrown error.
+- Elysian consumed a pending handoff while its 18+ gate was still closed, so the
+  user passed the gate to an empty studio and the file was gone.
+- A saving hub recorded only where a file came from, never that it had produced
+  a new one, so the provenance chain stopped one hop early.
+- `smoke:ai` read the manifest detail panel 400 ms after a click, which passed
+  alone and failed under the load of the full sequential suite. It now waits for
+  the real condition; the assertions are unchanged.
+
+Incident worth recording: while inspecting the packaged build, an
+`asar extract-file` run from the repository root overwrote the source
+`index.html` with the built one. `npm run verify` caught it on the next run and
+the file was restored from git with no loss; the packaged app is now repacked in
+a temporary directory instead.
+
 ## Environment notes
 
 - Qoder tool shells inherit `ELECTRON_RUN_AS_NODE=1`; every smoke sanitises
