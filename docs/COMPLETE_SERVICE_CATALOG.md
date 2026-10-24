@@ -18,6 +18,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
+| Service registry | `src/data/serviceRegistry.ts` | 93 entries across 15 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
 
 ## HUB 01 — Dashboard / Command Center
 
@@ -28,8 +29,8 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Capture screenshot | LOCAL | VERIFIED | Canvas capture, PNG/JPEG/WebP |
 | Audio recording | LOCAL | PARTIAL | Microphone path exists inside recordings; standalone audio recorder is NOT-IMPLEMENTED |
 | Recent media, storage, jobs, model readiness | LOCAL | VERIFIED | Real IndexedDB/registry data |
-| Global search | LOCAL | NOT-IMPLEMENTED | Candidate: command palette over registry + library |
-| One-click workflows | LOCAL | NOT-IMPLEMENTED | See §8 workflow chains |
+| Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (93 entries) by English label, Arabic label, hub, mode and blocker |
+| One-click workflows | LOCAL | IMPLEMENTED-NOT-VERIFIED — see §8 workflow chains |
 
 ## HUB 02 — Recording Studio
 
@@ -191,6 +192,17 @@ advertised before they exist.
 | Capability matrix, encoder support, storage, fonts, bridge channels, model inventory | LOCAL | VERIFIED (packaged smoke asserts bridge + weights rows) |
 | Recent errors, test report export, library integrity | LOCAL | PARTIAL / NOT-IMPLEMENTED |
 | Hardware measurements | LOCAL | Only browser-exposed facts; no invented numbers |
+
+## HUB 16 — Service discovery
+
+| Service | Mode | Status |
+| --- | --- | --- |
+| Global search over the canonical registry (English labels, Arabic labels, hubs, modes, blockers) | LOCAL | VERIFIED (26 checks in `scripts/discover-smoke.mjs`) |
+| Hub filters, execution-mode filters, runnable-only filter | LOCAL | VERIFIED |
+| Favourites and recents, persisted locally and restored after a reload | LOCAL | VERIFIED |
+| Accurate LOCAL / MODEL-LOCAL / HYBRID / ONLINE / UNAVAILABLE badges | LOCAL | VERIFIED — `serviceRegistry.test.ts` refuses a VERIFIED claim on model-backed work and a blocked entry without a stated dependency |
+| Links to the running hub, the Live Studio and the model manager | LOCAL | VERIFIED |
+| Arabic RTL rendering without overflow | LOCAL | VERIFIED |
 
 ## Workflow chains
 

@@ -2,6 +2,7 @@ import type { CapabilityState } from "../state/types";
 
 export type RouteId =
   | "dashboard"
+  | "discover"
   | "studio"
   | "screenshots"
   | "library"
@@ -36,7 +37,11 @@ export interface SectionGroup {
 }
 
 export const NAVIGATION: SectionGroup[] = [
-  { id: "capture", labelKey: "groupRecord", routes: ["dashboard", "studio", "screenshots"] },
+  {
+    id: "capture",
+    labelKey: "groupRecord",
+    routes: ["dashboard", "discover", "studio", "screenshots"],
+  },
   { id: "library", labelKey: "groupLibrary", routes: ["library"] },
   {
     id: "create",
@@ -60,6 +65,17 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     summary: "Unified capture dashboard with live recorder status and recent local media.",
     requirements: [],
     evidence: "Rendered shell; navigation and recorder state wired to a single provider.",
+  },
+  discover: {
+    id: "discover",
+    group: "capture",
+    labelKey: "discover",
+    state: "VERIFIED",
+    summary:
+      "One place to find every service: global search across the canonical registry, hub filters, favourites and recents, with the execution mode (local, model-local, hybrid, online) and the honest run state of each entry. Blocked services name the missing dependency and link to the model manager.",
+    requirements: [],
+    evidence:
+      "src/data/serviceRegistry.ts is the single source and src/data/serviceRegistry.test.ts fails when an entry claims VERIFIED without a route or is BLOCKED without a dependency. scripts/discover-smoke.mjs drives search, filters, favourites persistence across a reload, badge accuracy against the registry, the Live Studio and model-manager links, and Arabic RTL.",
   },
   studio: {
     id: "studio",
@@ -232,6 +248,7 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
 
 export const ROUTE_TITLES: Record<RouteId, string> = {
   dashboard: "dashboard",
+  discover: "discover",
   studio: "studio",
   screenshots: "screenshots",
   library: "library",

@@ -9,6 +9,7 @@ import type { CapabilityState } from "../state/types";
 
 const ROUTE_ICONS: Record<RouteId, IconName> = {
   dashboard: "dashboard",
+  discover: "search",
   studio: "studio",
   screenshots: "screenshots",
   library: "library",

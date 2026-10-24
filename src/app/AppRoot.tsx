@@ -19,6 +19,7 @@ import ErrorBoundary from "./ErrorBoundary";
 import { SectionLoading } from "../views/ui";
 import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
 import Dashboard from "../views/Dashboard";
+import DiscoverView from "../views/DiscoverView";
 import StudioView from "../views/StudioView";
 import ScreenshotsView from "../views/ScreenshotsView";
 import LibraryView from "../views/LibraryView";
@@ -298,6 +299,8 @@ export default function AppRoot() {
     switch (route) {
       case "dashboard":
         return <Dashboard onNavigate={navigate} />;
+      case "discover":
+        return <DiscoverView onNavigate={navigate} />;
       case "studio":
         return <StudioView onNavigate={navigate} />;
       case "screenshots":

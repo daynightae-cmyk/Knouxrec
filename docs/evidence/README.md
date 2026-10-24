@@ -19,6 +19,8 @@ Screenshots captured by the automated smoke suites, not hand-made mockups.
 | `elysian-studio-layers.png` | `scripts/elysian-studio-smoke.mjs` | Elysian creative image studio: seven stacked real layers, per-card rendered thumbnails, live text and watermark parameters |
 | `elysian-studio-compare.png` | `scripts/elysian-studio-smoke.mjs` | Split compare between the untouched source and the rendered result |
 | `elysian-studio-arabic.png` | `scripts/elysian-studio-smoke.mjs` | The full studio in Arabic RTL with the mirrored three-column layout |
+| `service-discovery.png` | `scripts/discover-smoke.mjs` | Unified service discovery: 93 registry entries with execution mode, honest run state, favourites and recents |
+| `service-discovery-arabic.png` | `scripts/discover-smoke.mjs` | The same registry view in Arabic RTL |
 
 Reproduce with `npm run verify && npm run smoke:all` against
 `npm run preview` (http://localhost:4173/). The full reports live in the
