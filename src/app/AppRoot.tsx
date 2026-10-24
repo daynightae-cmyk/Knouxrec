@@ -34,6 +34,7 @@ import VisualPatchView from "../views/VisualPatchView";
 import LiveStudioView from "../views/LiveStudioView";
 import MorphCoreView from "../views/MorphCoreView";
 import AudioStudioView from "../views/AudioStudioView";
+import BatchView from "../views/BatchView";
 
 const ElysianStudio = lazy(() => import("../views/ElysianStudioView"));
 
@@ -322,6 +323,8 @@ export default function AppRoot() {
         return <MorphCoreView />;
       case "audio-studio":
         return <AudioStudioView onNavigate={navigate} />;
+      case "batch":
+        return <BatchView onNavigate={navigate} />;
       case "body-editor":
         return <UnavailableView route={route} />;
       case "toolbox":

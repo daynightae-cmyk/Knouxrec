@@ -4009,6 +4009,138 @@ html[data-theme="light"] .kx-audio-element {
   }
 }
 
+/* ---------- batch processing ---------- */
+
+.kx-batch-grid {
+  display: grid;
+  grid-template-columns: minmax(230px, 290px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  margin-top: 14px;
+}
+
+.kx-batch-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: sticky;
+  top: 12px;
+  max-height: calc(100vh - 132px);
+  overflow: auto;
+  min-width: 0;
+}
+
+.kx-batch-ops {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.kx-batch-op[aria-pressed="true"] {
+  border-color: var(--kx-accent);
+  background: var(--kx-accent-soft);
+  color: var(--kx-text);
+}
+
+.kx-batch-queue {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.kx-batch-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kx-batch-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-elev-1);
+}
+
+.kx-batch-row[data-status="failed"] {
+  border-color: color-mix(in srgb, var(--kx-danger) 55%, transparent);
+}
+
+.kx-batch-row[data-status="done"] {
+  border-color: color-mix(in srgb, var(--kx-success) 40%, transparent);
+}
+
+.kx-batch-thumb {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 44px;
+  flex: none;
+  border-radius: var(--kx-radius-xs);
+  overflow: hidden;
+  background: #05050a;
+  color: var(--kx-text-faint);
+}
+
+.kx-batch-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.kx-batch-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1;
+}
+
+.kx-batch-meta strong {
+  font-size: var(--kx-text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kx-batch-meta .kx-muted {
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+}
+
+.kx-batch-bar {
+  display: block;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--kx-elev-2);
+  overflow: hidden;
+}
+
+.kx-batch-bar > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--kx-accent-line), var(--kx-accent));
+  transition: width var(--kx-motion);
+}
+
+@media (max-width: 1180px) {
+  .kx-batch-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .kx-batch-side {
+    position: static;
+    max-height: none;
+  }
+}
+
 /* ---------- screenshot editor ---------- */
 
 .kx-shot-editor {

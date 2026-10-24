@@ -154,10 +154,14 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "tb-audio-tools", hub: "toolbox", labelEn: "Audio trim, reverse, normalise, filters", label: "أدوات الصوت", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Verified DSP processors with byte checks" }),
 
   /* ------------------------------------------------------------ batch */
-  entry({ id: "bt-resize", hub: "batch", labelEn: "Batch resize", label: "تحجيم جماعي", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified resize processor" }),
-  entry({ id: "bt-convert", hub: "batch", labelEn: "Batch format conversion", label: "تحويل صيغ جماعي", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified convert processor" }),
-  entry({ id: "bt-crop", hub: "batch", labelEn: "Batch crop presets", label: "قص جماعي بقوالب", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified crop processor" }),
-  entry({ id: "bt-watermark", hub: "batch", labelEn: "Batch watermarking", label: "علامات مائية جماعية", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified watermark processor" }),
+  entry({ id: "bt-resize", hub: "batch", labelEn: "Batch resize", label: "تحجيم جماعي", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "bt-convert", hub: "batch", labelEn: "Batch format conversion", label: "تحويل صيغ جماعي", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "bt-crop", hub: "batch", labelEn: "Batch centred crop presets", label: "قص جماعي وسطي بقوالب", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "bt-watermark", hub: "batch", labelEn: "Batch watermarking", label: "علامات مائية جماعية", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "bt-queue", hub: "batch", labelEn: "Bounded concurrency, per-file progress and cancellation", label: "تزامن محدود وتقدّم لكل ملف وإلغاء", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "bt-isolation", hub: "batch", labelEn: "Failure isolation and output verification", label: "عزل الفشل والتحقق من المخرجات", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "bt-export", hub: "batch", labelEn: "Multi-file export and save-all to library", label: "تصدير متعدد وحفظ الكل في المكتبة", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "bt-archive", hub: "batch", labelEn: "Batch archive (zip) download", label: "تنزيل أرشيف (zip)", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "No packaging library is bundled; files download individually today" }),
 
   /* ------------------------------------------------------------ audio */
   entry({ id: "au-waveform", hub: "audio", labelEn: "Waveform with drag selection", label: "موجة مع تحديد بالسحب", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),

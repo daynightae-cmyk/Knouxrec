@@ -102,6 +102,37 @@ channel conversion/frequency filter/spectrogram, HEX/RGB/HSL utilities, gradient
 creator, filename cleaning. Each requires a verified processor; none are
 advertised before they exist.
 
+## HUB 16 — Audio Studio
+
+| Service | Mode | Status |
+| --- | --- | --- |
+| Decode a file or reuse a stored clip; waveform with drag selection | LOCAL | VERIFIED |
+| Real playback of the rendered result with a live playhead | LOCAL | VERIFIED |
+| Trim to selection; split into segments at the playhead | LOCAL | VERIFIED |
+| Silence scan, per-interval select, one-step cut | LOCAL | VERIFIED |
+| Gain in dB, peak normalisation to a target dBFS, fades | LOCAL | VERIFIED |
+| Reverse, mono and stereo conversion | LOCAL | VERIFIED |
+| Low-pass, high-pass, band-pass via the browser's own biquad | LOCAL | VERIFIED |
+| Non-destructive step stack with reorder, retune, undo, redo, clear | LOCAL | VERIFIED |
+| 16-bit WAV export, always available | LOCAL | VERIFIED |
+| WebM/Opus export through MediaRecorder, probed at runtime, real-time and capped | LOCAL | PARTIAL |
+| MP3 / AAC encoding | UNAVAILABLE | BLOCKED — no encoder exists; the control is disabled, not faked |
+| Spectral noise reduction | MODEL-LOCAL | BLOCKED — no noise model in the bundle |
+
+## HUB 17 — Batch Processing
+
+| Service | Mode | Status |
+| --- | --- | --- |
+| Bounded worker pool with per-file progress, cancellation and failure isolation | LOCAL | VERIFIED (12 pool unit tests + browser run) |
+| Batch resize (fit / fill / stretch) through the verified processor | LOCAL | VERIFIED |
+| Batch centred crop presets (1:1, 4:3, 3:2, 16:9) | LOCAL | VERIFIED |
+| Batch format conversion to PNG / JPEG / WebP | LOCAL | VERIFIED |
+| Batch watermark through the Elysian text pipeline | LOCAL | VERIFIED |
+| Output verification: each result is re-decoded before the row may say done | LOCAL | VERIFIED |
+| Multi-file download and save-all as new library items | LOCAL | VERIFIED |
+| Originals preserved (derived names carry a `-batch` suffix) | LOCAL | VERIFIED |
+| Zip archive download | LOCAL | NOT-IMPLEMENTED — no packaging library is bundled |
+
 ## HUB 07 — Visual Patch Lab
 
 | Service | Mode | Status |
