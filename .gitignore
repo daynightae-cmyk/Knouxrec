@@ -40,3 +40,6 @@ artifacts
 *.njsproj
 *.sln
 *.sw?
+
+# Packed application archives produced while repacking the bundle
+*.asar
