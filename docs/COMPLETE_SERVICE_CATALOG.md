@@ -265,23 +265,36 @@ back into the next two, so the artefacts are proven usable, not just non-empty.
 | Capture → Trim → Thumbnail → Export as a single automatic chain | — | NOT-IMPLEMENTED (the display capture path still needs a user gesture; the pieces are verified separately) |
 | Audio analyse → silence removal → normalise | — | NOT-IMPLEMENTED (no verified audio DSP chain yet) |
 
-## Known limitations of the real-time media paths
+## Real-time media capture: what was measured and what was fixed
 
 Template WebM export and `trimMedia` both record by playing media into a
-`MediaRecorder` in real time. Two consequences are accepted and visible in the
-code rather than papered over:
+`MediaRecorder` in real time. Three failure modes were found by measurement, not
+assumption, and two of them are fixed in the product.
 
-- The encoded clip's length depends on how many frames the compositor actually
-  presents. A machine that cannot sustain the requested frame rate produces a
-  shorter clip. The service now measures the produced file and returns
-  `duration`, `requestedDuration` and `durationMeasured`, so a shortfall is
-  reported instead of being hidden behind the requested number.
-- Chromium occasionally hands a capture session no frames at all. Both paths
-  retry once; a second empty session still fails the job with a clear message.
-  Across repeated runs of `smoke:workflows`, four of five were fully clean and
-  one exercised the retry.
+**Trim produced empty files.** A `captureStream()` taken from a detached media
+element sometimes delivers nothing to the encoder: playback reports `playing` and
+then `ended` while the recorder receives one zero-byte chunk, twice in a row from
+a valid source. Video is now bridged through a canvas that is drawn every frame,
+which does not depend on the element having a compositor surface. The manual
+`captureStream(0)` + `requestFrame()` variant was also measured and rejected: it
+issued thirty-six explicit frame requests and the recorder still received
+nothing, so the canvas is captured at a fixed 30 fps instead. The produced file's
+real duration is measured and a capture that starts before the first painted
+frame — the source of sub-second clips — is retried rather than relabelled.
+Eight consecutive chain runs and the recording suite are clean after the change.
 
-No assertion was relaxed to accommodate either effect.
+**Trim ran to the end of the file.** The slice used to play through to `ended`
+and then have its container duration rewritten to the requested range. Playback
+now pauses at the range end, so the file contains the slice it claims.
+
+**Template export length follows the compositor (accepted).** A fixed capture
+rate means the encoded length is the frames Chromium presents divided by that
+rate, so a machine that cannot sustain the requested frame rate produces a
+shorter clip. The service measures the produced file and returns `duration`,
+`requestedDuration` and `durationMeasured`, so the shortfall is reported instead
+of hidden; a container without metadata is not treated as a failure.
+
+No assertion was relaxed for any of these.
 
 ## Definition of done for the next increments
 

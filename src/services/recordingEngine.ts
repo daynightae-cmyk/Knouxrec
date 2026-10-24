@@ -541,17 +541,21 @@ export async function captureScreenshot(
 }
 
 /**
- * Re-encodes a slice of media by playing it back into a capture stream.
- * This is a real trim (frame-accurate playback range), not metadata surgery.
- */
-/**
- * Re-encodes a slice of media by playing it back into a capture stream.
+ * Re-encodes a slice of media into a new file.
  *
- * Chromium occasionally delivers no frame at all to a media-element capture
- * stream when playback starts before the first picture is composited, which
- * produced an empty file from a perfectly good source. The single retry is
- * bounded and only happens when nothing was captured; the second attempt waits
- * for a rendered frame before recording.
+ * Video is bridged through a canvas for a reason measured in the field: a
+ * `captureStream()` taken straight from a detached media element occasionally
+ * delivers no frames to the encoder at all — playback reports `playing` and then
+ * `ended`, while the recorder receives a single zero-byte chunk — and the result
+ * was an empty file from a perfectly good source. Drawing the video into a
+ * canvas and capturing that canvas does not depend on whether the compositor
+ * granted the element a surface. The canvas is captured at a fixed rate while it
+ * is being drawn: a manual `captureStream(0)` was measured calling
+ * `requestFrame()` thirty-six times and still handing the recorder nothing.
+ * Audio-only sources keep the element stream, which has no such failure mode.
+ *
+ * The slice also ends where it was asked to: playback pauses at `end` instead of
+ * running to the end of the file and relabelling the container afterwards.
  */
 export async function trimMedia(
   source: Blob,
@@ -559,9 +563,40 @@ export async function trimMedia(
   end: number,
   onProgress?: (fraction: number) => void,
 ): Promise<Blob> {
-  const first = await trimMediaOnce(source, start, end, onProgress, false);
-  if (first.size > 0) return first;
-  return trimMediaOnce(source, start, end, onProgress, true);
+  const requested = Math.max(0.1, end - start);
+  const first = await trimMediaOnce(source, start, end, onProgress);
+  if (first.size > 0) {
+    const measured = await measureMediaDuration(first);
+    // A session that started before the first frame was painted produces a
+    // clip materially shorter than the range asked for. That is retried rather
+    // than relabelled with the requested duration.
+    if (measured === null || measured >= requested * 0.8) return first;
+  }
+  return trimMediaOnce(source, start, end, onProgress);
+}
+
+/** Real playable duration of a produced file, or null when it reports none. */
+async function measureMediaDuration(blob: Blob): Promise<number | null> {
+  const url = URL.createObjectURL(blob);
+  try {
+    return await new Promise<number | null>((resolve) => {
+      const media = document.createElement(blob.type.startsWith("audio") ? "audio" : "video");
+      const timer = window.setTimeout(() => resolve(null), 3000);
+      media.preload = "metadata";
+      media.onloadedmetadata = () => {
+        window.clearTimeout(timer);
+        const value = media.duration;
+        resolve(Number.isFinite(value) && value > 0 ? value : null);
+      };
+      media.onerror = () => {
+        window.clearTimeout(timer);
+        resolve(null);
+      };
+      media.src = url;
+    });
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 async function trimMediaOnce(
@@ -569,108 +604,162 @@ async function trimMediaOnce(
   start: number,
   end: number,
   onProgress: ((fraction: number) => void) | undefined,
-  waitForFrame: boolean,
 ): Promise<Blob> {
   if (!(end > start)) throw new Error("The trim range is empty.");
-  const media = document.createElement(source.type.startsWith("audio") ? "audio" : "video");
+  const isAudioSource = source.type.startsWith("audio");
+  const media = document.createElement(isAudioSource ? "audio" : "video");
   const url = URL.createObjectURL(source);
   media.src = url;
   media.preload = "auto";
   media.muted = true;
+  if (!isAudioSource) {
+    (media as HTMLVideoElement).playsInline = true;
+    // Attached but invisible: an element in the document is decoded and
+    // presented reliably, and it also stays measurable by requestFrame below.
+    media.style.cssText =
+      "position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:0;pointer-events:none";
+    document.body.appendChild(media);
+  }
 
   type CapturableMedia = HTMLMediaElement & {
     captureStream?: () => MediaStream;
     mozCaptureStream?: () => MediaStream;
   };
   const capturable = media as CapturableMedia;
-  const capture = (capturable.captureStream ?? capturable.mozCaptureStream)?.bind(
+  const elementCapture = (capturable.captureStream ?? capturable.mozCaptureStream)?.bind(
     capturable,
   ) as (() => MediaStream) | undefined;
-
-  if (!capture) {
+  if (!elementCapture) {
     URL.revokeObjectURL(url);
+    media.remove();
     throw new Error("This runtime cannot re-encode media in the browser.");
   }
 
-  await new Promise<void>((resolve, reject) => {
-    media.onloadedmetadata = () => resolve();
-    media.onerror = () => reject(new Error("The media file could not be decoded."));
-  });
-
-  const mimeType = source.type.includes("mp4")
-    ? pickMimeType() || "video/webm"
-    : source.type || "video/webm";
-
-  const stream = capture.call(media);
-  if (stream.getVideoTracks().length === 0 && "mozCaptureStream" in media) {
-    // Firefox fallback
-  }
-  const recorder = new MediaRecorder(stream, {
-    mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : undefined,
-  });
-  const chunks: Blob[] = [];
-  recorder.ondataavailable = (event) => {
-    if (event.data.size > 0) chunks.push(event.data);
+  const cleanup = () => {
+    media.pause();
+    media.removeAttribute("src");
+    media.load();
+    media.remove();
+    URL.revokeObjectURL(url);
   };
 
-  const duration = Math.max(0.1, end - start);
-  media.currentTime = start;
-  await new Promise<void>((resolve) => {
-    media.onseeked = () => resolve();
-    window.setTimeout(resolve, 2500);
-  });
+  try {
+    await new Promise<void>((resolve, reject) => {
+      media.onloadedmetadata = () => resolve();
+      media.onerror = () => reject(new Error("The media file could not be decoded."));
+    });
 
-  const result = new Promise<Blob>((resolve, reject) => {
-    recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType }));
-    recorder.onerror = () => reject(new Error("The trim encoder failed."));
-  });
+    const mimeType = source.type.includes("mp4")
+      ? pickMimeType() || "video/webm"
+      : source.type || "video/webm";
 
-  recorder.start(250);
-  await media.play();
-  if (waitForFrame) {
-    // Second attempt: do not start consuming until a picture is actually
-    // composited, which is what the first attempt can miss.
+    const video = media as HTMLVideoElement;
+    const hasPicture = !isAudioSource && video.videoWidth > 0 && video.videoHeight > 0;
+
+    let stream: MediaStream;
+    let canvas: HTMLCanvasElement | null = null;
+    let context: CanvasRenderingContext2D | null = null;
+
+    if (hasPicture) {
+      canvas = document.createElement("canvas");
+      const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
+      canvas.width = Math.max(2, Math.round(video.videoWidth * scale));
+      canvas.height = Math.max(2, Math.round(video.videoHeight * scale));
+      context = canvas.getContext("2d", { willReadFrequently: false });
+      if (!context) throw new Error("The 2D canvas context is unavailable.");
+      // A fixed rate is the configuration Chromium reliably feeds to
+      // MediaRecorder from a canvas; the manual rate-0 mode was measured
+      // delivering nothing at all despite explicit frame requests.
+      stream = canvas.captureStream(30);
+    } else {
+      stream = elementCapture.call(media);
+    }
+
+    const recorder = new MediaRecorder(stream, {
+      mimeType: MediaRecorder.isTypeSupported(mimeType) ? mimeType : undefined,
+    });
+    const chunks: Blob[] = [];
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) chunks.push(event.data);
+    };
+
+    const duration = Math.max(0.1, end - start);
+    media.currentTime = start;
     await new Promise<void>((resolve) => {
-      const frameAware = media as HTMLVideoElement & {
-        requestVideoFrameCallback?: (callback: () => void) => number;
+      media.onseeked = () => resolve();
+      window.setTimeout(resolve, 2500);
+    });
+
+    const result = new Promise<Blob>((resolve, reject) => {
+      recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType }));
+      recorder.onerror = () => reject(new Error("The trim encoder failed."));
+    });
+
+    recorder.start(250);
+    await media.play();
+    onProgress?.(0);
+
+    let raf = 0;
+    let stopped = false;
+    const stopCapture = () => {
+      if (stopped) return;
+      stopped = true;
+      if (raf) window.cancelAnimationFrame(raf);
+      media.pause();
+      if (recorder.state !== "inactive") recorder.stop();
+    };
+
+    const report = () => {
+      const fraction = Math.min(1, Math.max(0, (media.currentTime - start) / duration));
+      onProgress?.(fraction);
+    };
+
+    if (canvas && context) {
+      const paint = () => {
+        if (stopped) return;
+        if (media.currentTime >= end || media.ended) {
+          // One last frame at the boundary, then stop exactly here.
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          report();
+          stopCapture();
+          return;
+        }
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        report();
+        raf = window.requestAnimationFrame(paint);
       };
-      const timer = window.setTimeout(resolve, 1500);
-      const done = () => {
-        window.clearTimeout(timer);
-        resolve();
-      };
-      if (typeof frameAware.requestVideoFrameCallback === "function") {
-        frameAware.requestVideoFrameCallback(() => done());
-      } else {
-        media.addEventListener("timeupdate", done, { once: true });
+      paint();
+    } else {
+      const tick = window.setInterval(report, 150);
+      media.addEventListener("ended", () => {
+        window.clearInterval(tick);
+        stopCapture();
+      });
+      window.setTimeout(() => {
+        window.clearInterval(tick);
+        stopCapture();
+      }, duration * 1000 + 2000);
+    }
+
+    // Watchdog: a stalled decoder must not hang the job forever.
+    const watchdog = window.setTimeout(stopCapture, duration * 1000 + 8000);
+    while (!stopped) {
+      await new Promise((resolve) => window.setTimeout(resolve, 100));
+    }
+    window.clearTimeout(watchdog);
+
+    onProgress?.(1);
+    stream.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch {
+        /* noop */
       }
     });
+
+    const blob = await result;
+    return blob.size ? patchWebmDuration(blob, duration * 1000) : blob;
+  } finally {
+    cleanup();
   }
-  onProgress?.(0);
-
-  const tick = window.setInterval(() => {
-    const fraction = Math.min(1, Math.max(0, (media.currentTime - start) / duration));
-    onProgress?.(fraction);
-  }, 200);
-
-  await new Promise<void>((resolve) => {
-    media.onended = () => resolve();
-    window.setTimeout(resolve, duration * 1000 + 4000);
-  });
-
-  window.clearInterval(tick);
-  media.pause();
-  if (recorder.state !== "inactive") recorder.stop();
-  stream.getTracks().forEach((track) => {
-    try {
-      track.stop();
-    } catch {
-      /* noop */
-    }
-  });
-  URL.revokeObjectURL(url);
-  onProgress?.(1);
-
-  const blob = await result;
-  return blob.size ? patchWebmDuration(blob, duration * 1000) : blob;
 }
