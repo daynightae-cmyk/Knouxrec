@@ -83,7 +83,7 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "discover",
     state: "VERIFIED",
     summary:
-      "One place to find every service: global search across the canonical registry, hub filters, favourites and recents, with the execution mode (local, model-local, hybrid, online) and the honest run state of each entry. Blocked services name the missing dependency and link to the model manager.",
+      "One place to find every service: global search across the canonical registry of 121 entries in 17 hubs, hub filters, favourites and recents, with the execution mode (local, model-local, hybrid, online) and the honest run state of each entry. Blocked services name the missing dependency and link to the model manager.",
     requirements: [],
     evidence:
       "src/data/serviceRegistry.ts is the single source and src/data/serviceRegistry.test.ts fails when an entry claims VERIFIED without a route or is BLOCKED without a dependency. scripts/discover-smoke.mjs drives search, filters, favourites persistence across a reload, badge accuracy against the registry, the Live Studio and model-manager links, and Arabic RTL.",

@@ -18,7 +18,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
-| Service registry | `src/data/serviceRegistry.ts` | 93 entries across 15 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
+| Service registry | `src/data/serviceRegistry.ts` | 121 entries across 17 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
 | Workflow chains | `src/services/workflowChains.ts` | Four named chains that sequence the existing processors; no chain owns pixel or encoder math of its own |
 
 ## HUB 01 — Dashboard / Command Center
@@ -30,7 +30,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Capture screenshot | LOCAL | VERIFIED | Canvas capture, PNG/JPEG/WebP |
 | Audio recording | LOCAL | PARTIAL | Microphone path exists inside recordings; standalone audio recorder is NOT-IMPLEMENTED |
 | Recent media, storage, jobs, model readiness | LOCAL | VERIFIED | Real IndexedDB/registry data |
-| Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (93 entries) by English label, Arabic label, hub, mode and blocker |
+| Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (121 entries) by English label, Arabic label, hub, mode and blocker |
 | One-click workflows | LOCAL | VERIFIED — four chains on the Dashboard, 30 checks in `scripts/workflow-smoke.mjs` |
 
 ## HUB 02 — Recording Studio
