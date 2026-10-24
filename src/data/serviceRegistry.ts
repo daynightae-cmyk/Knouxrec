@@ -125,8 +125,9 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "lib-rename", hub: "library", labelEn: "Rename and delete with confirmation", label: "إعادة تسمية وحذف بتأكيد", mode: "LOCAL", status: "VERIFIED", route: "library" }),
   entry({ id: "lib-export", hub: "library", labelEn: "Export the original file", label: "تصدير الملف الأصلي", mode: "LOCAL", status: "VERIFIED", route: "library" }),
   entry({ id: "lib-trim", hub: "library", labelEn: "Trim a recording in place", label: "قص التسجيل", mode: "LOCAL", status: "VERIFIED", route: "library", studio: true }),
-  entry({ id: "lib-collections", hub: "library", labelEn: "Collections and batch export", label: "المجموعات والتصدير الجماعي", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A collection store over the same library" }),
-  entry({ id: "lib-open-editor", hub: "library", labelEn: "Open an item in an editor", label: "فتح عنصر في محرر", mode: "LOCAL", status: "PARTIAL", route: "library", needs: "Cross-links exist for Visual Patch only" }),
+  entry({ id: "lib-collections", hub: "library", labelEn: "Collections with persistent filing and filters", label: "مجموعات مع تصنيف دائم وتصفية", mode: "LOCAL", status: "VERIFIED", route: "library" }),
+  entry({ id: "lib-batch-export", hub: "library", labelEn: "Multi-file export and ZIP archive", label: "تصدير متعدد وأرشيف ZIP", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "lib-open-editor", hub: "library", labelEn: "Open an item in any compatible workspace", label: "فتح عنصر في أي مساحة متوافقة", mode: "LOCAL", status: "VERIFIED", route: "library" }),
 
   /* ----------------------------------------------- cross-hub integration */
   entry({ id: "xh-open-in", hub: "library", labelEn: "Send any stored file to another workspace", label: "إرسال أي ملف محفوظ إلى مساحة عمل أخرى", mode: "LOCAL", status: "VERIFIED", route: "library", keywords: ["handoff", "open in", "تكامل"] }),
@@ -158,9 +159,9 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "tb-palette", hub: "toolbox", labelEn: "Colour palette extraction", label: "استخراج لوحة الألوان", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-compress", hub: "toolbox", labelEn: "Image compressor with measured saving", label: "ضغط صور بوفر مقاس", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-frame-sheet", hub: "toolbox", labelEn: "Video frame sheet (contact sheet)", label: "لوحة إطارات الفيديو", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
-  entry({ id: "tb-batch", hub: "toolbox", labelEn: "Batch resize and convert", label: "المعالجة الجماعية", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A job queue over the existing processors" }),
+  entry({ id: "tb-batch", hub: "toolbox", labelEn: "Batch resize, convert, crop and watermark", label: "معالجة جماعية: تحجيم وتحويل وقص وعلامة", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
   entry({ id: "tb-frames", hub: "toolbox", labelEn: "Single video frame at a timecode", label: "إطار فيديو عند زمن محدد", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
-  entry({ id: "tb-audio-tools", hub: "toolbox", labelEn: "Audio trim, reverse, normalise, filters", label: "أدوات الصوت", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Verified DSP processors with byte checks" }),
+  entry({ id: "tb-audio-tools", hub: "toolbox", labelEn: "Audio trim, reverse, normalise and filters", label: "قص الصوت وعكسه وتسويته ومرشحاته", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
 
   /* ------------------------------------------------------------ batch */
   entry({ id: "bt-resize", hub: "batch", labelEn: "Batch resize", label: "تحجيم جماعي", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
@@ -170,7 +171,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "bt-queue", hub: "batch", labelEn: "Bounded concurrency, per-file progress and cancellation", label: "تزامن محدود وتقدّم لكل ملف وإلغاء", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
   entry({ id: "bt-isolation", hub: "batch", labelEn: "Failure isolation and output verification", label: "عزل الفشل والتحقق من المخرجات", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
   entry({ id: "bt-export", hub: "batch", labelEn: "Multi-file export and save-all to library", label: "تصدير متعدد وحفظ الكل في المكتبة", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
-  entry({ id: "bt-archive", hub: "batch", labelEn: "Batch archive (zip) download", label: "تنزيل أرشيف (zip)", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "No packaging library is bundled; files download individually today" }),
+  entry({ id: "bt-archive", hub: "batch", labelEn: "ZIP archive of the finished batch (stored, not deflated)", label: "أرشيف ZIP لمخرجات الدفعة (مخزَّن بلا ضغط)", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
 
   /* ------------------------------------------------------------ audio */
   entry({ id: "au-waveform", hub: "audio", labelEn: "Waveform with drag selection", label: "موجة مع تحديد بالسحب", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),

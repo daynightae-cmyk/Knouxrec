@@ -534,6 +534,12 @@ const STRINGS: Dictionary = {
   "batch.cancel": { en: "Cancel", ar: "إلغاء" },
   "batch.saveAll": { en: "Save all to library", ar: "حفظ الكل في المكتبة" },
   "batch.downloadAll": { en: "Download all", ar: "تنزيل الكل" },
+  "batch.zip": { en: "Download ZIP", ar: "تنزيل ZIP" },
+  "batch.zipHint": {
+    en: "One archive of every finished file. Entries are stored, not deflated: the images are already compressed, and the archive does not claim otherwise.",
+    ar: "أرشيف واحد لكل ملف مكتمل. المدخلات مخزَّنة بلا ضغط: الصور مضغوطة أصلًا، والأرشيف لا يدّعي غير ذلك.",
+  },
+  "batch.zipDone": { en: "Archive written", ar: "كُتب الأرشيف" },
   "batch.clear": { en: "Clear finished", ar: "مسح المنتهية" },
   "batch.remove": { en: "Remove from queue", ar: "إزالة من الطابور" },
   "batch.done": { en: "done", ar: "مكتمل" },
@@ -933,6 +939,13 @@ const STRINGS: Dictionary = {
   "screenshots.exportPng": { en: "Export PNG", ar: "تصدير PNG" },
 
   // Library
+  "library.collection": { en: "Collection", ar: "المجموعة" },
+  "library.collections": { en: "Collections", ar: "المجموعات" },
+  "library.allCollections": { en: "All files", ar: "كل الملفات" },
+  "library.noCollection": { en: "Unfiled", ar: "غير مصنَّف" },
+  "library.newCollection": { en: "New collection", ar: "مجموعة جديدة" },
+  "library.createCollection": { en: "Create", ar: "إنشاء" },
+  "library.collectionPlaceholder": { en: "Collection name", ar: "اسم المجموعة" },
   "library.description": {
     en: "Every recording and screenshot is stored as a real Blob in IndexedDB. Preview, rename, export, trim, or delete without touching the originals.",
     ar: "كل تسجيل ولقطة شاشة مخزَّنة كـ Blob حقيقي في IndexedDB. عاين أو أعد التسمية أو صدّر أو قص أو احذف دون المساس بالأصل.",

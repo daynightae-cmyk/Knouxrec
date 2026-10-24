@@ -11,7 +11,7 @@
  *   Audio Studio → Library → Audio Studio (audio handoff, no re-import)
  */
 
-import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import puppeteer from "puppeteer-core";
 import { writeSolidPng } from "./lib/png.mjs";
@@ -22,6 +22,7 @@ const CHROME =
   process.env.KNOUX_CHROME ??
   "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
 
+const DOWNLOADS = path.join(OUT, "downloads");
 const SOURCE_PNG = path.join(OUT, "seed.png");
 const RATE = 8000;
 
@@ -49,6 +50,7 @@ function wav(samples, sampleRate = RATE) {
 
 await rm(OUT, { recursive: true, force: true });
 await mkdir(OUT, { recursive: true });
+await mkdir(DOWNLOADS, { recursive: true });
 writeSolidPng(SOURCE_PNG, 1200, 700, [22, 130, 205]);
 const tone = new Float32Array(RATE * 2);
 for (let index = 0; index < tone.length; index += 1) {
@@ -162,6 +164,8 @@ const browser = await puppeteer.launch({
 
 try {
   const page = await browser.newPage();
+  const cdp = await page.createCDPSession();
+  await cdp.send("Page.setDownloadBehavior", { behavior: "allow", downloadPath: DOWNLOADS });
   page.on("console", (message) => {
     if (message.type() === "error") report.consoleErrors.push(message.text());
   });
@@ -197,6 +201,133 @@ try {
       batchOutputs[0].provenance[0].hub === "batch" &&
       batchOutputs[0].provenance[0].itemId === null,
     batchOutputs[0]?.provenance,
+  );
+
+  // ZIP archive of the finished batch output, parsed outside the app.
+  await page.evaluate(() => document.querySelector('[data-action="download-zip"]')?.click());
+  let zipFile = null;
+  for (let attempt = 0; attempt < 40 && !zipFile; attempt += 1) {
+    const names = (await readdir(DOWNLOADS)).filter((n) => n.endsWith(".zip"));
+    if (names.length) zipFile = names[0];
+    else await sleep(300);
+  }
+  check("the batch writes a ZIP archive", Boolean(zipFile), zipFile);
+  if (zipFile) {
+    const archive = await readFile(path.join(DOWNLOADS, zipFile));
+    const eocd = archive.lastIndexOf(Buffer.from([0x50, 0x4b, 0x05, 0x06]));
+    const count = eocd >= 0 ? archive.readUInt16LE(eocd + 10) : -1;
+    const centralSize = eocd >= 0 ? archive.readUInt32LE(eocd + 12) : 0;
+    const centralOffset = eocd >= 0 ? archive.readUInt32LE(eocd + 16) : 0;
+    const nameLength = archive.readUInt16LE(centralOffset + 28);
+    const storedSize = archive.readUInt32LE(centralOffset + 20);
+    const localOffset = archive.readUInt32LE(centralOffset + 42);
+    const localNameLength = archive.readUInt16LE(localOffset + 26);
+    const payloadStart = localOffset + 30 + localNameLength;
+    const payload = archive.subarray(payloadStart, payloadStart + storedSize);
+    check(
+      "the archive records one entry with a real central directory",
+      count === 1 && centralSize > 0 && centralOffset > 0,
+      { count, centralSize, centralOffset },
+    );
+    check(
+      "the entry is named after the produced file",
+      archive.toString("utf8", centralOffset + 46, centralOffset + 46 + nameLength) ===
+        "seed-batch.jpg",
+      archive.toString("utf8", centralOffset + 46, centralOffset + 46 + nameLength),
+    );
+    check(
+      "the stored payload is the real JPEG, not an empty placeholder",
+      payload.subarray(0, 2).toString("hex") === "ffd8" && payload.length > 500,
+      { magic: payload.subarray(0, 2).toString("hex"), bytes: payload.length },
+    );
+  }
+
+  /* -------------------------------------------- collections + ZIP archive */
+  await gotoRoute(page, "#/library");
+  await page.waitForSelector("[data-action='new-collection']", { timeout: 20000 });
+  // The list itself loads from IndexedDB after the bar renders.
+  await page.waitForSelector(".kx-media-card", { timeout: 20000 });
+  await page.evaluate(() => document.querySelector("[data-action='new-collection']")?.click());
+  await sleep(300);
+  await page.evaluate(() => {
+    const input = document.querySelector(".kx-collection-bar input");
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+    setter.call(input, "Marketing");
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await sleep(250);
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll(".kx-collection-bar .kx-btn")].find((node) =>
+      /create|إنشاء/i.test(node.textContent ?? ""),
+    );
+    button?.click();
+  });
+  await sleep(600);
+  report.collectionProbe = await page.evaluate(() => ({
+    hash: window.location.hash,
+    bar: document.querySelector(".kx-collection-bar")?.textContent?.trim().slice(0, 160) ?? null,
+    chips: [...document.querySelectorAll(".kx-collection-bar .kx-chip")].map((n) => n.textContent),
+    cards: document.querySelectorAll(".kx-media-card").length,
+    collectionSelects: document.querySelectorAll("[data-collection-for]").length,
+    openIn: document.querySelectorAll("[data-open-in]").length,
+  }));
+  const chipCreated = await page.evaluate(() =>
+    Boolean(document.querySelector("[data-collection='Marketing']")),
+  );
+  check("a collection can be created from the library", chipCreated);
+
+  await page.evaluate(() => {
+    const select = document.querySelector("[data-collection-for]");
+    if (!select) throw new Error("no collection control on the first card");
+    const setter = Object.getOwnPropertyDescriptor(window.HTMLSelectElement.prototype, "value").set;
+    setter.call(select, "Marketing");
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await sleep(700);
+  const assigned = await page.evaluate(() =>
+    new Promise((resolve) => {
+      const open = indexedDB.open("knoux-rec.library");
+      open.onsuccess = () => {
+        const request = open.result.transaction("items", "readonly").objectStore("items").getAll();
+        request.onsuccess = () =>
+          resolve(
+            (request.result ?? [])
+              .filter((item) => item.collection)
+              .map((item) => ({ name: item.name, collection: item.collection })),
+          );
+        request.onerror = () => resolve([]);
+      };
+      open.onerror = () => resolve(null);
+    }),
+  );
+  check(
+    "the assignment is persisted on the stored item",
+    Array.isArray(assigned) && assigned.length === 1 && assigned[0].collection === "Marketing",
+    assigned,
+  );
+
+  await page.evaluate(() => document.querySelector("[data-collection='Marketing']")?.click());
+  await sleep(600);
+  const filtered = await page.evaluate(() => ({
+    cards: document.querySelectorAll(".kx-media-card").length,
+    names: [...document.querySelectorAll(".kx-media-name")].map((n) => n.textContent),
+  }));
+  check(
+    "filtering by the collection shows only filed items",
+    filtered.cards === 1,
+    filtered,
+  );
+
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await sleep(1200);
+  const survived = await page.evaluate(() => ({
+    chips: [...document.querySelectorAll("[data-collection]")].map((n) => n.dataset.collection),
+    items: document.querySelectorAll(".kx-media-card").length,
+  }));
+  check(
+    "the collection survives a reload because it lives on the item",
+    survived.chips.includes("Marketing"),
+    survived,
   );
 
   /* --------------------------------------- Library → Elysian handoff */

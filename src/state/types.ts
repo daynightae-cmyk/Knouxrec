@@ -64,6 +64,8 @@ export interface LibraryItem {
   favorite?: boolean;
   /** Chain of hubs this file was derived through, oldest first. */
   provenance?: ProvenanceRecord[];
+  /** Optional user collection; empty means unfiled. */
+  collection?: string;
 }
 
 export type RecorderStatus =

@@ -18,6 +18,7 @@ import {
   type BatchOperation,
   type BatchSettings,
 } from "../services/batchQueue";
+import { createZip } from "../services/zip";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 import { useHandoffReceiver } from "../ui/handoff";
 
@@ -67,6 +68,7 @@ export default function BatchView({
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
+  const [busyArchive, setBusyArchive] = useState(false);
 
   const patch = useCallback((id: string, value: Partial<BatchItem>) => {
     setItems((current) =>
@@ -244,6 +246,32 @@ export default function BatchView({
       push("success", t("batch.savedAll"), `${saved} · ${t("batch.provenanceNote")}`);
     }
   }, [add, items, push, t]);
+
+  const downloadArchive = useCallback(async () => {
+    const finished = items.filter((item) => item.output);
+    if (finished.length === 0) return;
+    setBusyArchive(true);
+    try {
+      const entries = [];
+      for (const item of finished) {
+        const output = item.output as NonNullable<BatchItem["output"]>;
+        entries.push({
+          name: output.fileName,
+          bytes: new Uint8Array(await output.blob.arrayBuffer()),
+        });
+      }
+      const archive = createZip(entries);
+      downloadBlob(
+        new Blob([archive.slice().buffer], { type: "application/zip" }),
+        "knoux-batch.zip",
+      );
+      push("success", t("batch.zipDone"), `${entries.length} · ${formatBytes(archive.length)}`);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "The archive could not be written.");
+    } finally {
+      setBusyArchive(false);
+    }
+  }, [items, push, t]);
 
   const downloadAll = useCallback(async () => {
     const finished = items.filter((item) => item.output);
@@ -463,6 +491,17 @@ export default function BatchView({
               >
                 <Icon name="download" size={15} />
                 {t("batch.saveAll")}
+              </button>
+              <button
+                type="button"
+                className="kx-btn"
+                data-action="download-zip"
+                onClick={() => void downloadArchive()}
+                disabled={running || totals.done === 0 || busyArchive}
+                title={t("batch.zipHint")}
+              >
+                <Icon name="layers" size={15} />
+                {t("batch.zip")}
               </button>
               <button
                 type="button"

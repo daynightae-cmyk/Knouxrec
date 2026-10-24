@@ -146,6 +146,39 @@ export const libraryStore = {
     });
   },
 
+  async setCollection(id: string, collection: string): Promise<void> {
+    const value = collection.trim();
+    const db = await openDatabase();
+    await new Promise<void>((resolve, reject) => {
+      const transaction = db.transaction(STORE, "readwrite");
+      const store = transaction.objectStore(STORE);
+      const getRequest = store.get(id);
+      let found = false;
+      getRequest.onsuccess = () => {
+        const item = getRequest.result as LibraryItem | undefined;
+        if (item) {
+          found = true;
+          if (value) item.collection = value;
+          else delete item.collection;
+          store.put(item);
+        }
+      };
+      transaction.oncomplete = () => {
+        db.close();
+        if (found) resolve();
+        else reject(new Error("The item no longer exists in the library."));
+      };
+      transaction.onerror = () => {
+        db.close();
+        reject(transaction.error ?? new Error("Collection update failed."));
+      };
+      transaction.onabort = () => {
+        db.close();
+        reject(new Error("The collection update was aborted."));
+      };
+    });
+  },
+
   async get(id: string): Promise<LibraryItem | undefined> {
     return withStore<LibraryItem | undefined>("readonly", (store) =>
       store.get(id),

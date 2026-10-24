@@ -4009,6 +4009,25 @@ html[data-theme="light"] .kx-audio-element {
   }
 }
 
+/* ---------- library collections ---------- */
+
+.kx-collection-bar {
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+}
+
+.kx-collection-bar .kx-chip[aria-pressed="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+  color: var(--kx-text);
+}
+
 /* ---------- cross-hub handoff ---------- */
 
 .kx-provenance {

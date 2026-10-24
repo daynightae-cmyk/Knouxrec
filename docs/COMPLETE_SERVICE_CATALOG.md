@@ -103,7 +103,9 @@ Toolbox now exposes 13 tools and the suite covers 148 checks.
 
 Still open in this hub (real, no model): sharpen and watermark presets, video
 trim/mute/extract-audio, HEX/RGB/HSL utilities, gradient creator and filename
-cleaning. Audio trim/reverse/normalise/filters live in Audio Studio, and batch
+cleaning. Batch resize/convert/crop/watermark and audio trim/reverse/normalise/
+filters are now wired to their own hubs (Batch Processing and Audio Studio) and
+recorded as verified there, not duplicated here. Audio trim/reverse/normalise/filters live in Audio Studio, and batch
 resize/convert/crop/watermark live in Batch Processing; both are verified there.
 
 ## HUB 07 — Visual Patch Lab
