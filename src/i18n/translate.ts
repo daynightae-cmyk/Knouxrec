@@ -516,6 +516,36 @@ const STRINGS: Dictionary = {
     ar: "تتطلب خدمة عبر الإنترنت؛ وهذا الإصدار لا يرسل الصور خارج الجهاز.",
   },
 
+  // Workflow chains
+  "chains.title": { en: "Workflow chains", ar: "سلاسل العمل" },
+  "chains.description": {
+    en: "Named sequences that carry one artefact through several verified processors. No simulated steps: each card reports the bytes, dimensions and codec the real pipeline produced.",
+    ar: "متتابعات مسماة تنقل عنصراً واحداً عبر عدة معالجات موثَّقة. لا خطوات تمثيلية: كل بطاقة تُبلّغ عن البايتات والأبعاد ورمز الترميز الذي أنتجه المسار الحقيقي.",
+  },
+  "chains.count": { en: "chains", ar: "سلاسل" },
+  "chains.steps": { en: "Chain steps", ar: "خطوات السلسلة" },
+  "chains.pickImage": { en: "Source image", ar: "الصورة المصدر" },
+  "chains.pickVideo": { en: "Source clip", ar: "المقطع المصدر" },
+  "chains.template": { en: "Template", ar: "القالب" },
+  "chains.titleField": { en: "Title text", ar: "نص العنوان" },
+  "chains.run": { en: "Run chain", ar: "تشغيل السلسلة" },
+  "chains.cancel": { en: "Cancel", ar: "إلغاء" },
+  "chains.starting": { en: "starting…", ar: "البدء…" },
+  "chains.done": { en: "complete", ar: "مكتمل" },
+  "chains.cancelled": { en: "The chain was cancelled.", ar: "أُلغيت السلسلة." },
+  "chains.needInput": {
+    en: "Choose a source file before running this chain.",
+    ar: "اختر ملف المصدر قبل تشغيل هذه السلسلة.",
+  },
+  "chains.noTemplate": {
+    en: "The template catalogue is still loading.",
+    ar: "كتالوج القوالب قيد التحميل.",
+  },
+  "chains.archive": { en: "Save to library", ar: "حفظ في المكتبة" },
+  "chains.archived": { en: "Chain output saved", ar: "حُفظ خرج السلسلة" },
+  "chains.archiveFailed": { en: "Could not save the chain output", ar: "تعذّر حفظ خرج السلسلة" },
+  "chains.download": { en: "Download", ar: "تنزيل" },
+
   // Jobs
   "jobs.title": { en: "Media jobs", ar: "مهام الوسائط" },
   "jobs.activeOne": { en: "job running", ar: "مهمة قيد التشغيل" },

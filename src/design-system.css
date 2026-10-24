@@ -3582,6 +3582,133 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
   margin-top: auto;
 }
 
+/* ---------- workflow chains ---------- */
+
+.kx-chains {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kx-chain-steps {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kx-chain-steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 7px 9px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-surface);
+  font-size: var(--kx-text-xs);
+}
+
+.kx-chain-steps li[data-ok="true"] {
+  border-color: color-mix(in srgb, var(--kx-success) 45%, transparent);
+}
+
+.kx-chain-steps li[data-ok="false"] {
+  border-color: var(--kx-danger);
+}
+
+.kx-chain-no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex: none;
+  border-radius: 7px;
+  background: var(--kx-elev-2);
+  color: var(--kx-text-soft);
+  font-family: var(--kx-font-numeric);
+  font-size: 0.68rem;
+}
+
+.kx-chain-name {
+  font-weight: 600;
+  color: var(--kx-text);
+}
+
+.kx-chain-processor {
+  font-family: var(--kx-font-mono, ui-monospace, monospace);
+  font-size: 0.68rem;
+  color: var(--kx-text-faint);
+}
+
+.kx-chain-outcome {
+  margin-inline-start: auto;
+  font-size: 0.68rem;
+  color: var(--kx-success);
+}
+
+.kx-chain-file {
+  min-width: 220px;
+}
+
+.kx-chain-progress {
+  position: relative;
+  height: 22px;
+  border-radius: 999px;
+  border: 1px solid var(--kx-border);
+  background: var(--kx-elev-2);
+  overflow: hidden;
+  margin-top: 10px;
+}
+
+.kx-chain-progress > span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--kx-accent-soft), var(--kx-accent-line));
+  transition: width var(--kx-motion);
+}
+
+.kx-chain-progress em {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  font-size: 0.68rem;
+  color: var(--kx-text);
+}
+
+.kx-chain-outputs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.kx-chain-output {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 8px 10px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-elev-1);
+  font-size: var(--kx-text-xs);
+}
+
+.kx-chain-output-name {
+  font-weight: 600;
+}
+
+.kx-chain-output .kx-row {
+  margin-inline-start: auto;
+}
+
 /* ---------- screenshot editor ---------- */
 
 .kx-shot-editor {

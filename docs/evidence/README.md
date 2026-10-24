@@ -21,6 +21,7 @@ Screenshots captured by the automated smoke suites, not hand-made mockups.
 | `elysian-studio-arabic.png` | `scripts/elysian-studio-smoke.mjs` | The full studio in Arabic RTL with the mirrored three-column layout |
 | `service-discovery.png` | `scripts/discover-smoke.mjs` | Unified service discovery: 93 registry entries with execution mode, honest run state, favourites and recents |
 | `service-discovery-arabic.png` | `scripts/discover-smoke.mjs` | The same registry view in Arabic RTL |
+| `workflow-clip-cover.png` | `scripts/workflow-smoke.mjs` | Workflow chain card after a real run: per-step bytes, timing, palette hexes and reusable artefacts |
 
 Reproduce with `npm run verify && npm run smoke:all` against
 `npm run preview` (http://localhost:4173/). The full reports live in the

@@ -92,7 +92,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "cmd-recent", hub: "command", labelEn: "Recent media and storage status", label: "الوسائط الأخيرة وحالة التخزين", mode: "LOCAL", status: "VERIFIED", route: "library" }),
   entry({ id: "cmd-jobs", hub: "command", labelEn: "Running media jobs", label: "مهام الوسائط الجارية", mode: "LOCAL", status: "VERIFIED", route: "live-studio" }),
   entry({ id: "cmd-discover", hub: "command", labelEn: "Find any service", label: "البحث عن أي خدمة", mode: "LOCAL", status: "VERIFIED", route: "discover", keywords: ["search", "palette", "بحث"] }),
-  entry({ id: "cmd-workflows", hub: "command", labelEn: "One-click workflow chains", label: "سلاسل العمل بنقرة واحدة", mode: "LOCAL", status: "IMPLEMENTED-NOT-VERIFIED", route: "discover" }),
+  entry({ id: "cmd-workflows", hub: "command", labelEn: "One-click workflow chains", label: "سلاسل العمل بنقرة واحدة", mode: "LOCAL", status: "VERIFIED", route: "dashboard", keywords: ["chain", "automation", "سلسلة"] }),
 
   /* ---------------------------------------------------------- recording */
   entry({ id: "rec-display", hub: "recording", labelEn: "Full display recording", label: "تسجيل الشاشة كاملة", mode: "LOCAL", status: "VERIFIED", route: "studio" }),

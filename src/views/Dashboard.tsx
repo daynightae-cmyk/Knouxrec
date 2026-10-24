@@ -8,6 +8,7 @@ import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { Icon, type IconName } from "../app/icons";
 import BrandMark from "../app/BrandMark";
 import { EmptyState, PreviewDialog, StatCard, StateBadge, Thumbnail } from "./ui";
+import WorkflowChains from "./WorkflowChains";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
 import type { LibraryItem } from "../state/types";
@@ -65,6 +66,9 @@ export default function Dashboard({
   const { jobs, activeJobs } = useJobs();
   const t = (key: string) => translate(settings.language, key);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
+  const [templateOptions, setTemplateOptions] = useState<
+    Array<{ id: string; name: string }>
+  >([]);
   const [models, setModels] = useState<{
     checked: boolean;
     present: number;
@@ -94,6 +98,27 @@ export default function Dashboard({
       })
       .catch(() => {
         if (active) setModels((previous) => ({ ...previous, checked: true }));
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    // The motion-ident chain runs the same engine the Templates hub lists, so
+    // the picker is filled from the real catalogue rather than a hard-coded id.
+    void import("../../services/realTemplateEngine")
+      .then((module) => {
+        if (!active) return;
+        const templates = module.realTemplateEngine.getAllTemplates() as Array<{
+          id: string;
+          name: string;
+        }>;
+        setTemplateOptions(templates.map((item) => ({ id: item.id, name: item.name })));
+      })
+      .catch(() => {
+        if (active) setTemplateOptions([]);
       });
     return () => {
       active = false;
@@ -530,6 +555,8 @@ export default function Dashboard({
           </div>
         </div>
       </section>
+
+      <WorkflowChains templateOptions={templateOptions} />
 
       <PreviewDialog
         item={preview}

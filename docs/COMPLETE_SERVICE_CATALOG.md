@@ -19,6 +19,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
 | Service registry | `src/data/serviceRegistry.ts` | 93 entries across 15 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
+| Workflow chains | `src/services/workflowChains.ts` | Four named chains that sequence the existing processors; no chain owns pixel or encoder math of its own |
 
 ## HUB 01 — Dashboard / Command Center
 
@@ -30,7 +31,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Audio recording | LOCAL | PARTIAL | Microphone path exists inside recordings; standalone audio recorder is NOT-IMPLEMENTED |
 | Recent media, storage, jobs, model readiness | LOCAL | VERIFIED | Real IndexedDB/registry data |
 | Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (93 entries) by English label, Arabic label, hub, mode and blocker |
-| One-click workflows | LOCAL | IMPLEMENTED-NOT-VERIFIED — see §8 workflow chains |
+| One-click workflows | LOCAL | VERIFIED — four chains on the Dashboard, 30 checks in `scripts/workflow-smoke.mjs` |
 
 ## HUB 02 — Recording Studio
 
@@ -206,14 +207,20 @@ advertised before they exist.
 
 ## Workflow chains
 
-| Chain | Status |
-| --- | --- |
-| Template → Customize → Render → Export → Library | VERIFIED |
-| Toolbox tool → Live Studio → Save → Reopen | VERIFIED |
-| Record → Save → Library → Trim | VERIFIED |
-| Image → Resize → Adjust → Export | VERIFIED (manual chaining through the library) |
-| Capture → Trim → Thumbnail → Export | PARTIAL (thumbnails for library items; explicit chain NOT-IMPLEMENTED) |
-| Audio analyze → silence removal → normalize | NOT-IMPLEMENTED (silence detection exists in AI tasks; no chain context) |
+Four named chains now run from the Dashboard card, each step delegating to a
+processor that already exists elsewhere in the product. `scripts/workflow-smoke.mjs`
+drives all four in Chromium (30 checks) and feeds the WebM encoded by one chain
+back into the next two, so the artefacts are proven usable, not just non-empty.
+
+| Chain | Steps (real processors) | Status |
+| --- | --- | --- |
+| Social cover | `resizeImage` → `cropImage` → `filterImage` → `convertImage` | VERIFIED — lands exactly on 1200×630 and downloads as a genuine RIFF/WEBP |
+| Clip cover | `extractVideoThumbnail` → `extractColorPalette` | VERIFIED — frame at 1280×720 plus six sampled swatches |
+| Trim and cover | `trimMedia` → `extractVideoThumbnail` | VERIFIED — re-encoded slice with a cover read back from it |
+| Motion ident | `realTemplateEngine.renderTemplate` → `exportTemplateVideo` | VERIFIED — 1280×720 still plus an EBML WebM with codec and frame count |
+| Cancellation, per-step timing, library archive, download, Arabic RTL | — | VERIFIED |
+| Capture → Trim → Thumbnail → Export as a single automatic chain | — | NOT-IMPLEMENTED (the display capture path still needs a user gesture; the pieces are verified separately) |
+| Audio analyse → silence removal → normalise | — | NOT-IMPLEMENTED (no verified audio DSP chain yet) |
 
 ## Definition of done for the next increments
 
