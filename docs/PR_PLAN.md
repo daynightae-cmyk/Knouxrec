@@ -85,6 +85,13 @@ transfer, auto composition, generative fill, body-aware deformation, speech to
 text, OCR and Arabic model tasks all remain blocked with the missing artefact
 named. MP3 and AAC audio encoding remain unavailable and the controls say so.
 
+## Verified result at merge time
+
+`npm run smoke:all` completed with **exit code 0**: 21 smoke commands, 21 reports
+on disk, **765 assertions and 765 passing, 0 failing**, computed by
+`node scripts/count-smoke.mjs` (which exited 0 as well). Unit tests: 12 files,
+148 tests. CI on the head: 4/4.
+
 ## Verification reporting rule
 
 The headline numbers come from `node scripts/count-smoke.mjs`, which reads the
