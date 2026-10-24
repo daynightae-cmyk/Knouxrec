@@ -22,7 +22,7 @@ export interface AppSettings {
 }
 
 export type LibraryKind = "video" | "image" | "audio";
-export type LibrarySource = "recording" | "screenshot" | "trim" | "import";
+export type LibrarySource = "recording" | "screenshot" | "trim" | "import" | "toolbox";
 
 export interface LibraryItem {
   id: string;

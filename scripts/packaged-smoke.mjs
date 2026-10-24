@@ -21,6 +21,7 @@ import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import { cleanElectronEnv } from "./lib/app-session.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const evidenceDir = path.join(root, "artifacts", "evidence");
@@ -50,6 +51,7 @@ const ROUTES = [
   "models",
   "settings",
   "diagnostics",
+  "live-studio",
 ];
 
 const result = {
@@ -223,7 +225,7 @@ const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "knoux-packaged-"));
 
 const child = spawn(EXE, [`--remote-debugging-port=${port}`, `--user-data-dir=${userDataDir}`], {
   cwd: root,
-  env: { ...process.env, ELECTRON_ENABLE_LOGGING: "1" },
+  env: { ...cleanElectronEnv(process.env), ELECTRON_ENABLE_LOGGING: "1" },
   stdio: ["ignore", "pipe", "pipe"],
 });
 let stdout = "";
@@ -324,6 +326,35 @@ async function runChecks(client) {
     check(`route ${route} has no error boundary`, !state.errorBoundary, state.heading);
     check(`route ${route} is not an error page`, !state.errorPage, state.heading);
   }
+
+  // Diagnostics must report the live Electron bridge and the real model probe.
+  await evaluate(client, `window.location.hash = "#/diagnostics"; true`);
+  let diagnosticsRows = { bridge: false, models: false, text: "" };
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    await sleep(400);
+    diagnosticsRows = await evaluate(
+      client,
+      `(() => {
+        const text = document.body.innerText || "";
+        return {
+          bridge: /Connected · \\d+ channels/.test(text),
+          models: /\\d+ \\/ 24 weight files present/.test(text),
+          text: text.slice(0, 400)
+        };
+      })()`,
+    );
+    if (diagnosticsRows.bridge && diagnosticsRows.models) break;
+  }
+  check(
+    "diagnostics reports the live desktop bridge",
+    diagnosticsRows.bridge,
+    diagnosticsRows.text,
+  );
+  check(
+    "diagnostics reports the real model inventory",
+    diagnosticsRows.models,
+    diagnosticsRows.text,
+  );
 
   const external = await evaluate(
     client,

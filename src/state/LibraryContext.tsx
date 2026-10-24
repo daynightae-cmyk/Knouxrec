@@ -55,15 +55,21 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
 
   const hydrate = useCallback(
     (list: LibraryItem[]) => {
-      const ids = new Set(list.map((item) => item.id));
+      // `blob:` URLs are scoped to the document that created them. A thumbnail
+      // persisted as a blob URL is dead after a reload, so drop it and let the
+      // view fall back to the freshly-created object URL for the stored blob.
+      const hydrated = list.map((item) =>
+        item.thumbnail?.startsWith("blob:") ? { ...item, thumbnail: null } : item,
+      );
+      const ids = new Set(hydrated.map((item) => item.id));
       urls.current.forEach((url, id) => {
         if (!ids.has(id)) {
           URL.revokeObjectURL(url);
           urls.current.delete(id);
         }
       });
-      list.forEach(ensureUrl);
-      setItems(list);
+      hydrated.forEach(ensureUrl);
+      setItems(hydrated);
     },
     [ensureUrl],
   );
@@ -110,7 +116,7 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
         createdAt: Date.now(),
         source: input.source,
         blob: input.blob,
-        thumbnail: input.thumbnail,
+        thumbnail: input.thumbnail?.startsWith("blob:") ? null : input.thumbnail,
       };
       // The row is written first: a failed write must not leave a ghost entry
       // in the UI or an object URL that nothing owns.

@@ -1,0 +1,218 @@
+/* ---------- toolbox service workspace ---------- */
+
+.kx-tool-layout {
+  display: grid;
+  grid-template-columns: 320px minmax(0, 1fr) 340px;
+  gap: 18px;
+  align-items: start;
+}
+
+.kx-tool-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.kx-tool-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.kx-tool-settings .kx-field {
+  margin-bottom: 2px;
+}
+
+.kx-dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin-top: 12px;
+  padding: 22px 16px;
+  border-radius: var(--kx-radius);
+  border: 1px dashed var(--kx-border-strong);
+  background: rgba(255, 255, 255, 0.015);
+  color: var(--kx-text-faint);
+  text-align: center;
+  transition: var(--kx-motion);
+}
+
+.kx-dropzone:hover,
+.kx-dropzone[data-active="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+  color: var(--kx-text-soft);
+}
+
+.kx-dropzone .kx-card-sub {
+  margin: 0;
+}
+
+.kx-compare {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.kx-compare figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.kx-compare figcaption {
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kx-compare img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: var(--kx-radius-sm);
+  border: 1px solid var(--kx-border);
+  background: #050507;
+}
+
+.kx-progress {
+  height: 6px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.kx-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--kx-accent);
+  transition: width 180ms ease-out;
+}
+
+.kx-tool-card .kx-tool-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: auto;
+}
+
+/* ---------- AI workspace ---------- */
+
+.kx-ai-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 420px;
+  gap: 18px;
+  align-items: start;
+}
+
+.kx-ai-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 620px;
+  overflow-y: auto;
+  padding-inline-end: 4px;
+}
+
+.kx-ai-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: var(--kx-radius-sm);
+  border: 1px solid var(--kx-border);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--kx-text);
+  text-align: start;
+  cursor: pointer;
+  transition: var(--kx-motion);
+}
+
+.kx-ai-row:hover {
+  border-color: var(--kx-border-strong);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.kx-ai-row[data-active="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+}
+
+.kx-ai-row-icon {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  background: rgba(139, 92, 246, 0.14);
+  color: var(--kx-violet);
+}
+
+.kx-ai-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  flex: 1;
+}
+
+.kx-ai-row-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kx-ai-row-sub {
+  font-size: 0.74rem;
+  color: var(--kx-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kx-ai-detail {
+  position: sticky;
+  top: 0;
+  padding: 18px;
+  border-radius: var(--kx-radius);
+  border: 1px solid var(--kx-border);
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.012));
+  box-shadow: var(--kx-shadow-1);
+}
+
+@media (max-width: 1320px) {
+  .kx-tool-layout {
+    grid-template-columns: 290px minmax(0, 1fr);
+  }
+  .kx-tool-layout > .kx-tool-settings {
+    grid-column: 1 / -1;
+  }
+  .kx-ai-layout {
+    grid-template-columns: minmax(0, 1fr) 360px;
+  }
+}
+
+@media (max-width: 900px) {
+  .kx-tool-layout,
+  .kx-ai-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kx-compare {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .kx-ai-detail {
+    position: static;
+  }
+}

@@ -1,5 +1,12 @@
 # تقرير حالة مشروع KNOUX REC
 
+> **⚠️ HISTORICAL DOCUMENT — NOT CURRENT.**
+> This 2024 report predates the Sovereign rebuild and exaggerates what shipped
+> (it claims production readiness and working AI that never existed). The
+> accurate, evidence-based status is maintained in
+> [`SOVEREIGN_STATUS_2026-10-24.md`](SOVEREIGN_STATUS_2026-10-24.md) and
+> [`CAPABILITY_REGISTRY.md`](CAPABILITY_REGISTRY.md).
+
 **تاريخ التقرير**: 15 يناير 2024  
 **النسخة**: 1.0.0  
 **حالة المشروع**: ✅ مكتمل - جاهز للإنتاج

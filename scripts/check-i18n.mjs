@@ -29,6 +29,12 @@ const VIEW_FILES = [
   "src/views/SettingsView.tsx",
   "src/views/DiagnosticsView.tsx",
   "src/views/ModelsView.tsx",
+  "src/views/AiWorkspaceView.tsx",
+  "src/views/AiTaskRunner.tsx",
+  "src/views/TemplatesView.tsx",
+  "src/views/ToolboxView.tsx",
+  "src/views/VisualPatchView.tsx",
+  "src/views/LiveStudioView.tsx",
 ];
 
 const TEXT_PATTERN = />\s*([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})\s*</g;
@@ -107,7 +113,9 @@ const dictionaryKeys = new Set(
 );
 for (const file of VIEW_FILES) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
-  for (const match of text.matchAll(/t\("([a-zA-Z][a-zA-Z0-9.]*)"\)/g)) {
+  // A word boundary keeps setters such as setFit("contain") from being
+  // mistaken for translation lookups.
+  for (const match of text.matchAll(/\bt\("([a-zA-Z][a-zA-Z0-9.]*)"\)/g)) {
     if (!dictionaryKeys.has(match[1])) {
       failures.push(`${file}: missing translation key "${match[1]}"`);
     }

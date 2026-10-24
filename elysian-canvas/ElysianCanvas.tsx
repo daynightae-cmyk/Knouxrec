@@ -20,6 +20,16 @@ interface Template {
 
 interface ElysianCanvasProps {
   onClose?: () => void;
+  /**
+   * Persist the verified PNG into the local library. Supplied by the host so
+   * this preserved component never reaches into application state directly.
+   */
+  onArchive?: (
+    blob: Blob,
+    fileName: string,
+    width: number,
+    height: number,
+  ) => Promise<void>;
 }
 
 interface ImageFilter {
@@ -28,7 +38,7 @@ interface ImageFilter {
   function: (imageData: ImageData) => ImageData;
 }
 
-export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
+export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose, onArchive }) => {
   const [isVerified, setIsVerified] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<any | null>(null);
   const [activeView, setActiveView] = useState<
@@ -62,6 +72,12 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
   const [sepia, setSepia] = useState(0);
   const [invert, setInvert] = useState(0);
   const [opacity, setOpacity] = useState(100);
+
+  // Comparison and verified export state.
+  const [compareOriginal, setCompareOriginal] = useState(false);
+  const [exportNote, setExportNote] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [savedName, setSavedName] = useState<string | null>(null);
 
   // Sample templates
   const [templates] = useState<Template[]>([
@@ -269,42 +285,45 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
     }
   };
 
+  // Paint the decoded source into a canvas, centred and scaled to fit. The
+  // same geometry drives the live preview, the compare toggle and reset.
+  const drawSourceToCanvas = (
+    canvas: HTMLCanvasElement,
+    img: HTMLImageElement,
+  ): CanvasRenderingContext2D | null => {
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return null;
+
+    let { width, height } = img;
+    const aspectRatio = width / height;
+
+    if (width > canvas.width) {
+      width = canvas.width;
+      height = width / aspectRatio;
+    }
+    if (height > canvas.height) {
+      height = canvas.height;
+      width = height * aspectRatio;
+    }
+
+    const x = (canvas.width - width) / 2;
+    const y = (canvas.height - height) / 2;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, x, y, width, height);
+    return ctx;
+  };
+
   // Display image on canvas
   const displayImageOnCanvas = async (image: UploadedImage) => {
     if (!imageCanvasRef.current) return;
 
     const canvas = imageCanvasRef.current;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-
     const img = new Image();
     img.onload = () => {
       sourceImageRef.current = img;
-
-      // Calculate dimensions to maintain aspect ratio
-      const maxWidth = canvas.width;
-      const maxHeight = canvas.height;
-
-      let { width, height } = img;
-      const aspectRatio = width / height;
-
-      if (width > maxWidth) {
-        width = maxWidth;
-        height = width / aspectRatio;
-      }
-
-      if (height > maxHeight) {
-        height = maxHeight;
-        width = height * aspectRatio;
-      }
-
-      // Center the image
-      const x = (canvas.width - width) / 2;
-      const y = (canvas.height - height) / 2;
-
-      // Clear canvas and draw image
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, x, y, width, height);
+      drawSourceToCanvas(canvas, img);
+      setCompareOriginal(false);
 
       // Apply current filters
       applyImageFilters();
@@ -364,6 +383,38 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
     }
   };
 
+  // Toggle between the untouched source and the edited result without
+  // touching the exported bytes: the canvas is repainted from the decoded
+  // source and the slider CSS filter is switched off.
+  const toggleCompare = () => {
+    const canvas = imageCanvasRef.current;
+    const source = sourceImageRef.current;
+    if (!canvas || !source || !selectedImage) return;
+    const next = !compareOriginal;
+    const ctx = drawSourceToCanvas(canvas, source);
+    if (!ctx) return;
+    if (next) {
+      canvas.style.filter = "none";
+    } else {
+      canvas.style.filter = sliderFilterString();
+      const preset = imageFilters.find((filter) => filter.id === activePresetId);
+      if (preset) {
+        try {
+          ctx.putImageData(
+            preset.function(
+              ctx.getImageData(0, 0, canvas.width, canvas.height),
+            ),
+            0,
+            0,
+          );
+        } catch {
+          // The sliders remain the visible result on a tainted canvas.
+        }
+      }
+    }
+    setCompareOriginal(next);
+  };
+
   // Reset filters
   const resetFilters = () => {
     setBrightness(100);
@@ -380,14 +431,11 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
     }
   };
 
-  // Download edited image. The exported file is re-rendered from the source
-  // image at its original resolution with every filter baked into the pixels,
-  // so the file matches what the editor shows.
-  const downloadImage = () => {
+  // Re-render the edited picture at source resolution. The exported pixels
+  // carry the slider CSS filters and the baked preset exactly as previewed.
+  const buildExportCanvas = (): HTMLCanvasElement | null => {
     const source = sourceImageRef.current;
-    if (!source) {
-      if (!imageCanvasRef.current) return;
-    }
+    if (!source && !imageCanvasRef.current) return null;
 
     const exportCanvas = document.createElement("canvas");
     if (source) {
@@ -398,7 +446,7 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
       exportCanvas.height = imageCanvasRef.current?.height ?? 600;
     }
     const exportCtx = exportCanvas.getContext("2d");
-    if (!exportCtx) return;
+    if (!exportCtx) return null;
 
     if (source) {
       exportCtx.filter = sliderFilterString();
@@ -428,11 +476,90 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
         exportCanvas.height,
       );
     }
+    return exportCanvas;
+  };
 
-    const link = document.createElement("a");
-    link.download = `elysian-edit-${Date.now()}.png`;
-    link.href = exportCanvas.toDataURL("image/png");
-    link.click();
+  const encodePng = (canvas: HTMLCanvasElement): Promise<Blob> =>
+    new Promise((resolve, reject) =>
+      canvas.toBlob(
+        (blob) =>
+          blob
+            ? resolve(blob)
+            : reject(new Error("The PNG encoder produced no bytes.")),
+        "image/png",
+      ),
+    );
+
+  const verifyPng = (blob: Blob): Promise<{ width: number; height: number }> =>
+    new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(blob);
+      const probe = new Image();
+      probe.onload = () => {
+        URL.revokeObjectURL(url);
+        if (probe.naturalWidth > 0 && probe.naturalHeight > 0) {
+          resolve({ width: probe.naturalWidth, height: probe.naturalHeight });
+        } else {
+          reject(new Error("The exported PNG decoded to no pixels."));
+        }
+      };
+      probe.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("The exported PNG cannot be decoded."));
+      };
+      probe.src = url;
+    });
+
+  const buildVerifiedExport = async () => {
+    const canvas = buildExportCanvas();
+    if (!canvas) throw new Error("There is no picture to export.");
+    const blob = await encodePng(canvas);
+    const size = await verifyPng(blob);
+    return {
+      blob,
+      name: `elysian-edit-${Date.now()}.png`,
+      width: size.width,
+      height: size.height,
+    };
+  };
+
+  const downloadImage = async () => {
+    try {
+      const { blob, name, width, height } = await buildVerifiedExport();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.download = name;
+      link.href = url;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 4000);
+      setExportNote(
+        `Verified PNG ${width}×${height} · ${(blob.size / 1024).toFixed(1)} KB`,
+      );
+    } catch (cause) {
+      setExportNote(
+        cause instanceof Error ? cause.message : "The export failed.",
+      );
+    }
+  };
+
+  const saveToLibrary = async () => {
+    if (!onArchive) {
+      setExportNote("Library storage is unavailable.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const { blob, name, width, height } = await buildVerifiedExport();
+      await onArchive(blob, name, width, height);
+      setSavedName(name);
+      setExportNote(`Saved ${name} · ${(blob.size / 1024).toFixed(1)} KB`);
+    } catch (cause) {
+      setSavedName(null);
+      setExportNote(
+        cause instanceof Error ? cause.message : "Saving to the library failed.",
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleTemplateSelect = (template: any) => {
@@ -805,10 +932,28 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
                       🔄 Reset
                     </button>
                     <button
-                      onClick={downloadImage}
+                      onClick={toggleCompare}
+                      className="action-button preview"
+                      disabled={!selectedImage}
+                    >
+                      {compareOriginal ? "🎨 Show edits" : "⚖️ Before / after"}
+                    </button>
+                    <button
+                      onClick={() => void downloadImage()}
                       className="action-button download"
                     >
                       ��� Download
+                    </button>
+                    <button
+                      onClick={() => void saveToLibrary()}
+                      className="action-button save"
+                      disabled={!selectedImage || saving || !onArchive}
+                    >
+                      {saving
+                        ? "⏳ Saving…"
+                        : savedName
+                          ? "✓ Saved to library"
+                          : "💾 Save to library"}
                     </button>
                     <button
                       onClick={handlePreview}
@@ -816,6 +961,9 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
                     >
                       👁️ Preview
                     </button>
+                    {exportNote && (
+                      <p className="elysian-export-note">{exportNote}</p>
+                    )}
                   </div>
                 </div>
 
@@ -903,10 +1051,16 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
               >
                 ← Back to Editor
               </button>
-              <button onClick={downloadImage} className="action-button export">
+              <button onClick={() => void downloadImage()} className="action-button export">
                 💾 Export Masterpiece
               </button>
-              <button className="action-button save">⭐ Save to Gallery</button>
+              <button
+                onClick={() => void saveToLibrary()}
+                className="action-button save"
+                disabled={saving || !onArchive}
+              >
+                {saving ? "⏳ Saving…" : savedName ? "✓ Saved to library" : "⭐ Save to library"}
+              </button>
               <button
                 onClick={() => {
                   if (navigator.share && selectedImage) {
@@ -1440,6 +1594,14 @@ export const ElysianCanvas: React.FC<ElysianCanvasProps> = ({ onClose }) => {
         .action-button:hover {
           transform: translateY(-2px);
           box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .elysian-export-note {
+          margin: 2px 0 0;
+          font-size: 12px;
+          line-height: 1.5;
+          color: rgba(158, 243, 210, 0.92);
+          word-break: break-word;
         }
 
         .canvas-panel {

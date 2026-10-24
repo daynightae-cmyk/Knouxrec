@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Icon } from "../app/icons";
 import { CAPABILITIES } from "../app/capabilities";
 import {
   CapabilityNotice,
@@ -9,124 +10,37 @@ import {
 } from "./ui";
 import { useSettings } from "../state/SettingsContext";
 import { translate } from "../i18n/translate";
+import {
+  inspectModels,
+  MODEL_IDS,
+  type ModelInspection,
+} from "../services/modelRegistry";
 
-interface ModelRow {
-  id: string;
-  name: string;
-  description: string;
-  weightsPath: string;
-  weightsState: "checking" | "present" | "missing";
-  weightsBytes: number;
+function formatBytes(bytes: number): string {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(units.length - 1, Math.floor(Math.log(bytes) / Math.log(1024)));
+  return `${(bytes / Math.pow(1024, index)).toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
 
-const MODEL_IDS = [
-  "animatediff",
-  "bark_tts",
-  "beat_detector",
-  "face_detection",
-  "gpt4all",
-  "llama2",
-  "m2m100",
-  "modnet",
-  "real_esrgan",
-  "rnnoise",
-  "sadtalker",
-  "sam",
-  "scenecut",
-  "selfie_segmentation",
-  "simswap",
-  "sovits",
-  "spleeter",
-  "stable_diffusion",
-  "super_resolution",
-  "u2net",
-  "videocrafter",
-  "wav2lip",
-  "whisper",
-  "yolo",
-];
-
-async function inspectModel(id: string): Promise<ModelRow> {
-  const fallback: ModelRow = {
-    id,
-    name: id,
-    description: "",
-    weightsPath: `models/${id}/weights.bin`,
-    weightsState: "missing",
-    weightsBytes: 0,
-  };
-
-  const bridge = window.knouxDesktop;
-  if (bridge?.inspectModel) {
-    try {
-      const info = await bridge.inspectModel(id);
-      if (!info) return fallback;
-      return {
-        id: info.id,
-        name: info.name,
-        description: info.description,
-        weightsPath: info.weightsPath,
-        weightsState: info.weightsState,
-        weightsBytes: info.weightsBytes,
-      };
-    } catch {
-      return fallback;
-    }
-  }
-
-  try {
-    const manifestUrl = new URL(`models/${id}/model.json`, document.baseURI);
-    const response = await fetch(manifestUrl);
-    if (!response.ok) return fallback;
-    const manifest = (await response.json()) as {
-      modelName?: string;
-      description?: string;
-      weightsManifest?: { paths?: string[] }[];
-    };
-    const path = manifest.weightsManifest?.[0]?.paths?.[0] ?? "weights.bin";
-    let weightsState: ModelRow["weightsState"] = "missing";
-    let weightsBytes = 0;
-    try {
-      const weights = await fetch(
-        new URL(`models/${id}/${path}`, document.baseURI),
-        { method: "HEAD" },
-      );
-      const contentType = weights.headers.get("content-type") ?? "";
-      if (weights.ok && !contentType.includes("text/html")) {
-        weightsState = "present";
-        weightsBytes = Number(weights.headers.get("content-length") ?? 0) || 0;
-      }
-    } catch {
-      weightsState = "missing";
-    }
-    return {
-      id,
-      name: manifest.modelName ?? id,
-      description: manifest.description ?? "",
-      weightsPath: path,
-      weightsState,
-      weightsBytes,
-    };
-  } catch {
-    return fallback;
-  }
-}
+type WeightFilter = "all" | "present" | "missing";
 
 export default function ModelsView() {
   const capability = CAPABILITIES.models;
   const { settings } = useSettings();
   const t = (key: string) => translate(settings.language, key);
-  const [rows, setRows] = useState<ModelRow[]>([]);
+  const [rows, setRows] = useState<ModelInspection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<WeightFilter>("all");
+  const [query, setQuery] = useState("");
 
   useEffect(() => {
     let cancelled = false;
     const run = async () => {
-      const inspected = await Promise.all(MODEL_IDS.map(inspectModel));
-      if (!cancelled) {
-        setRows(inspected);
-        setLoading(false);
-      }
+      const inspected = await inspectModels(MODEL_IDS);
+      if (cancelled) return;
+      setRows(inspected);
+      setLoading(false);
     };
     void run();
     return () => {
@@ -134,8 +48,29 @@ export default function ModelsView() {
     };
   }, []);
 
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return rows.filter((row) => {
+      const matchesFilter =
+        filter === "all" ||
+        (filter === "present" && row.weightsState === "present") ||
+        (filter === "missing" && row.weightsState !== "present");
+      if (!matchesFilter) return false;
+      if (!needle) return true;
+      return (
+        row.id.includes(needle) ||
+        row.name.toLowerCase().includes(needle) ||
+        row.capabilities.some((capabilityName) =>
+          capabilityName.toLowerCase().includes(needle),
+        )
+      );
+    });
+  }, [rows, filter, query]);
+
   const present = rows.filter((row) => row.weightsState === "present").length;
   const totalBytes = rows.reduce((sum, row) => sum + row.weightsBytes, 0);
+  const expectedBytes = rows.reduce((sum, row) => sum + row.expectedWeightsBytes, 0);
+  const manifestBytes = rows.reduce((sum, row) => sum + row.manifestBytes, 0);
 
   return (
     <div className="kx-section">
@@ -147,18 +82,64 @@ export default function ModelsView() {
       />
       <CapabilityNotice capability={capability} />
 
-      <div className="kx-grid kx-grid-3">
-        <StatCard label={t("models.manifests")} value={String(rows.length)} hint={t("models.manifestsHint")} />
+      <div className="kx-grid kx-grid-4">
+        <StatCard
+          label={t("models.manifests")}
+          value={String(rows.length)}
+          hint={t("models.manifestsHint")}
+          icon="models"
+        />
         <StatCard
           label={t("models.weightFiles")}
           value={String(present)}
           hint={t("models.weightFilesHint")}
+          icon="hardDrive"
         />
         <StatCard
-          label={t("models.weightPayload")}
-          value={totalBytes > 0 ? `${(totalBytes / 1024 / 1024).toFixed(1)} MB` : "0 B"}
-          hint={t("models.measuredFromHead")}
+          label={t("models.expectedWeights")}
+          value={formatBytes(expectedBytes)}
+          hint={t("models.expectedWeightsHint")}
+          icon="layers"
         />
+        <StatCard
+          label={t("models.installedWeights")}
+          value={formatBytes(totalBytes)}
+          hint={t("models.installedWeightsHint")}
+          icon="hardDrive"
+        />
+      </div>
+
+      <div className="kx-row" style={{ gap: 12, margin: "18px 0 14px", flexWrap: "wrap" }}>
+        <input
+          className="kx-input kx-search"
+          type="search"
+          value={query}
+          placeholder={t("models.searchPlaceholder")}
+          onChange={(event) => setQuery(event.target.value)}
+          aria-label={t("models.searchPlaceholder")}
+        />
+        <div className="kx-segmented" role="group" aria-label={t("models.filter")}>
+          <button type="button" aria-pressed={filter === "all"} onClick={() => setFilter("all")}>
+            {t("models.all")}
+          </button>
+          <button
+            type="button"
+            aria-pressed={filter === "present"}
+            onClick={() => setFilter("present")}
+          >
+            {t("models.present")}
+          </button>
+          <button
+            type="button"
+            aria-pressed={filter === "missing"}
+            onClick={() => setFilter("missing")}
+          >
+            {t("models.missing")}
+          </button>
+        </div>
+        <span className="kx-badge" data-state="PARTIAL">
+          {visible.length} / {rows.length}
+        </span>
       </div>
 
       {loading ? (
@@ -174,39 +155,84 @@ export default function ModelsView() {
               <tr>
                 <th>{t("models.model")}</th>
                 <th>{t("models.manifest")}</th>
-                <th>{t("models.weightFile")}</th>
+                <th>{t("models.expectedWeights")}</th>
+                <th>{t("models.installedWeights")}</th>
                 <th>{t("models.status")}</th>
               </tr>
             </thead>
             <tbody>
-              {rows.map((row) => (
+              {visible.map((row) => (
                 <tr key={row.id}>
                   <td>
                     <strong>{row.name}</strong>
                     <div className="kx-mono kx-muted">{row.id}</div>
-                  </td>
-                  <td className="kx-mono">
-                    /models/{row.id}/model.json
-                    {row.description && (
-                      <div className="kx-muted" style={{ maxWidth: 320, marginTop: 4 }}>
-                        {row.description}
+                    {row.version && (
+                      <div className="kx-muted" style={{ fontSize: "0.72rem" }}>
+                        {t("models.version")} {row.version}
+                      </div>
+                    )}
+                    {row.capabilities.length > 0 && (
+                      <div className="kx-row" style={{ gap: 4, marginTop: 6, flexWrap: "wrap" }}>
+                        {row.capabilities.slice(0, 3).map((capabilityName) => (
+                          <span key={capabilityName} className="kx-chip">
+                            {capabilityName}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {row.license && (
+                      <div className="kx-muted" style={{ fontSize: "0.72rem", marginTop: 4 }}>
+                        {t("models.license")} {row.license}
+                      </div>
+                    )}
+                    {row.source && (
+                      <div className="kx-muted" style={{ fontSize: "0.72rem" }}>
+                        {t("models.source")} {row.source}
                       </div>
                     )}
                   </td>
                   <td className="kx-mono">
-                    {row.weightsPath}
-                    {row.weightsBytes > 0 && (
-                      <div className="kx-muted">
-                        {(row.weightsBytes / 1024 / 1024).toFixed(1)} MB
+                    /models/{row.id}/model.json
+                    <div className="kx-muted" style={{ fontSize: "0.72rem" }}>
+                      {formatBytes(row.manifestBytes)}
+                    </div>
+                    {row.manifestSha256 && (
+                      <div className="kx-muted kx-mono" style={{ fontSize: "0.66rem" }}>
+                        sha256 {row.manifestSha256.slice(0, 26)}…
                       </div>
+                    )}
+                  </td>
+                  <td className="kx-mono">
+                    {row.weightsPath.replace(`/models/${row.id}/`, "")}
+                    <div className="kx-muted" style={{ fontSize: "0.72rem" }}>
+                      {formatBytes(row.expectedWeightsBytes)} · {row.tensorCount}{" "}
+                      {t("models.tensors")}
+                    </div>
+                  </td>
+                  <td className="kx-mono">
+                    {row.weightsState === "present" ? (
+                      <>
+                        {formatBytes(row.weightsBytes)}
+                        <div className="kx-muted" style={{ fontSize: "0.72rem" }}>
+                          {t("models.verifiedOnDisk")}
+                        </div>
+                      </>
+                    ) : row.weightsState === "unknown" ? (
+                      t("models.unknown")
+                    ) : (
+                      <span className="kx-muted">{t("models.notInstalled")}</span>
                     )}
                   </td>
                   <td>
                     <span
                       className="kx-badge"
-                      data-state={row.weightsState === "present" ? "VERIFIED" : "MISSING_MODEL"}
+                      data-state={
+                        row.weightsState === "present" ? "PARTIAL" : "MISSING_MODEL"
+                      }
                     >
-                      {row.weightsState === "present" ? "Present" : "Missing"}
+                      {row.weightsState === "present"
+                        ? t("models.weightsOnly")
+                        : t("models.manifestOnly")}
                     </span>
                   </td>
                 </tr>
@@ -216,10 +242,12 @@ export default function ModelsView() {
         </div>
       )}
 
-      <div className="kx-notice" data-tone="danger">
-        <strong>{t("models.honestResult")}</strong> manifests describe graph metadata only. Until the
-        matching weight binaries are shipped and verified, all AI tools that depend on
-        them stay disabled.
+      <div className="kx-notice" data-tone="warn" style={{ marginTop: 16 }}>
+        <Icon name="info" size={18} />
+        <div>
+          <strong>{t("models.honestResult")}</strong> {t("models.honestBody")} (
+          {formatBytes(manifestBytes)} {t("models.ofManifests")})
+        </div>
       </div>
     </div>
   );

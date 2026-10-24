@@ -22,6 +22,10 @@ dist-ssr
 
 # Build and audit output
 release
+release-fresh
+release-next
+release-g
+release-g2
 artifacts
 
 # Editor directories and files

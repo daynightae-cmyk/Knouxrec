@@ -41,8 +41,11 @@ export interface EditOperation {
   toolId: string;
   timestamp: number;
   regions: EditRegion[];
-  beforeSnapshot: string; // Base64 image data
-  afterSnapshot: string;
+  /** Snapshot of the canvas pixels before the operation, stored as ImageData
+   *  so undo/redo can restore pixels synchronously without loading a data URL. */
+  beforeSnapshot: ImageData;
+  /** Snapshot of the canvas pixels after the operation. */
+  afterSnapshot: ImageData;
   parameters: Record<string, any>;
 }
 

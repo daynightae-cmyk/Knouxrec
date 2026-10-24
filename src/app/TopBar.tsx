@@ -2,6 +2,7 @@ import { Icon } from "./icons";
 import { CAPABILITIES, NAVIGATION, type RouteId } from "./capabilities";
 import { useSettings } from "../state/SettingsContext";
 import { useRecorder } from "../state/RecorderContext";
+import { useJobs } from "../state/JobsContext";
 import { translate } from "../i18n/translate";
 import { formatDuration } from "../lib/format";
 
@@ -22,9 +23,17 @@ export default function TopBar({
 }) {
   const { settings, update } = useSettings();
   const recorder = useRecorder();
+  const { activeJobs } = useJobs();
   const t = (key: string) => translate(settings.language, key);
   const capability = CAPABILITIES[route];
   const group = NAVIGATION.find((entry) => entry.routes.includes(route));
+
+  const latestJob = activeJobs[0] ?? null;
+  const jobStageKey: Record<string, string> = {
+    validating: "jobs.stageValidating",
+    processing: "jobs.stageProcessing",
+    verifying: "jobs.stageVerifying",
+  };
 
   const statusLabel =
     recorder.status === "recording"
@@ -103,6 +112,37 @@ export default function TopBar({
           </span>
         )}
       </button>
+
+      {latestJob && (
+        <button
+          type="button"
+          className="kx-jobs-chip"
+          onClick={() => onNavigate("live-studio")}
+          title={t("jobs.openWorkspace")}
+        >
+          <Icon name="activity" size={15} />
+          <span className="kx-jobs-chip-label">
+            {activeJobs.length > 1
+              ? `${activeJobs.length} ${t("jobs.activePlural")}`
+              : t("jobs.activeOne")}
+          </span>
+          <span className="kx-jobs-chip-stage">
+            {t(jobStageKey[latestJob.stage] ?? "jobs.stageProcessing")}
+          </span>
+          <span className="kx-jobs-chip-bar" aria-hidden="true">
+            <span
+              data-indeterminate={latestJob.progress === null}
+              style={
+                latestJob.progress === null
+                  ? undefined
+                  : {
+                      width: `${Math.round(Math.min(1, Math.max(0, latestJob.progress)) * 100)}%`,
+                    }
+              }
+            />
+          </span>
+        </button>
+      )}
 
       <button
         type="button"

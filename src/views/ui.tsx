@@ -167,7 +167,7 @@ export function Thumbnail({
   url: string | null;
 }) {
   const source =
-    item.thumbnail ?? (item.kind === "image" && url ? url : null);
+    item.kind === "image" && url ? url : item.thumbnail ?? null;
   if (source) {
     return <img src={source} alt="" loading="lazy" />;
   }

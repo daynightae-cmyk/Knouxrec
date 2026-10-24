@@ -16,6 +16,7 @@ import {
 } from "../services/recordingEngine";
 import type { RecorderSnapshot, RecorderStatus } from "./types";
 import { useLibrary } from "./LibraryContext";
+import { useJobs, type StudioJobHandle } from "./JobsContext";
 import { useSettings } from "./SettingsContext";
 import { useToast } from "./ToastContext";
 import {
@@ -42,6 +43,7 @@ const RecorderContext = createContext<RecorderContextValue | null>(null);
 export function RecorderProvider({ children }: { children: React.ReactNode }) {
   const { settings } = useSettings();
   const { add: addToLibrary } = useLibrary();
+  const { beginJob } = useJobs();
   const { push } = useToast();
 
   const [status, setStatus] = useState<RecorderStatus>("idle");
@@ -52,6 +54,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   const [support] = useState<CaptureSupport>(() => detectCaptureSupport());
 
   const sessionRef = useRef<RecordingSession | null>(null);
+  const jobRef = useRef<StudioJobHandle | null>(null);
   const timerRef = useRef<number | null>(null);
   const statusRef = useRef<RecorderStatus>("idle");
   const settingsRef = useRef(settings);
@@ -109,6 +112,16 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
         setStatus("recording");
         startTimer(session);
 
+        // The workspace record starts only after an authorized stream exists.
+        const job = beginJob({
+          kind: "recording",
+          title: mode === "webcam" ? "Camera recording" : "Screen recording",
+          route: "studio",
+          progress: null,
+        });
+        job.report("processing", "Capturing the authorized stream");
+        jobRef.current = job;
+
         const videoTrack = preview?.getVideoTracks()[0];
         videoTrack?.addEventListener("ended", () => {
           if (statusRef.current === "recording" || statusRef.current === "paused") {
@@ -132,7 +145,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
         push("error", "Recording could not start", message);
       }
     },
-    [push, startTimer],
+    [beginJob, push, startTimer],
   );
 
   const pause = useCallback(() => {
@@ -140,6 +153,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
     if (!session || statusRef.current !== "recording") return;
     session.pause();
     setStatus("paused");
+    jobRef.current?.report("processing", "Paused");
   }, []);
 
   const resume = useCallback(() => {
@@ -147,6 +161,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
     if (!session || statusRef.current !== "paused") return;
     session.resume();
     setStatus("recording");
+    jobRef.current?.report("processing", "Recording");
   }, []);
 
   const stop = useCallback(async () => {
@@ -160,6 +175,11 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       const result = await session.stop();
       sessionRef.current = null;
       setPreviewStream(null);
+      jobRef.current?.report(
+        "verifying",
+        "Encoding and saving to the local library",
+        0.9,
+      );
 
       const extension = extensionForMime(result.mimeType);
       const name = buildFileName(
@@ -186,6 +206,28 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
         size: item.size,
         duration: item.duration,
       });
+      const job = jobRef.current;
+      if (job) {
+        job.complete({
+          blob: result.blob,
+          mimeType: result.mimeType,
+          fileName: name,
+          width: result.width,
+          height: result.height,
+          duration: result.durationMs / 1000,
+          bytes: result.blob.size,
+          metrics: {
+            source: "MediaRecorder",
+            mimeType: result.mimeType,
+            savedBytes: item.size,
+          },
+          logs: [
+            `MediaRecorder produced ${formatBytes(result.blob.size)} over ${formatDuration(result.durationMs / 1000)}.`,
+            `Saved to the local library as ${item.name}.`,
+          ],
+        });
+        jobRef.current = null;
+      }
       push(
         "success",
         "Recording saved to library",
@@ -198,6 +240,8 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       const message =
         cause instanceof Error ? cause.message : "The recording could not be saved.";
       setError(message);
+      jobRef.current?.fail(message);
+      jobRef.current = null;
       push("error", "Recording failed to save", message);
     }
   }, [addToLibrary, clearTimer, push]);

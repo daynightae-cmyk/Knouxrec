@@ -20,6 +20,21 @@ export function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+/**
+ * Returns a copy of the environment with ELECTRON_RUN_AS_NODE removed.
+ *
+ * Qoder's tool shells (and some CI workers) set ELECTRON_RUN_AS_NODE=1 so
+ * that child Electron processes execute their entry as plain Node: the
+ * DevTools server never starts, `require("electron")` throws, and a bare
+ * launch exits like a script-less `node` REPL. Every Electron binary spawned
+ * by the smokes must therefore receive a sanitised environment.
+ */
+export function cleanElectronEnv(env) {
+  const cleaned = { ...env };
+  delete cleaned.ELECTRON_RUN_AS_NODE;
+  return cleaned;
+}
+
 export function freePort() {
   return new Promise((resolve, reject) => {
     const server = net.createServer();
@@ -136,7 +151,7 @@ export async function discoverTarget(port, timeoutMs) {
   let last = null;
   while (Date.now() - started < timeoutMs) {
     try {
-      const response = await fetch(`http://127.0.0.1:${port}/json/list`);
+      const response = await fetch(`http://127.0.0.1:${port}/json/list`, { signal: AbortSignal.timeout(2000) });
       const targets = await response.json();
       last = targets.map((t) => ({ type: t.type, title: t.title, url: t.url }));
       const page = targets.find(
@@ -145,7 +160,7 @@ export async function discoverTarget(port, timeoutMs) {
           target.webSocketDebuggerUrl &&
           /\/dist\/index\.html/.test(target.url ?? ""),
       );
-      if (page) return page;
+      if (page) return { page, last };
     } catch {
       // the devtools endpoint is not up yet
     }
@@ -183,33 +198,55 @@ export function killTree(child) {
  */
 export async function startAndAttach({
   executable,
-  args,
+  baseArgs,
   cwd,
-  port,
   timeoutMs = 120000,
   attempts = 3,
   env,
 }) {
   let lastError = null;
+  let lastTargets = null;
 
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    // A fresh free port on every attempt: the previous attempt may have left
+    // the port in TIME_WAIT or reclaimed it, which prevents electron's
+    // DevTools HTTP server from binding and makes /json/list unreachable.
+    const port = await freePort();
     const useGpuFallback = attempt > 1;
-    const launchArgs = useGpuFallback ? [...args, "--disable-gpu", "--disable-gpu-compositing"] : args;
+    const gpuFlags = useGpuFallback ? ["--disable-gpu", "--disable-gpu-compositing"] : [];
+    const launchArgs = [...baseArgs, `--remote-debugging-port=${port}`, ...gpuFlags];
     let child = null;
     let ws = null;
     let exited = false;
 
     try {
+      let childStdout = "";
+      let childStderr = "";
       child = spawn(executable, launchArgs, {
         cwd,
-        env: env ?? process.env,
+        env: cleanElectronEnv(env ?? process.env),
         stdio: ["ignore", "pipe", "pipe"],
+      });
+      // The renderer pipes must be consumed: with ELECTRON_ENABLE_LOGGING the
+      // child can emit enough diagnostics to fill the Windows pipe buffer and
+      // block the electron process so the renderer never appears. The packaged
+      // smoke harness consumes these pipes; this one must too.
+      child.stdout.on("data", (chunk) => {
+        childStdout += chunk.toString();
+      });
+      child.stderr.on("data", (chunk) => {
+        childStderr += chunk.toString();
       });
       child.once("exit", () => {
         exited = true;
       });
 
+      // Give the renderer a moment to start its DevTools HTTP server before
+      // the first /json/list poll. On some machines electron's devtools server
+      // binds a few hundred milliseconds after the process is spawned.
+      await sleep(300);
       const { page, last } = await discoverTarget(port, timeoutMs);
+      lastTargets = last;
       if (!page) {
         throw new Error(
           exited
@@ -237,6 +274,9 @@ export async function startAndAttach({
         target: page,
         attempts: attempt,
         gpuFallback: useGpuFallback,
+        port,
+        stdout: childStdout,
+        stderr: childStderr,
         kill: () => {
           try {
             ws?.close();

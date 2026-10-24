@@ -18,6 +18,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { writeSolidPng, decodePng } from "./lib/png.mjs";
+import { cleanElectronEnv } from "./lib/app-session.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const evidenceDir = path.join(root, "artifacts", "evidence");
@@ -186,6 +187,7 @@ const sourcePng = writeTestPng(downloadDir);
 
 const child = spawn(EXE, [`--remote-debugging-port=${port}`, `--user-data-dir=${userDataDir}`], {
   cwd: root,
+  env: cleanElectronEnv(process.env),
   stdio: ["ignore", "pipe", "pipe"],
 });
 let stdout = "";
@@ -371,6 +373,103 @@ async function runChecks(client) {
     "the Vintage preset changes the rendered pixels",
     beforePreset !== afterPreset,
     { beforePreset, afterPreset },
+  );
+
+  // 4b. The compare toggle must repaint the untouched source and return.
+  const canvasSum = () =>
+    evaluate(
+      client,
+      `(() => {
+        const canvas = document.querySelector('canvas.main-canvas');
+        const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
+        return sum;
+      })()`,
+    );
+  const compareClicked = await evaluate(
+    client,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('button')).find((b) => /before \\/ after/i.test(b.textContent ?? ''));
+      if (button) button.click();
+      return Boolean(button);
+    })()`,
+  );
+  await sleep(600);
+  const compareSum = await canvasSum();
+  check(
+    "before/after repaints the untouched source",
+    compareClicked && compareSum === beforePreset,
+    { beforePreset, compareSum },
+  );
+  await evaluate(
+    client,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('button')).find((b) => /show edits/i.test(b.textContent ?? ''));
+      if (button) button.click();
+      return Boolean(button);
+    })()`,
+  );
+  await sleep(600);
+  const restoredSum = await canvasSum();
+  check(
+    "before/after returns to the edited pixels",
+    restoredSum === afterPreset,
+    { afterPreset, restoredSum },
+  );
+
+  // 4c. Saving persists the verified PNG into the local library.
+  const saveClicked = await evaluate(
+    client,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('button')).find((b) => /save to library/i.test(b.textContent ?? ''));
+      if (button) button.click();
+      return Boolean(button);
+    })()`,
+  );
+  await sleep(1500);
+  const saveNote = await evaluate(
+    client,
+    `document.querySelector('.elysian-export-note')?.textContent ?? null`,
+  );
+  check(
+    "saving reports a verified PNG",
+    saveClicked && Boolean(saveNote && /Saved elysian-edit-.* KB/.test(saveNote)),
+    saveNote,
+  );
+  const archived = await evaluate(
+    client,
+    `new Promise((resolve) => {
+      const open = indexedDB.open('knoux-rec.library');
+      open.onerror = () => resolve(null);
+      open.onsuccess = () => {
+        const db = open.result;
+        const request = db.transaction('items', 'readonly').objectStore('items').getAll();
+        request.onerror = () => resolve(null);
+        request.onsuccess = async () => {
+          const items = request.result ?? [];
+          const latest = items.reduce((best, item) => (!best || item.createdAt > best.createdAt ? item : best), null);
+          if (!latest) return resolve(null);
+          const head = new Uint8Array(await latest.blob.slice(0, 8).arrayBuffer());
+          resolve({
+            name: latest.name,
+            size: latest.blob.size,
+            magic: Array.from(head).map((value) => value.toString(16).padStart(2, '0')).join(' '),
+          });
+        };
+      };
+    })`,
+    20000,
+  );
+  check(
+    "the library stores the real PNG blob",
+    Boolean(
+      archived &&
+        /^elysian-edit-\d+\.png$/.test(archived.name) &&
+        archived.size > 100 &&
+        archived.magic.startsWith("89 50 4e 47 0d 0a 1a 0a"),
+    ),
+    archived,
   );
 
   // 5. Export must write a PNG file with the filters baked in.

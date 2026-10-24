@@ -22,6 +22,7 @@ const ROUTE_ICONS: Record<RouteId, IconName> = {
   models: "models",
   settings: "settings",
   diagnostics: "diagnostics",
+  "live-studio": "studio",
 };
 
 function dotColor(state: CapabilityState): string {

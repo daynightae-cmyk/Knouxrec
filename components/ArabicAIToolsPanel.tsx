@@ -86,7 +86,7 @@ export const ARABIC_AI_TOOLS: AITool[] = [
     difficulty: "hard",
     color: "red",
     desc: "تبديل الوجوه بين الصور باستخدام SimSwap",
-    features: ["نتائ�� واقعية", "حفظ الهوية"],
+    features: ["نتائج واقعية", "حفظ الهوية"],
     modelSize: 320,
     time: 15,
     points: 10,
@@ -203,7 +203,7 @@ export const ARABIC_AI_TOOLS: AITool[] = [
     difficulty: "medium",
     color: "yellow",
     desc: "تحويل الكلام إلى نص بشكل محلي وسريع",
-    features: ["د��ة عالية", "لغات متعددة"],
+    features: ["دقة عالية", "لغات متعددة"],
     modelSize: 85,
     time: 12,
     points: 5,
@@ -381,7 +381,7 @@ export const ARABIC_AI_TOOLS: AITool[] = [
   },
   {
     icon: "📐",
-    title: "كشف الحواف ��التفاصيل",
+    title: "كشف الحواف والتفاصيل",
     difficulty: "easy",
     color: "green",
     desc: "استخراج الحواف والتفاصيل من الصور باستخدام Canny",
@@ -619,7 +619,7 @@ const ArabicAIToolsPanel: React.FC<ArabicAIToolsPanelProps> = () => {
           <div className="flex-1">
             <input
               type="text"
-              placeholder="ال��حث في الأدوات..."
+              placeholder="البحث في الأدوات..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

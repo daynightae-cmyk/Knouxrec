@@ -15,7 +15,8 @@ export type RouteId =
   | "arabic-ai"
   | "models"
   | "settings"
-  | "diagnostics";
+  | "diagnostics"
+  | "live-studio";
 
 export interface Capability {
   id: RouteId;
@@ -93,34 +94,38 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "templates",
     group: "create",
     labelKey: "templates",
-    state: "BLOCKED",
+    state: "VERIFIED",
     summary:
-      "Template browser preserved, but it is not mounted: its dependency graph does not compile or run as shipped.",
-    requirements: ["Repaired VisualPatchToolCard exports", "Runtime verification"],
+      "Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content.",
+    requirements: ["Canvas 2D renderer", "MediaRecorder WebM encoder"],
     evidence:
-      "components/TemplatesPanel.tsx imports a VisualPatchTool export that does not exist; its tool cards call missing service methods.",
+      "services/realTemplateEngine.ts evaluates element lifetimes and animation keyframes per frame; the PNG frame and WebM video are encoded from the same canvas. scripts/templates-smoke.mjs verifies the WebM container, dimensions, duration and animated frame differences.",
   },
   toolbox: {
     id: "toolbox",
     group: "create",
     labelKey: "toolbox",
-    state: "BLOCKED",
+    state: "VERIFIED",
     summary:
-      "Media utility panel preserved, but it is not mounted: the shared tool card has no default export and broken handlers.",
-    requirements: ["Repaired VisualPatchToolCard", "Per-tool runtime verification"],
+      "Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette.",
+    requirements: [
+      "Canvas 2D encoder",
+      "Web Audio decoder for the visualiser",
+      "Video decoder for the thumbnail",
+    ],
     evidence:
-      "components/ToolboxPanel.tsx default-imports VisualPatchToolCard, which only exposes named exports; handlers call absent processor APIs.",
+      "scripts/toolbox-smoke.mjs drove all eight tools through the UI (99/99 checks): real fixture inputs, invalid-input rejection, preview/saved/export SHA-256 equality, PNG/JPEG/WEBP signatures, cancellation, reload persistence and Arabic RTL.",
   },
   "visual-patch": {
     id: "visual-patch",
     group: "create",
     labelKey: "visualPatch",
-    state: "BLOCKED",
+    state: "PARTIAL",
     summary:
-      "Region-based image editor preserved, but it is not mounted because its processing pipeline is incomplete.",
-    requirements: ["Repaired processor methods", "Runtime pixel diffing"],
+      "Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export.",
+    requirements: ["An image to edit"],
     evidence:
-      "components/VisualPatchLabPanel.tsx and VisualPatchToolCard.tsx call extractAudio/detectObjects/applyStyle methods that do not exist on the services.",
+      "scripts/visual-patch-smoke.mjs now verifies the full pipeline (21/21): paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven.",
   },
   morphcore: {
     id: "morphcore",
@@ -140,10 +145,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "elysian",
     state: "PARTIAL",
     summary:
-      "Image editing workspace with slider filters, real presets and PNG export. The AI inference pipeline is not part of the bundle.",
+      "Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle.",
     requirements: ["Image input", "Model weights for the AI pipeline"],
     evidence:
-      "scripts/elysian-smoke.mjs drives the packaged binary: age gate, upload, preset filter and a PNG export whose pixels carry the filter.",
+      "scripts/elysian-smoke.mjs drives the packaged binary (18/18): age gate, upload, preset filter, compare repaint, verified PNG export with independently decoded pixels, and the saved library blob signature.",
     adult: true,
   },
   "body-editor": {
@@ -161,22 +166,23 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "offline-ai",
     group: "intelligence",
     labelKey: "offlineAI",
-    state: "MISSING_MODEL",
+    state: "PARTIAL",
     summary:
-      "38-tool catalog recovered. The previous service returned synthetic images/transcripts; it is now marked unavailable instead of faking output.",
-    requirements: ["Model weights", "Inference runtime"],
+      "One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist.",
+    requirements: ["Weight binaries for the 23 model tasks", "Inference runtime"],
     evidence:
-      "Weights binaries are absent from public/models; the old service produced canvas placeholders.",
+      "scripts/ai-tools-smoke.mjs now runs in the standard suite (79 checks): every deterministic task executes in Chromium with real fixtures, saves and downloads its bytes, rejects wrong input, cancels cleanly and leaves model tasks blocked.",
   },
   "arabic-ai": {
     id: "arabic-ai",
     group: "intelligence",
     labelKey: "arabicAI",
-    state: "MISSING_ENGINE",
+    state: "PARTIAL",
     summary:
-      "38-tool Arabic catalog preserved for future engines; the prior handler only waited and logged.",
-    requirements: ["Per-tool inference engine"],
-    evidence: "components/ArabicAIToolsPanel.tsx handleToolRun performed no processing.",
+      "The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too.",
+    requirements: ["Weight binaries for the 23 model tasks", "Inference runtime"],
+    evidence:
+      "components/ArabicAIToolsPanel.tsx supplied the localized labels; four corrupted Arabic strings in that file were repaired; ai-tools-smoke runs a task on the Arabic route and asserts the RTL shell, localized runner labels and identical output bytes.",
   },
   models: {
     id: "models",
@@ -201,9 +207,22 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "system",
     labelKey: "diagnostics",
     state: "VERIFIED",
-    summary: "Runtime capability matrix measured from MediaDevices, MediaRecorder and IndexedDB.",
+    summary:
+      "Runtime capability matrix measured from MediaDevices, MediaRecorder, IndexedDB, the Electron bridge and the bundled model folders.",
     requirements: [],
-    evidence: "Values computed in-browser; model availability proven by bundle inspection.",
+    evidence:
+      "Values are computed in-browser; the packaged smoke asserts the live desktop bridge row and the real 0/24 weight inventory from inside Electron.",
+  },
+  "live-studio": {
+    id: "live-studio",
+    group: "create",
+    labelKey: "liveStudio",
+    state: "VERIFIED",
+    summary:
+      "Shared execution workspace for every real job: media tools, template WebM exports and recordings, with live lifecycle events, media previews, verification and save/export.",
+    requirements: ["Real jobs from the tool registry, template encoder or recorder"],
+    evidence:
+      "scripts/live-studio-smoke.mjs ran 30 checks through the workspace: image job with live timeline and verified dock, save/reopen, real retry, before/after slider, audio playback plus waveform, template WebM preview, a fake-display recording, cancellation and Arabic RTL.",
   },
 };
 
@@ -223,4 +242,5 @@ export const ROUTE_TITLES: Record<RouteId, string> = {
   models: "models",
   settings: "settings",
   diagnostics: "diagnostics",
+  "live-studio": "liveStudio",
 };

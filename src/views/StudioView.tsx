@@ -3,6 +3,7 @@ import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
 import { useLibrary } from "../state/LibraryContext";
 import { translate } from "../i18n/translate";
+import type { RouteId } from "../app/capabilities";
 import { Icon } from "../app/icons";
 import BrandMark from "../app/BrandMark";
 import { EmptyState, PreviewDialog, SectionHeader } from "./ui";
@@ -35,7 +36,11 @@ const STATUS_LABEL: Record<string, string> = {
   error: "studio.status.error",
 };
 
-export default function StudioView() {
+export default function StudioView({
+  onNavigate,
+}: {
+  onNavigate: (route: RouteId, jobId?: string) => void;
+}) {
   const recorder = useRecorder();
   const { settings, updateRecorder } = useSettings();
   const { items, urlFor } = useLibrary();
@@ -376,18 +381,30 @@ export default function StudioView() {
       <div className="kx-card">
         <div className="kx-row-between">
           <div className="kx-card-title">{t("lastCapture")}</div>
-          <button
-            type="button"
-            className="kx-btn kx-btn-sm"
-            onClick={() => {
-              const first = items[0];
-              if (first) setPreview(first);
-            }}
-            disabled={!items[0]}
-          >
-            <Icon name="eye" size={15} />
-            {t("preview")}
-          </button>
+          <div className="kx-row" style={{ gap: 8 }}>
+            {recorder.lastCapture && (
+              <button
+                type="button"
+                className="kx-btn kx-btn-sm"
+                onClick={() => onNavigate("live-studio")}
+              >
+                <Icon name="activity" size={15} />
+                {t("liveStudio.open")}
+              </button>
+            )}
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm"
+              onClick={() => {
+                const first = items[0];
+                if (first) setPreview(first);
+              }}
+              disabled={!items[0]}
+            >
+              <Icon name="eye" size={15} />
+              {t("preview")}
+            </button>
+          </div>
         </div>
         {videos.length === 0 ? (
           <div style={{ marginTop: 14 }}>
