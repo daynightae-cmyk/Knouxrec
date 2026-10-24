@@ -506,14 +506,18 @@ try {
     const shadow = shadowHost?.shadowRoot ?? null;
     const play = document.querySelector(".kx-live-audio-controls button");
     if (play) play.click();
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const media = document.querySelector(".kx-live-waveform audio");
+    let currentTime = 0;
+    for (let attempt = 0; attempt < 24 && currentTime <= 0; attempt += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 125));
+      currentTime =
+        document.querySelector(".kx-live-waveform audio")?.currentTime ?? 0;
+    }
     return {
       present: Boolean(document.querySelector(".kx-live-waveform")),
       shadow: Boolean(shadow),
       canvases: shadow ? shadow.querySelectorAll("canvas").length : 0,
       playButton: Boolean(play),
-      currentTime: media?.currentTime ?? 0,
+      currentTime,
     };
   });
   check(
@@ -532,12 +536,22 @@ try {
   await page.evaluate(() => {
     window.location.hash = "#/templates";
   });
-  await page.waitForSelector(".kx-ai-row", { timeout: 20000 });
+  await page.waitForSelector(".kx-template-card", { timeout: 20000 });
   await sleep(400);
   await page.evaluate(() => {
-    document.querySelector(".kx-ai-row")?.click();
+    document.querySelector(".kx-template-card")?.click();
   });
   await sleep(300);
+  // Wait for the export control to be genuinely enabled before clicking; a
+  // disabled click is silently swallowed and used to race the thumbnail pass.
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll(".kx-btn")].some(
+        (button) =>
+          button.textContent?.trim() === "Export WebM video" && !button.disabled,
+      ),
+    { timeout: 15000 },
+  );
   await clickText(page, "Export WebM video");
   await openStudioFromService(page);
   await waitForStage(page, "done", "error");

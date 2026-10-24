@@ -2849,6 +2849,203 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
 
 /* ---------- open-source UI layer ---------- */
 
+.kx-template-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.kx-template-chip {
+  padding: 5px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--kx-border);
+  background: transparent;
+  color: var(--kx-text-soft);
+  font-size: var(--kx-text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color var(--kx-motion), background var(--kx-motion),
+    color var(--kx-motion);
+}
+
+.kx-template-chip:hover {
+  border-color: var(--kx-accent-line);
+  color: var(--kx-text);
+}
+
+.kx-template-chip[data-active="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+  color: var(--kx-accent);
+}
+
+.kx-template-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.kx-template-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+  color: var(--kx-text);
+  text-align: start;
+  cursor: pointer;
+  transition: border-color var(--kx-motion), background var(--kx-motion),
+    transform var(--kx-motion), box-shadow var(--kx-motion);
+}
+
+.kx-template-card:hover {
+  border-color: var(--kx-border-strong);
+  background: var(--kx-surface-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.28);
+}
+
+.kx-template-card[data-active="true"] {
+  border-color: var(--kx-accent-line);
+  box-shadow: 0 0 0 1px var(--kx-accent-line) inset;
+}
+
+.kx-template-thumb {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--kx-radius-xs);
+  overflow: hidden;
+  background-color: #07070c;
+  background-image:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.04) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.04) 75%);
+  background-size: 18px 18px;
+  background-position: 0 0, 0 9px, 9px -9px, -9px 0;
+}
+
+.kx-template-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.kx-template-thumb-empty {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  color: var(--kx-text-faint);
+}
+
+.kx-template-cat {
+  position: absolute;
+  top: 8px;
+  inset-inline-start: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(5, 5, 10, 0.72);
+  border: 1px solid var(--kx-border-strong);
+  color: var(--kx-text-soft);
+  font-size: var(--kx-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.kx-template-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kx-template-name {
+  font-weight: 600;
+  font-size: var(--kx-text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kx-template-sub {
+  color: var(--kx-text-faint);
+  font-size: var(--kx-text-xs);
+}
+
+.kx-template-card .kx-badge {
+  align-self: flex-start;
+}
+
+.kx-color-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kx-color-swatch {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: var(--kx-radius-xs);
+  border: 1px solid var(--kx-border-strong);
+  cursor: pointer;
+  padding: 0;
+  transition: transform var(--kx-motion), border-color var(--kx-motion);
+}
+
+.kx-color-swatch:hover,
+.kx-color-swatch[aria-expanded="true"] {
+  transform: translateY(-1px);
+  border-color: var(--kx-accent-line);
+}
+
+.kx-color-hex {
+  font-family: var(--kx-font-mono, ui-monospace, monospace);
+  text-transform: lowercase;
+}
+
+.kx-color-pop {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+  width: fit-content;
+}
+
+.kx-color-pop .react-colorful {
+  width: 200px;
+  height: 160px;
+}
+
+.kx-dev-catalog {
+  border: 1px dashed var(--kx-border-strong);
+  border-radius: var(--kx-radius);
+  padding: 14px 16px;
+  background: var(--kx-surface);
+}
+
+.kx-dev-catalog summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--kx-text-soft);
+  font-weight: 600;
+  font-size: var(--kx-text-sm);
+}
+
+.kx-dev-catalog[open] summary {
+  margin-bottom: 4px;
+}
+
 .kx-tooltip {
   z-index: 90;
   max-width: 280px;

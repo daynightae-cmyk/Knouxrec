@@ -96,10 +96,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "templates",
     state: "VERIFIED",
     summary:
-      "Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content.",
+      "Five real templates presented as a visual gallery with rendered thumbnails, editable text, frame export and WebM video export; the 51 placeholders stay behind a clearly labelled development catalog.",
     requirements: ["Canvas 2D renderer", "MediaRecorder WebM encoder"],
     evidence:
-      "services/realTemplateEngine.ts evaluates element lifetimes and animation keyframes per frame; the PNG frame and WebM video are encoded from the same canvas. scripts/templates-smoke.mjs verifies the WebM container, dimensions, duration and animated frame differences.",
+      "services/realTemplateEngine.ts evaluates element lifetimes and keyframes per frame. scripts/templates-smoke.mjs verifies the gallery thumbnails (480×270 PNG data), customization→pixels, PNG/WebM exports, cancellation and RTL (27 checks).",
   },
   toolbox: {
     id: "toolbox",
@@ -107,14 +107,14 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "toolbox",
     state: "VERIFIED",
     summary:
-      "Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette.",
+      "Eleven local media utilities with real processors: resize, filters, format conversion, rotate/flip, crop, pixelate, video thumbnail, waveform, text image, QR code and colour palette.",
     requirements: [
       "Canvas 2D encoder",
       "Web Audio decoder for the visualiser",
       "Video decoder for the thumbnail",
     ],
     evidence:
-      "scripts/toolbox-smoke.mjs drove all eight tools through the UI (99/99 checks): real fixture inputs, invalid-input rejection, preview/saved/export SHA-256 equality, PNG/JPEG/WEBP signatures, cancellation, reload persistence and Arabic RTL.",
+      "scripts/toolbox-smoke.mjs drives all eleven tools through the UI (127/127 checks): real fixtures, invalid-input rejection, preview/saved/export SHA-256 equality, signatures, cancellation, reload persistence and Arabic RTL.",
   },
   "visual-patch": {
     id: "visual-patch",

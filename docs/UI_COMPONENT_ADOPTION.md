@@ -108,3 +108,19 @@ locally by Vite; nothing loads from a CDN at runtime.
    Arabic RTL and DPI checks; new screenshots added to `docs/evidence/`.
 
 **Status: report complete — implementation proceeds in the same session.**
+
+## 7. Outcome (verified)
+
+| Component | Outcome | Verification |
+| --- | --- | --- |
+| Radix Tooltip | Adopted in TopBar, collapsed Sidebar and Live Studio toolbar | ui 50/50; tooltip provider exercised by route traversal |
+| react-resizable-panels | Adopted for the Live Studio split (horizontal ≥1181px, stacked below) | live-studio 33/33 |
+| react-compare-slider | Adopted; keyboard interaction asserted | live-studio 33/33 |
+| react-zoom-pan-pinch | Adopted for single-image results (buttons, drag pan, double-click) | live-studio 33/33 |
+| wavesurfer.js | Adopted for audio sources with locally decoded peaks; real playback asserted | live-studio 33/33 |
+| react-colorful | Adopted via `src/ui/ColorField.tsx` for waveform, text and QR colours (swatch + hex input + inline picker) | toolbox 128/128 — a QR colour change is proven to alter the encoded pixels |
+| Radix Dialog/Tabs/Select/Switch/Menu | Rejected/deferred with reasons above | existing suites unchanged |
+
+Additional product work delivered in the same pass: three new real Toolbox
+processors (rotate/flip, crop, pixelate — toolbox 127/127) and a Templates
+gallery with genuine rendered thumbnails (27/27).

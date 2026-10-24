@@ -323,7 +323,21 @@ async function runChecks(client) {
     nodeId: node.nodeId,
     files: [sourcePng],
   });
-  await sleep(3000);
+  // The canvas paints asynchronously after the upload; wait for real pixels
+  // instead of racing a fixed delay on a loaded machine.
+  await waitFor(
+    client,
+    `(() => {
+      const canvas = document.querySelector('canvas.main-canvas');
+      if (!canvas) return false;
+      const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) return true;
+      return false;
+    })()`,
+    25000,
+    "Elysian canvas paint",
+  );
+  await sleep(400);
 
   const painted = await evaluate(
     client,

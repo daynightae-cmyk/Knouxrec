@@ -14,13 +14,16 @@
 import {
   MEDIA_TOOLS,
   convertImage,
+  cropImage,
   extractColorPalette,
   extractVideoThumbnail,
   filterImage,
+  pixelateImage,
   renderAudioWaveform,
   renderQrCode,
   renderTextImage,
   resizeImage,
+  rotateImage,
   type ImageAdjustments,
   type ImageFormat,
   type MediaToolDescriptor,
@@ -246,6 +249,88 @@ async function processTool(
         height: output.height,
         bytes: output.blob.size,
         metrics: { format, width: output.width, height: output.height },
+        logs,
+      };
+    }
+    case "image-rotate": {
+      const rotation = Math.round(Number(optionString(options, "rotation", "90")) || 0);
+      const flipHorizontal = optionBoolean(options, "flipH", false);
+      const flipVertical = optionBoolean(options, "flipV", false);
+      const format = optionString(options, "format", "png") as ImageFormat;
+      const output = await rotateImage(file!, {
+        rotation,
+        flipHorizontal,
+        flipVertical,
+        format,
+        quality: optionNumber(options, "quality", 92) / 100,
+      });
+      logs.push(
+        `Rotated ${((rotation % 360) + 360) % 360}°${flipHorizontal ? " · flipped horizontally" : ""}${flipVertical ? " · flipped vertically" : ""}.`,
+      );
+      return {
+        toolId,
+        blob: output.blob,
+        mimeType: output.mimeType,
+        fileName: `${baseName(request.fileName, "image")}-rotated.${format === "jpeg" ? "jpg" : format}`,
+        width: output.width,
+        height: output.height,
+        bytes: output.blob.size,
+        metrics: {
+          rotation: ((rotation % 360) + 360) % 360,
+          flipHorizontal,
+          flipVertical,
+          width: output.width,
+          height: output.height,
+        },
+        logs,
+      };
+    }
+    case "image-crop": {
+      const cropWidth = Math.round(optionNumber(options, "cropWidth", 512));
+      const cropHeight = Math.round(optionNumber(options, "cropHeight", 512));
+      if (cropWidth < 2 || cropHeight < 2) {
+        throw new MediaJobValidationError("Choose a crop size of at least 2×2 pixels.");
+      }
+      const format = optionString(options, "format", "png") as ImageFormat;
+      const output = await cropImage(file!, {
+        x: Math.round(optionNumber(options, "cropX", 0)),
+        y: Math.round(optionNumber(options, "cropY", 0)),
+        width: cropWidth,
+        height: cropHeight,
+        format,
+        quality: optionNumber(options, "quality", 92) / 100,
+      });
+      logs.push(`Cropped to ${output.width}×${output.height}.`);
+      return {
+        toolId,
+        blob: output.blob,
+        mimeType: output.mimeType,
+        fileName: `${baseName(request.fileName, "image")}-cropped.${format === "jpeg" ? "jpg" : format}`,
+        width: output.width,
+        height: output.height,
+        bytes: output.blob.size,
+        metrics: { width: output.width, height: output.height },
+        logs,
+      };
+    }
+    case "image-pixelate": {
+      const block = Math.round(optionNumber(options, "block", 12));
+      const format = optionString(options, "format", "png") as ImageFormat;
+      const output = await pixelateImage(file!, {
+        block,
+        format,
+        quality: optionNumber(options, "quality", 92) / 100,
+      });
+      logs.push(`Mosaicked through a ${block}px grid.`);
+      return {
+        toolId,
+        blob: output.blob,
+        mimeType: output.mimeType,
+        fileName: `${baseName(request.fileName, "image")}-pixelated.${format === "jpeg" ? "jpg" : format}`,
+        width: output.width,
+        height: output.height,
+        bytes: output.blob.size,
+        metrics: { block, width: output.width, height: output.height },
         logs,
       };
     }

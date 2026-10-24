@@ -9,6 +9,9 @@ Screenshots captured by the automated smoke suites, not hand-made mockups.
 | `live-studio-arabic.png` | `scripts/live-studio-smoke.mjs` | The same workspace in Arabic RTL, with a cancelled job shown honestly (no fabricated output) |
 | `diagnostics.png` | `scripts/ui-smoke.mjs` | Measured runtime facts including the desktop bridge row and the real 0/24 model weight inventory |
 | `dashboard.png` | `scripts/ui-smoke.mjs` | Dashboard shell with real recorder state and navigation |
+| `templates-gallery.png` | `scripts/templates-smoke.mjs` | Visual template gallery with genuine 480×270 rendered thumbnails and category filters |
+| `toolbox-crop.png` | `scripts/toolbox-smoke.mjs` | Image Cropper result in the Live Studio-enabled Toolbox (300×200 real output) |
+| `live-studio-compare.png` | `scripts/live-studio-smoke.mjs` | react-compare-slider with real source/processed pixels and resizable panels |
 
 Reproduce with `npm run verify && npm run smoke:all` against
 `npm run preview` (http://localhost:4173/). The full reports live in the

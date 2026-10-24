@@ -12,10 +12,10 @@ import {
 } from "./mediaTools";
 
 describe("media tool registry", () => {
-  it("describes the eight toolbox tools exactly once", () => {
-    expect(MEDIA_TOOLS).toHaveLength(8);
+  it("describes every toolbox tool exactly once", () => {
+    expect(MEDIA_TOOLS).toHaveLength(11);
     const ids = MEDIA_TOOLS.map((tool) => tool.id);
-    expect(new Set(ids).size).toBe(8);
+    expect(new Set(ids).size).toBe(11);
   });
 
   it("gives every tool a runnable processor, a name and an output type", () => {

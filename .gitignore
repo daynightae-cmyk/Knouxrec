@@ -38,3 +38,5 @@ artifacts
 *.njsproj
 *.sln
 *.sw?
+
+release-g3

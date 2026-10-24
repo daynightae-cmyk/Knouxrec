@@ -95,6 +95,8 @@ export default function TemplatesView({
   const [exportProgress, setExportProgress] = useState(0);
   const [previewKind, setPreviewKind] = useState<"frame" | "video">("frame");
   const [studioJobId, setStudioJobId] = useState<string | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, string>>({});
+  const [category, setCategory] = useState<string>("all");
 
   const urlRef = useRef<string | null>(null);
   const videoUrlRef = useRef<string | null>(null);
@@ -175,6 +177,60 @@ export default function TemplatesView({
       if (videoUrlRef.current) URL.revokeObjectURL(videoUrlRef.current);
     },
     [],
+  );
+
+  // Real thumbnails: each card paints its template at a small resolution.
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine || templates.length === 0) return;
+    let cancelled = false;
+    const build = async () => {
+      const next: Record<string, string> = {};
+      for (const template of templates) {
+        if (cancelled) return;
+        try {
+          const canvas = await engine.renderTemplate(
+            template.id,
+            {},
+            {
+              resolution: { width: 480, height: 270 },
+              fps: 12,
+              quality: "draft",
+              format: "png-sequence",
+              backgroundColor: "#14141b",
+            },
+            Math.min(template.duration - 0.1, Math.max(0.5, template.duration * 0.6)),
+          );
+          next[template.id] = canvas.toDataURL("image/png");
+        } catch {
+          // A template that cannot paint a thumbnail simply keeps the placeholder.
+        }
+      }
+      if (!cancelled) setThumbs(next);
+    };
+    void build();
+    return () => {
+      cancelled = true;
+    };
+  }, [templates]);
+
+  const selectTemplate = useCallback(
+    (template: TemplateSummary) => {
+      setSelectedId(template.id);
+      setCustomizations({});
+      if (urlRef.current) {
+        URL.revokeObjectURL(urlRef.current);
+        urlRef.current = null;
+      }
+      frameBlobRef.current = null;
+      setRenderedUrl(null);
+      setRenderedBytes(0);
+      setSaved(false);
+      setRenderError(null);
+      clearVideo();
+      setPreviewKind("frame");
+    },
+    [clearVideo],
   );
 
   const selected = useMemo(
@@ -420,56 +476,73 @@ export default function TemplatesView({
             ) : loadError ? (
               <EmptyState icon="alert" title={t("templates.loadFailed")} hint={loadError} />
             ) : (
-              <div className="kx-col" style={{ gap: 8, marginTop: 12 }}>
-                {templates.map((template) => (
-                  <button
-                    key={template.id}
-                    type="button"
-                    className="kx-ai-row"
-                    data-active={selectedId === template.id}
-                    onClick={() => {
-                      setSelectedId(template.id);
-                      setCustomizations({});
-                      if (urlRef.current) {
-                        URL.revokeObjectURL(urlRef.current);
-                        urlRef.current = null;
-                      }
-                      frameBlobRef.current = null;
-                      setRenderedUrl(null);
-                      setRenderedBytes(0);
-                      setSaved(false);
-                      setRenderError(null);
-                      clearVideo();
-                      setPreviewKind("frame");
-                    }}
-                  >
-                    <span className="kx-ai-row-icon">
-                      <Icon name="templates" size={17} />
-                    </span>
-                    <span className="kx-ai-row-body">
-                      <span className="kx-ai-row-title">{template.name}</span>
-                      <span className="kx-ai-row-sub">
-                        {CATEGORY_LABELS[template.category] ?? template.category} ·{" "}
-                        {template.width}×{template.height} · {template.duration}s ·{" "}
-                        {template.fps} fps
-                      </span>
-                    </span>
-                    <span className="kx-badge" data-state="VERIFIED">
-                      {t("templates.ready")}
-                    </span>
-                  </button>
-                ))}
-              </div>
+              <>
+                <div className="kx-template-filter" role="group" aria-label={t("templates.allCategories")}>
+                  {["all", ...Array.from(new Set(templates.map((template) => template.category)))].map(
+                    (categoryId) => (
+                      <button
+                        key={categoryId}
+                        type="button"
+                        className="kx-template-chip"
+                        data-active={category === categoryId}
+                        aria-pressed={category === categoryId}
+                        onClick={() => setCategory(categoryId)}
+                      >
+                        {categoryId === "all"
+                          ? t("templates.allCategories")
+                          : CATEGORY_LABELS[categoryId] ?? categoryId}
+                      </button>
+                    ),
+                  )}
+                </div>
+                <div className="kx-template-gallery">
+                  {templates
+                    .filter((template) => category === "all" || template.category === category)
+                    .map((template) => (
+                      <button
+                        key={template.id}
+                        type="button"
+                        className="kx-template-card"
+                        data-template-id={template.id}
+                        data-active={selectedId === template.id}
+                        onClick={() => selectTemplate(template)}
+                      >
+                        <span className="kx-template-thumb">
+                          {thumbs[template.id] ? (
+                            <img src={thumbs[template.id]} alt="" draggable={false} />
+                          ) : (
+                            <span className="kx-template-thumb-empty">
+                              <Icon name="templates" size={22} />
+                            </span>
+                          )}
+                          <span className="kx-template-cat">
+                            {CATEGORY_LABELS[template.category] ?? template.category}
+                          </span>
+                        </span>
+                        <span className="kx-template-body">
+                          <span className="kx-template-name">{template.name}</span>
+                          <span className="kx-template-sub">
+                            {template.width}×{template.height} · {template.duration}s ·{" "}
+                            {template.fps} fps
+                          </span>
+                        </span>
+                        <span className="kx-badge" data-state="VERIFIED">
+                          {t("templates.ready")}
+                        </span>
+                      </button>
+                    ))}
+                </div>
+              </>
             )}
           </div>
 
-          <div className="kx-card">
-            <div className="kx-card-title">
+          <details className="kx-dev-catalog">
+            <summary>
               <span>{t("templates.generated")}</span>
-              <span className="kx-badge" data-state="BLOCKED">
+              <span className="kx-badge kx-dev-count" data-state="BLOCKED">
                 {MOCK_TEMPLATE_TOTAL}
               </span>
-            </div>
+            </summary>
             <p className="kx-card-sub" style={{ marginTop: 8 }}>
               {t("templates.generatedHint")}
             </p>
@@ -498,7 +571,7 @@ export default function TemplatesView({
                 ))}
               </tbody>
             </table>
-          </div>
+          </details>
         </div>
 
         <div className="kx-col">

@@ -45,6 +45,34 @@ Sovereign commits:
 | Diagnostics | `diagnostics` | Measured MediaDevices/MediaRecorder/IndexedDB/storage/fonts, live Electron bridge channels, real 0/24 model inventory, capability ledger | packaged smoke 59/59 asserts bridge + models rows | VERIFIED |
 | Live Studio (workspace) | `live-studio` | Shared workspace for tool/template/recording jobs: real lifecycle timeline, media-adaptive previews, before/after slider, fit/fill/zoom/fullscreen, inspector, verified dock, save/export/retry/reopen, real cancellation | live-studio 30/30 | VERIFIED |
 
+## UI modernization and service hubs (2026-10-24, post-checkpoint)
+
+Open-source adoption (see `UI_COMPONENT_ADOPTION.md`, `THIRD_PARTY_NOTICES.md`):
+Radix Tooltip, react-resizable-panels, react-compare-slider,
+react-zoom-pan-pinch, wavesurfer.js and react-colorful — all MIT/BSD-3, all
+bundled locally. Existing dialogs/cards/switches were kept where already
+accessible; no Tailwind or router migration.
+
+Product direction updates committed on top of the checkpoint:
+
+- Live Studio: user-resizable preview/inspector, keyboard-accessible
+  before/after slider, zoom/pan for image results, decoded interactive
+  waveform for audio sources with real playback.
+- Toolbox: 11 verified tools (rotate/flip, crop and pixelate added) plus
+  colour parameters for waveform, text and QR; suite 128/128.
+- Templates: visual gallery with genuine rendered thumbnails and category
+  filters; the 51 placeholders moved into a labelled development catalog;
+  suite 27/27.
+- Service inventory: `COMPLETE_SERVICE_CATALOG.md` records every hub, its real
+  services, modes, statuses and remaining gaps.
+
+## Delivered after this section
+
+The remaining hub redesigns (Screenshot Studio tools, MorphCore geometric
+suite, Elysian broadening, Models import/health, dashboard global search,
+workflow chains) are specified in `COMPLETE_SERVICE_CATALOG.md` and must not
+be reported as implemented until each processor is verified.
+
 ## Test evidence (this checkout)
 
 `npm run smoke:all` was executed sequentially on 2026-10-24 and exited `0`
