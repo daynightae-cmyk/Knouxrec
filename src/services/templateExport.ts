@@ -27,7 +27,10 @@ export interface TemplateExportReport {
 export interface TemplateExportOutput {
   blob: Blob;
   mimeType: string;
+  /** Measured from the produced file, or the request when it reports nothing. */
   duration: number;
+  requestedDuration: number;
+  durationMeasured: boolean;
   codec: string;
   frames: number;
 }
@@ -50,12 +53,21 @@ function pickWebmMimeType(): string | null {
 }
 
 /** EBML magic + decodability check on the produced container. */
-async function verifyWebm(blob: Blob, expectedDuration: number): Promise<void> {
+/**
+ * Confirms the container really decodes, and reports the duration the encoder
+ * actually produced. The returned value is measured from the file, never the
+ * requested one: an export that ran short must say so instead of repeating the
+ * number it was asked for.
+ */
+async function verifyWebm(
+  blob: Blob,
+  expectedDuration: number,
+): Promise<{ measured: number | null }> {
   const head = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
   if (head[0] !== 0x1a || head[1] !== 0x45 || head[2] !== 0xdf || head[3] !== 0xa3) {
     throw new Error("The encoder output is not a WebM container.");
   }
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<{ measured: number | null }>((resolve, reject) => {
     const url = URL.createObjectURL(blob);
     const video = document.createElement("video");
     video.preload = "metadata";
@@ -63,31 +75,31 @@ async function verifyWebm(blob: Blob, expectedDuration: number): Promise<void> {
     const timer = window.setTimeout(() => {
       // MediaRecorder streams often omit duration metadata; the EBML magic was
       // already verified, so absence of metadata is not a failure.
-      finish(true);
+      finish(true, undefined, null);
     }, 4000);
-    const finish = (ok: boolean, message?: string) => {
+    const finish = (ok: boolean, message?: string, measured: number | null = null) => {
       if (settled) return;
       settled = true;
       window.clearTimeout(timer);
       video.removeAttribute("src");
       URL.revokeObjectURL(url);
-      if (ok) resolve();
+      if (ok) resolve({ measured });
       else reject(new Error(message));
     };
     video.onloadedmetadata = () => {
       const duration = video.duration;
-      if (
-        Number.isFinite(duration) &&
-        duration > 0 &&
-        duration < expectedDuration * 0.5
-      ) {
+      if (!Number.isFinite(duration) || duration <= 0) {
+        finish(true, undefined, null);
+        return;
+      }
+      if (duration < expectedDuration * 0.5) {
         finish(
           false,
-          `The encoded video is only ${duration.toFixed(2)}s long.`,
+          `The encoded video is only ${duration.toFixed(2)}s long, requested ${expectedDuration.toFixed(2)}s.`,
         );
         return;
       }
-      finish(true);
+      finish(true, undefined, duration);
     };
     video.onerror = () => finish(false, "The encoded video cannot be decoded.");
     video.src = url;
@@ -122,7 +134,11 @@ export async function exportTemplateVideo(
     throw new Error("This browser cannot capture a canvas stream.");
   }
 
-  const stream = canvas.captureStream(spec.fps);
+  // No fixed frame rate is requested from the stream. Asking for 60 while the
+  // compositor can only present 30 makes the encoder timestamp the clip at
+  // half the time it actually took; letting the stream follow the canvas keeps
+  // media time equal to the frames this loop delivers.
+  const stream = canvas.captureStream();
   const recorder = new MediaRecorder(stream, {
     mimeType,
     videoBitsPerSecond: 8_000_000,
@@ -140,6 +156,14 @@ export async function exportTemplateVideo(
   let frames = 0;
   try {
     recorder.start(100);
+    // The clip is paced by delivered frames, not by the wall clock. A canvas
+    // captureStream advances its media time by the frames it is actually given,
+    // so a wall-clock loop on a busy machine stops after fewer frames than
+    // requested and silently produces a short video. Driving the loop from the
+    // frame count makes the encoded duration equal the request even when the
+    // machine needs longer than real time to get there.
+    const targetFrames = Math.max(1, Math.round(spec.duration * spec.fps));
+    const frameInterval = 1000 / Math.max(1, spec.fps);
     const startedAt = performance.now();
     await new Promise<void>((resolve) => {
       const tick = async () => {
@@ -147,8 +171,13 @@ export async function exportTemplateVideo(
           resolve();
           return;
         }
-        const elapsed = (performance.now() - startedAt) / 1000;
-        const time = Math.min(elapsed, spec.duration);
+        // Pace to the requested frame rate, but advance the animation by the
+        // frame index so the delivered clip is exactly targetFrames long.
+        if (performance.now() - startedAt < frames * frameInterval) {
+          window.requestAnimationFrame(() => void tick());
+          return;
+        }
+        const time = Math.min(spec.duration, frames / spec.fps);
         await engine.renderTemplate(
           spec.templateId,
           spec.customizations,
@@ -156,18 +185,17 @@ export async function exportTemplateVideo(
           time,
         );
         frames += 1;
-        const percent = Math.min(100, Math.round((time / spec.duration) * 100));
         onProgress({
-          percent,
-          message: `Rendering and encoding frame ${frames}`,
+          percent: Math.min(100, Math.round((frames / targetFrames) * 100)),
+          message: `Rendering and encoding frame ${frames} of ${targetFrames}`,
         });
-        if (elapsed >= spec.duration) {
+        if (frames >= targetFrames) {
           resolve();
           return;
         }
-        window.setTimeout(() => void tick(), 1000 / spec.fps);
+        window.requestAnimationFrame(() => void tick());
       };
-      void tick();
+      window.requestAnimationFrame(() => void tick());
     });
 
     // Give the encoder a moment to capture the final frame.
@@ -181,11 +209,15 @@ export async function exportTemplateVideo(
     if (blob.size < 1000) {
       throw new Error("The encoder produced an empty video.");
     }
-    await verifyWebm(blob, spec.duration);
+    const { measured } = await verifyWebm(blob, spec.duration);
     return {
       blob,
       mimeType: blob.type,
-      duration: spec.duration,
+      // Measured from the produced file when the container reports it; the
+      // requested value is kept separately so a shortfall stays visible.
+      duration: measured ?? spec.duration,
+      requestedDuration: spec.duration,
+      durationMeasured: measured !== null,
       codec: mimeType,
       frames,
     };
