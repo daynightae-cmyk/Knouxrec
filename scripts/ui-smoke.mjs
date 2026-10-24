@@ -119,7 +119,7 @@ try {
   }));
   report.shell = shell;
   check("dashboard idle screenshot", true, dashboard);
-  check("16 navigation routes registered", shell.nav.length === 16, shell.nav);
+  check("18 navigation routes registered", shell.nav.length === 18, shell.nav);
   check("document language is English", shell.lang === "en", shell.lang);
   check("no horizontal overflow at 1600x1000", shell.overflow <= 0, shell.overflow);
 

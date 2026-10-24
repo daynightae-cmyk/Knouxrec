@@ -10,6 +10,8 @@ export type RouteId =
   | "toolbox"
   | "visual-patch"
   | "morphcore"
+  | "audio-studio"
+  | "batch"
   | "elysian"
   | "body-editor"
   | "offline-ai"
@@ -46,7 +48,16 @@ export const NAVIGATION: SectionGroup[] = [
   {
     id: "create",
     labelKey: "groupCreate",
-    routes: ["templates", "toolbox", "visual-patch", "morphcore", "elysian", "body-editor"],
+    routes: [
+      "templates",
+      "toolbox",
+      "audio-studio",
+      "batch",
+      "visual-patch",
+      "morphcore",
+      "elysian",
+      "body-editor",
+    ],
   },
   { id: "intelligence", labelKey: "groupIntelligence", routes: ["offline-ai", "arabic-ai", "models"] },
   { id: "system", labelKey: "groupSystem", routes: ["settings", "diagnostics"] },
@@ -157,6 +168,28 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
       "scripts/morphcore-smoke.mjs drives the studio in Chromium (51/51): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control.",
     adult: true,
   },
+  "audio-studio": {
+    id: "audio-studio",
+    group: "create",
+    labelKey: "audioStudio",
+    state: "PARTIAL",
+    summary:
+      "Local audio workspace on a non-destructive step stack: waveform with drag selection, real playback, trim, split into segments, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo conversion and browser biquad low-pass, high-pass and band-pass filters. Exports 16-bit WAV always and WebM/Opus only when the runtime reports it can.",
+    requirements: ["An audio file, or a stored library item", "Web Audio decode support"],
+    evidence:
+      "src/services/audioOps.ts is pure sample math covered by 25 unit tests (exact frame counts, +6 dB doubling, peak landing on the requested dBFS, detected silence intervals and their removal, split segments adding back up, WAV header round-trip). scripts/audio-studio-smoke.mjs drives the workspace in Chromium and checks the decoded rate and duration, waveform pixels, real playback position, every operation's measured effect on samples, the filter's measured high-frequency attenuation, WebM support probing, saved library bytes and exported file magic.",
+  },
+  batch: {
+    id: "batch",
+    group: "create",
+    labelKey: "batchHub",
+    state: "PARTIAL",
+    summary:
+      "Queue many files through the already-verified image processors with bounded concurrency: batch resize, format conversion, crop presets and watermarking. Per-file progress, failure isolation, cancellation, output verification and a multi-file export of everything that succeeded.",
+    requirements: ["Two or more images"],
+    evidence:
+      "src/services/batchQueue.ts runs a fixed worker pool over the real mediaTools processors and records measured output bytes and dimensions per file; scripts/batch-smoke.mjs asserts concurrency never exceeds the cap, a poisoned file fails alone, cancellation stops the queue, every output decodes at the requested size, and the multi-file export writes each artefact.",
+  },
   elysian: {
     id: "elysian",
     group: "create",
@@ -256,6 +289,8 @@ export const ROUTE_TITLES: Record<RouteId, string> = {
   toolbox: "toolbox",
   "visual-patch": "visualPatch",
   morphcore: "morphCore",
+  "audio-studio": "audioStudio",
+  batch: "batchHub",
   elysian: "elysian",
   "body-editor": "bodyEditor",
   "offline-ai": "offlineAI",

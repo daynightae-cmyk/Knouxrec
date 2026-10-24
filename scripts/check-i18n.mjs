@@ -37,6 +37,9 @@ const VIEW_FILES = [
   "src/views/LiveStudioView.tsx",
   "src/views/MorphCoreView.tsx",
   "src/views/ElysianStudioView.tsx",
+  "src/views/WorkflowChains.tsx",
+  "src/views/DiscoverView.tsx",
+  "src/views/AudioStudioView.tsx",
 ];
 
 // Registries that carry user-visible labels through a key field rather than a
@@ -128,9 +131,10 @@ for (const file of VIEW_FILES) {
   }
 }
 
-// Registries declare labels through key fields; a typo there is invisible until
-// the UI renders the raw key, so the gate resolves them as well.
-for (const file of KEY_FIELD_FILES) {
+// Registries declare labels through key fields rather than a t("...") call, so
+// a typo there stays invisible until the UI renders the raw key. Both the
+// dedicated registry files and the view files are resolved here.
+for (const file of [...VIEW_FILES, ...KEY_FIELD_FILES]) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
   for (const match of text.matchAll(/\b(?:labelKey|reasonKey):\s*"([a-zA-Z][a-zA-Z0-9.]*)"/g)) {
     if (!dictionaryKeys.has(match[1])) {

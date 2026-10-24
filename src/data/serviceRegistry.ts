@@ -45,6 +45,8 @@ export type HubId =
   | "library"
   | "templates"
   | "toolbox"
+  | "audio"
+  | "batch"
   | "visual-patch"
   | "morphcore"
   | "elysian"
@@ -69,6 +71,8 @@ export const HUBS: Hub[] = [
   { id: "library", labelEn: "Media library", label: "مكتبة الوسائط", route: "library" },
   { id: "templates", labelEn: "Creative motion", label: "القوالب المتحركة", route: "templates" },
   { id: "toolbox", labelEn: "Multimedia toolbox", label: "صندوق الأدوات", route: "toolbox" },
+  { id: "audio", labelEn: "Audio studio", label: "استوديو الصوت", route: "audio-studio" },
+  { id: "batch", labelEn: "Batch processing", label: "المعالجة الجماعية", route: "batch" },
   { id: "visual-patch", labelEn: "Visual Patch Lab", label: "مختبر التعديل البصري", route: "visual-patch" },
   { id: "morphcore", labelEn: "MorphCore geometry", label: "هندسة مورف كور", route: "morphcore" },
   { id: "elysian", labelEn: "Elysian image studio", label: "لوحة إليسيان للصور", route: "elysian" },
@@ -148,6 +152,28 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "tb-batch", hub: "toolbox", labelEn: "Batch resize and convert", label: "المعالجة الجماعية", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A job queue over the existing processors" }),
   entry({ id: "tb-frames", hub: "toolbox", labelEn: "Video frames and contact sheet", label: "إطارات الفيديو والملصق", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A seekable decode pipeline" }),
   entry({ id: "tb-audio-tools", hub: "toolbox", labelEn: "Audio trim, reverse, normalise, filters", label: "أدوات الصوت", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Verified DSP processors with byte checks" }),
+
+  /* ------------------------------------------------------------ batch */
+  entry({ id: "bt-resize", hub: "batch", labelEn: "Batch resize", label: "تحجيم جماعي", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified resize processor" }),
+  entry({ id: "bt-convert", hub: "batch", labelEn: "Batch format conversion", label: "تحويل صيغ جماعي", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified convert processor" }),
+  entry({ id: "bt-crop", hub: "batch", labelEn: "Batch crop presets", label: "قص جماعي بقوالب", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified crop processor" }),
+  entry({ id: "bt-watermark", hub: "batch", labelEn: "Batch watermarking", label: "علامات مائية جماعية", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "A queue over the verified watermark processor" }),
+
+  /* ------------------------------------------------------------ audio */
+  entry({ id: "au-waveform", hub: "audio", labelEn: "Waveform with drag selection", label: "موجة مع تحديد بالسحب", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-playback", hub: "audio", labelEn: "Real playback of the rendered result", label: "تشغيل فعلي للنتيجة المعروضة", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-trim", hub: "audio", labelEn: "Trim to selection", label: "قص إلى التحديد", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-split", hub: "audio", labelEn: "Split into segments at the playhead", label: "تقسيم عند المؤشر", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-silence", hub: "audio", labelEn: "Silence detection and cutting", label: "كشف الصمت وحذفه", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-gain", hub: "audio", labelEn: "Gain and peak normalisation", label: "التكبير وتسوية الذروة", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-fade", hub: "audio", labelEn: "Fade in and out", label: "تلاشٍ دخولًا وخروجًا", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-reverse", hub: "audio", labelEn: "Reverse the samples", label: "عكس العيِّنات", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-channels", hub: "audio", labelEn: "Mono and stereo conversion", label: "التحويل بين أحادي وستيريو", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-filters", hub: "audio", labelEn: "Low-pass, high-pass and band-pass filters", label: "مرشحات تمرير منخفض ومرتفع ونطاق", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-export-wav", hub: "audio", labelEn: "16-bit WAV export", label: "تصدير WAV بـ16 بت", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
+  entry({ id: "au-export-webm", hub: "audio", labelEn: "WebM/Opus export when the runtime supports it", label: "تصدير WebM/Opus عند دعم المنفِّذ", mode: "LOCAL", status: "PARTIAL", route: "audio-studio", needs: "Encoded in real time through MediaRecorder and capped at 30s; unavailable where the runtime reports no support" }),
+  entry({ id: "au-mp3", hub: "audio", labelEn: "MP3 and AAC encoding", label: "ترميز MP3 وAAC", mode: "UNAVAILABLE", status: "BLOCKED", needs: "No encoder exists in this runtime; the control is disabled rather than faked" }),
+  entry({ id: "au-noise-reduction", hub: "audio", labelEn: "Spectral noise reduction", label: "خفض الضوضاء الطيفي", mode: "MODEL-LOCAL", status: "BLOCKED", route: "audio-studio", needs: "A noise profile model and a spectral gate that is not implemented" }),
 
   /* ------------------------------------------------------- visual patch */
   entry({ id: "vp-paint", hub: "visual-patch", labelEn: "Paint a region and apply a tool", label: "تلوين منطقة وتطبيق أداة", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),

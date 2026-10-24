@@ -17,6 +17,8 @@ const ROUTE_ICONS: Record<RouteId, IconName> = {
   toolbox: "toolbox",
   "visual-patch": "patch",
   morphcore: "morph",
+  "audio-studio": "audio",
+  batch: "layers",
   elysian: "elysian",
   "body-editor": "body",
   "offline-ai": "brain",
