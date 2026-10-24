@@ -385,12 +385,18 @@ try {
   );
 
   /* --------------------------------------------------------- cancel it */
-  await selectChain(page, "social-cover");
-  await supplyFile(page, '[data-chain-input="social-cover"]', "source.png", "image/png", pngBase64);
+  // Cancellation is exercised on the chain that takes seconds, not on a
+  // two-hundred-millisecond image pipeline that can finish before the click
+  // lands: the WebM step runs in real time, so the cancel window is wide.
+  await selectChain(page, "motion-ident");
   await page.evaluate(() => document.querySelector("[data-chain-run]")?.click());
-  await sleep(120);
+  await sleep(600);
+  const cancelOffered = await page.evaluate(() =>
+    Boolean(document.querySelector("[data-chain-cancel]")),
+  );
+  check("a running chain offers cancellation", cancelOffered);
   await page.evaluate(() => document.querySelector("[data-chain-cancel]")?.click());
-  await sleep(1200);
+  await sleep(1500);
   const cancelled = await page.evaluate(() => ({
     message: document.querySelector(".kx-chains .kx-notice[data-tone='danger']")?.textContent ?? "",
     outputs: document.querySelectorAll("[data-chain-output]").length,

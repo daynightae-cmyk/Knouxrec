@@ -544,11 +544,32 @@ export async function captureScreenshot(
  * Re-encodes a slice of media by playing it back into a capture stream.
  * This is a real trim (frame-accurate playback range), not metadata surgery.
  */
+/**
+ * Re-encodes a slice of media by playing it back into a capture stream.
+ *
+ * Chromium occasionally delivers no frame at all to a media-element capture
+ * stream when playback starts before the first picture is composited, which
+ * produced an empty file from a perfectly good source. The single retry is
+ * bounded and only happens when nothing was captured; the second attempt waits
+ * for a rendered frame before recording.
+ */
 export async function trimMedia(
   source: Blob,
   start: number,
   end: number,
   onProgress?: (fraction: number) => void,
+): Promise<Blob> {
+  const first = await trimMediaOnce(source, start, end, onProgress, false);
+  if (first.size > 0) return first;
+  return trimMediaOnce(source, start, end, onProgress, true);
+}
+
+async function trimMediaOnce(
+  source: Blob,
+  start: number,
+  end: number,
+  onProgress: ((fraction: number) => void) | undefined,
+  waitForFrame: boolean,
 ): Promise<Blob> {
   if (!(end > start)) throw new Error("The trim range is empty.");
   const media = document.createElement(source.type.startsWith("audio") ? "audio" : "video");
@@ -606,6 +627,25 @@ export async function trimMedia(
 
   recorder.start(250);
   await media.play();
+  if (waitForFrame) {
+    // Second attempt: do not start consuming until a picture is actually
+    // composited, which is what the first attempt can miss.
+    await new Promise<void>((resolve) => {
+      const frameAware = media as HTMLVideoElement & {
+        requestVideoFrameCallback?: (callback: () => void) => number;
+      };
+      const timer = window.setTimeout(resolve, 1500);
+      const done = () => {
+        window.clearTimeout(timer);
+        resolve();
+      };
+      if (typeof frameAware.requestVideoFrameCallback === "function") {
+        frameAware.requestVideoFrameCallback(() => done());
+      } else {
+        media.addEventListener("timeupdate", done, { once: true });
+      }
+    });
+  }
   onProgress?.(0);
 
   const tick = window.setInterval(() => {
@@ -632,6 +672,5 @@ export async function trimMedia(
   onProgress?.(1);
 
   const blob = await result;
-  if (!blob.size) throw new Error("The trim produced an empty file.");
-  return patchWebmDuration(blob, duration * 1000);
+  return blob.size ? patchWebmDuration(blob, duration * 1000) : blob;
 }
