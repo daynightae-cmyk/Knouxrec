@@ -308,7 +308,7 @@ export default function AppRoot() {
       case "screenshots":
         return <ScreenshotsView />;
       case "library":
-        return <LibraryView />;
+        return <LibraryView onNavigate={navigate} />;
       case "settings":
         return <SettingsView />;
       case "diagnostics":

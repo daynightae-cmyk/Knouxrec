@@ -4009,6 +4009,26 @@ html[data-theme="light"] .kx-audio-element {
   }
 }
 
+/* ---------- cross-hub handoff ---------- */
+
+.kx-provenance {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 46%;
+}
+
+.kx-open-in {
+  width: auto;
+  padding-inline: 8px;
+  font-size: var(--kx-text-2xs);
+}
+
 /* ---------- batch processing ---------- */
 
 .kx-batch-grid {

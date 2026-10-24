@@ -21,6 +21,7 @@ Screenshots captured by the automated smoke suites, not hand-made mockups.
 | `elysian-studio-arabic.png` | `scripts/elysian-studio-smoke.mjs` | The full studio in Arabic RTL with the mirrored three-column layout |
 | `service-discovery.png` | `scripts/discover-smoke.mjs` | Unified service discovery: 93 registry entries with execution mode, honest run state, favourites and recents |
 | `service-discovery-arabic.png` | `scripts/discover-smoke.mjs` | The same registry view in Arabic RTL |
+| `handoff-elysian.png` | `scripts/handoff-smoke.mjs` | A library file opened inside Elysian with no re-import, showing its provenance chain and zero layers
 | `audio-studio.png` | `scripts/audio-studio-smoke.mjs` | Audio Studio mid-run: true-amplitude waveform, eight stacked steps, silence report, segments and measured output |
 | `batch-queue.png` | `scripts/batch-smoke.mjs` | Batch queue after a real run: per-file input → output bytes, dimensions, milliseconds and produced thumbnails |
 | `workflow-clip-cover.png` | `scripts/workflow-smoke.mjs` | Workflow chain card after a real run: per-step bytes, timing, palette hexes and reusable artefacts |

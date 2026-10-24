@@ -363,6 +363,21 @@ const STRINGS: Dictionary = {
     ar: "الوصول يتطلب بوابة العمر داخل اللوحة. لا يُنشأ أي محتوى دون محرك محلي عامل.",
   },
 
+  // Cross-hub handoff
+  "openIn": { en: "Open in", ar: "فتح في" },
+  "handoff.via": { en: "via", ar: "عبر" },
+  "handoff.received": { en: "Handed over:", ar: "سُلِّمت:" },
+  "hub.library": { en: "Library", ar: "المكتبة" },
+  "hub.toolbox": { en: "Toolbox", ar: "صندوق الأدوات" },
+  "hub.elysian": { en: "Elysian Canvas", ar: "لوحة إليسيان" },
+  "hub.audioStudio": { en: "Audio Studio", ar: "استوديو الصوت" },
+  "hub.batch": { en: "Batch processing", ar: "المعالجة الجماعية" },
+  "hub.morphcore": { en: "MorphCore", ar: "مورف كور" },
+  "hub.screenshots": { en: "Screenshot studio", ar: "استوديو اللقطات" },
+  "hub.visualPatch": { en: "Visual Patch", ar: "التحرير البصري" },
+  "hub.templates": { en: "Templates", ar: "القوالب" },
+  "hub.recording": { en: "Recorder", ar: "المسجل" },
+
   // Audio creative hub
   audioStudio: { en: "Audio Studio", ar: "استوديو الصوت" },
   batchHub: { en: "Batch Processing", ar: "المعالجة الجماعية" },

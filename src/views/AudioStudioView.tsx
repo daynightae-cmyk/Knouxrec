@@ -7,7 +7,7 @@ import { useSettings } from "../state/SettingsContext";
 import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
-import type { LibraryItem } from "../state/types";
+import type { LibraryItem, ProvenanceRecord } from "../state/types";
 import {
   analyseSilence,
   applySteps,
@@ -27,6 +27,7 @@ import {
   type SilenceInterval,
 } from "../services/audioOps";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
+import { useHandoffReceiver, useProvenanceLine } from "../ui/handoff";
 
 const MAX_SECONDS = 600;
 
@@ -163,8 +164,14 @@ export default function AudioStudioView({
   const [saved, setSaved] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [sourceItem, setSourceItem] = useState<LibraryItem | null>(null);
+  const [provenance, setProvenance] = useState<ProvenanceRecord[]>([]);
+
+  useHandoffReceiver("audio-studio", "audio", (incoming) => {
+    void adopt(incoming.blob, incoming.name);
+  });
 
   const encoders = useMemo(() => probeAudioEncoders(), []);
+  const provenanceLine = useProvenanceLine(provenance, t);
   const stats = useMemo(() => (result ? signalStats(result) : null), [result]);
   const sourceDuration = source ? signalDuration(source) : 0;
 
@@ -184,6 +191,7 @@ export default function AudioStudioView({
         }
         setSource(signal);
         setSourceItem(from ?? null);
+        setProvenance(from?.provenance ?? []);
         setFileName(name.replace(/\.[^.]+$/, "") || "audio");
         setSteps([]);
         setPast([]);
@@ -441,6 +449,7 @@ export default function AudioStudioView({
         height: 0,
         source: "toolbox",
         thumbnail: null,
+        provenance: [...provenance, { itemId: null, name, hub: "audio-studio", at: Date.now() }],
       });
       setSaved(true);
       push(
@@ -453,7 +462,7 @@ export default function AudioStudioView({
     } finally {
       setBusy(false);
     }
-  }, [add, encodeOutput, fileName, push, result, t]);
+  }, [add, encodeOutput, fileName, provenance, push, result, t]);
 
   const exportFile = useCallback(async () => {
     if (!result) return;
@@ -988,17 +997,19 @@ export default function AudioStudioView({
                 {t("audio.export")}
               </button>
             </div>
-            {sourceItem && (
+            {(provenance.length > 0 || sourceItem) && (
               <p className="kx-card-sub" data-provenance>
-                {t("audio.provenance")}{" "}
-                <button
-                  type="button"
-                  className="kx-btn kx-btn-quiet kx-btn-sm"
-                  style={{ padding: 0, height: "auto" }}
-                  onClick={() => onNavigate("library")}
-                >
-                  {sourceItem.name}
-                </button>
+                {provenanceLine || t("audio.provenance")}{" "}
+                {sourceItem && (
+                  <button
+                    type="button"
+                    className="kx-btn kx-btn-quiet kx-btn-sm"
+                    style={{ padding: 0, height: "auto" }}
+                    onClick={() => onNavigate("library")}
+                  >
+                    {sourceItem.name}
+                  </button>
+                )}
               </p>
             )}
           </aside>

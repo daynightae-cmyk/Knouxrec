@@ -128,6 +128,14 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "lib-collections", hub: "library", labelEn: "Collections and batch export", label: "المجموعات والتصدير الجماعي", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A collection store over the same library" }),
   entry({ id: "lib-open-editor", hub: "library", labelEn: "Open an item in an editor", label: "فتح عنصر في محرر", mode: "LOCAL", status: "PARTIAL", route: "library", needs: "Cross-links exist for Visual Patch only" }),
 
+  /* ----------------------------------------------- cross-hub integration */
+  entry({ id: "xh-open-in", hub: "library", labelEn: "Send any stored file to another workspace", label: "إرسال أي ملف محفوظ إلى مساحة عمل أخرى", mode: "LOCAL", status: "VERIFIED", route: "library", keywords: ["handoff", "open in", "تكامل"] }),
+  entry({ id: "xh-adopt", hub: "library", labelEn: "Hubs adopt a handed-over file without re-importing", label: "تتبنى المساحات الملف المُسلَّم دون استيراد", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
+  entry({ id: "xh-provenance", hub: "library", labelEn: "Provenance chain recorded on every derived save", label: "سجل المصدر مع كل حفظ مشتق", mode: "LOCAL", status: "VERIFIED", route: "library" }),
+  entry({ id: "xh-originals", hub: "library", labelEn: "Originals preserved; results are new items", label: "الأصول محفوظة والنتائج عناصر جديدة", mode: "LOCAL", status: "VERIFIED", route: "library" }),
+  entry({ id: "xh-gate-safe", hub: "library", labelEn: "A handoff survives an age gate instead of being discarded", label: "التسليم يصمد أمام حاجز العمر بدل أن يُهدر", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
+  entry({ id: "xh-durable", hub: "library", labelEn: "Handoff that survives a page reload", label: "تسليم ينجو من إعادة تحميل الصفحة", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "library", needs: "Deliberate: a reload-surviving handoff would be a second copy of the media, which is what the library already is" }),
+
   /* ---------------------------------------------------------- templates */
   entry({ id: "tpl-renderers", hub: "templates", labelEn: "Five real motion renderers", label: "خمسة محركات رسم حقيقية", mode: "LOCAL", status: "VERIFIED", route: "templates" }),
   entry({ id: "tpl-customise", hub: "templates", labelEn: "Customise text and colour into pixels", label: "تخصيص النص واللون", mode: "LOCAL", status: "VERIFIED", route: "templates", studio: true }),

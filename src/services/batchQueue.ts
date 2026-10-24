@@ -18,6 +18,7 @@ import {
   type ImageFormat,
 } from "./mediaTools";
 import { applyOps, type Pixels } from "./imageOps";
+import type { ProvenanceRecord } from "../state/types";
 
 export type BatchOperation = "resize" | "convert" | "crop" | "watermark";
 
@@ -63,6 +64,8 @@ export interface BatchItem {
   ms: number;
   output: BatchOutput | null;
   blob: Blob;
+  /** Where this file came from, when it was handed over rather than imported. */
+  provenance?: ProvenanceRecord[];
 }
 
 export interface PoolReport {

@@ -16,14 +16,21 @@ import {
   useFilteredItems,
 } from "./ui";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
+import { RECEIVERS, useHandoffSender } from "../ui/handoff";
+import type { RouteId } from "../app/capabilities";
 import type { LibraryItem } from "../state/types";
 
 type KindFilter = "all" | "video" | "image" | "audio";
 type SortMode = "newest" | "oldest" | "largest";
 
-export default function LibraryView() {
+export default function LibraryView({
+  onNavigate,
+}: {
+  onNavigate: (route: RouteId) => void;
+}) {
   const { items, urlFor, rename, toggleFavorite, remove, reload, ready, error } =
     useLibrary();
+  const send = useHandoffSender("library");
   const { settings } = useSettings();
   const { push } = useToast();
   const t = (key: string) => translate(settings.language, key);
@@ -260,6 +267,34 @@ export default function LibraryView() {
                   >
                     <Icon name="pencil" size={14} />
                   </button>
+                  <select
+                    className="kx-btn kx-btn-sm kx-open-in"
+                    data-open-in={item.id}
+                    aria-label={t("openIn")}
+                    value=""
+                    onChange={(event) => {
+                      const hub = event.target.value;
+                      if (!hub) return;
+                      const receiver = RECEIVERS[item.kind].find((entry) => entry.hub === hub);
+                      if (!receiver) return;
+                      send({
+                        kind: item.kind,
+                        name: item.name,
+                        blob: item.blob,
+                        itemId: item.id,
+                        provenance: item.provenance ?? [],
+                      });
+                      push("info", t("openIn"), `${hub} · ${item.name}`);
+                      onNavigate(receiver.route);
+                    }}
+                  >
+                    <option value="">{t("openIn")}</option>
+                    {RECEIVERS[item.kind].map((receiver) => (
+                      <option key={receiver.hub} value={receiver.hub}>
+                        {t(`hub.${receiver.hub}`)}
+                      </option>
+                    ))}
+                  </select>
                   {item.kind === "video" && (
                     <button
                       type="button"

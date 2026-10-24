@@ -24,6 +24,30 @@ export interface AppSettings {
 export type LibraryKind = "video" | "image" | "audio";
 export type LibrarySource = "recording" | "screenshot" | "trim" | "import" | "toolbox";
 
+/**
+ * One link in a derived file's history. A handoff between hubs appends to this
+ * chain instead of copying the source, so the original stays on disk untouched
+ * and every result can say where it came from.
+ */
+export interface ProvenanceRecord {
+  itemId: string | null;
+  name: string;
+  hub: RouteLabel;
+  at: number;
+}
+
+export type RouteLabel =
+  | "library"
+  | "toolbox"
+  | "elysian"
+  | "audio-studio"
+  | "batch"
+  | "morphcore"
+  | "screenshots"
+  | "visual-patch"
+  | "templates"
+  | "recording";
+
 export interface LibraryItem {
   id: string;
   name: string;
@@ -38,6 +62,8 @@ export interface LibraryItem {
   blob: Blob;
   thumbnail: string | null;
   favorite?: boolean;
+  /** Chain of hubs this file was derived through, oldest first. */
+  provenance?: ProvenanceRecord[];
 }
 
 export type RecorderStatus =

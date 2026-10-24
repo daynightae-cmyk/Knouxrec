@@ -102,6 +102,18 @@ channel conversion/frequency filter/spectrogram, HEX/RGB/HSL utilities, gradient
 creator, filename cleaning. Each requires a verified processor; none are
 advertised before they exist.
 
+## Cross-hub integration
+
+| Service | Mode | Status |
+| --- | --- | --- |
+| Library "Open in" sends any stored file to Elysian, Batch, MorphCore, Toolbox or Visual Patch | LOCAL | VERIFIED |
+| Audio Studio is the only destination offered for an audio item | LOCAL | VERIFIED |
+| Receiving hubs adopt the handed-over blob without a re-import dialog | LOCAL | VERIFIED |
+| A handoff survives the 18+ gate instead of being consumed and lost | LOCAL | VERIFIED (defect found and fixed) |
+| Every derived save appends its own hub to a provenance chain | LOCAL | VERIFIED (three-hop chain measured: batch → library → elysian) |
+| Originals stay byte-identical after a round trip | LOCAL | VERIFIED |
+| Handoff that survives a page reload | LOCAL | NOT-IMPLEMENTED by design — it would be a second copy of media the library already stores |
+
 ## HUB 16 — Audio Studio
 
 | Service | Mode | Status |

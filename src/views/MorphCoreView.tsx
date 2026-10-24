@@ -7,6 +7,7 @@ import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
 import { downloadBlob, formatBytes } from "../lib/format";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
+import { useHandoffReceiver } from "../ui/handoff";
 
 type GeometryMode = "stretch" | "rotate" | "pinch" | "perspective" | "warp";
 
@@ -404,9 +405,8 @@ export default function MorphCoreView() {
     setSaved(false);
   }, [pushHistory]);
 
-  const chooseFile = useCallback(
-    (file: File | null) => {
-      if (!file) return;
+  const loadBlob = useCallback(
+    (file: Blob, name: string) => {
       if (!file.type.startsWith("image/")) {
         setError(t("geo.notImage"));
         return;
@@ -440,7 +440,7 @@ export default function MorphCoreView() {
             renderPreview(base);
           }
           setDimensions({ width, height });
-          setFileName(file.name);
+          setFileName(name);
           setParams(DEFAULTS);
           setReady(true);
           setSaved(false);
@@ -462,6 +462,18 @@ export default function MorphCoreView() {
     },
     [pushHistory, renderPreview, t],
   );
+
+  const chooseFile = useCallback(
+    (file: File | null) => {
+      if (!file) return;
+      loadBlob(file, file.name);
+    },
+    [loadBlob],
+  );
+
+  useHandoffReceiver("morphcore", "image", (incoming) => {
+    loadBlob(incoming.blob, incoming.name);
+  });
 
   const saveToLibrary = useCallback(async () => {
     const preview = previewRef.current;

@@ -7,7 +7,7 @@ import { useSettings } from "../state/SettingsContext";
 import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
 import { downloadBlob, formatBytes } from "../lib/format";
-import type { LibraryItem } from "../state/types";
+import type { LibraryItem, ProvenanceRecord } from "../state/types";
 import {
   BatchCancelledError,
   DEFAULT_SETTINGS,
@@ -19,6 +19,7 @@ import {
   type BatchSettings,
 } from "../services/batchQueue";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
+import { useHandoffReceiver } from "../ui/handoff";
 
 const MAX_FILES = 40;
 const MAX_TOTAL_BYTES = 120 * 1024 * 1024;
@@ -65,6 +66,7 @@ export default function BatchView({
   const [summary, setSummary] = useState<{ done: number; failed: number; cancelled: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [handoffNote, setHandoffNote] = useState<string | null>(null);
 
   const patch = useCallback((id: string, value: Partial<BatchItem>) => {
     setItems((current) =>
@@ -80,6 +82,18 @@ export default function BatchView({
     };
   }, []);
 
+  useHandoffReceiver("batch", "image", (incoming) => {
+    addFiles([
+      {
+        name: incoming.name,
+        blob: incoming.blob,
+        mimeType: incoming.blob.type,
+        provenance: incoming.provenance,
+      },
+    ]);
+    setHandoffNote(incoming.name);
+  });
+
   const outputUrl = useCallback((item: BatchItem): string | null => {
     if (!item.output) return null;
     const existing = urlsRef.current.get(item.id);
@@ -90,7 +104,14 @@ export default function BatchView({
   }, []);
 
   const addFiles = useCallback(
-    (files: Array<{ name: string; blob: Blob; mimeType: string }>) => {
+    (
+      files: Array<{
+        name: string;
+        blob: Blob;
+        mimeType: string;
+        provenance?: ProvenanceRecord[];
+      }>,
+    ) => {
       setError(null);
       setItems((current) => {
         const room = MAX_FILES - current.length;
@@ -121,6 +142,7 @@ export default function BatchView({
             ms: 0,
             output: null,
             blob: file.blob,
+            provenance: file.provenance,
           });
         }
         return [...current, ...accepted];
@@ -212,6 +234,9 @@ export default function BatchView({
         height: output.height,
         source: "toolbox",
         thumbnail: null,
+        provenance: item.provenance?.length
+          ? [...item.provenance, { itemId: null, name: output.fileName, hub: "batch" as const, at: Date.now() }]
+          : [{ itemId: null, name: item.name, hub: "batch" as const, at: Date.now() }],
       });
       saved += 1;
     }
@@ -476,6 +501,13 @@ export default function BatchView({
               <Icon name="alert" size={16} />
               <div>{error}</div>
             </div>
+          )}
+
+          {handoffNote && (
+            <p className="kx-muted kx-provenance" data-handoff-note>
+              <Icon name="external" size={13} />
+              {t("handoff.received")} {handoffNote}
+            </p>
           )}
 
           {items.length === 0 ? (

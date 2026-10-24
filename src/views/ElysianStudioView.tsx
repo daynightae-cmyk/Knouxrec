@@ -32,6 +32,8 @@ import {
   type EffectDefinition,
 } from "../services/elysianPresets";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
+import { useHandoffReceiver, useProvenanceLine } from "../ui/handoff";
+import type { ProvenanceRecord } from "../state/types";
 
 const MAX_EDGE = 1400;
 const THUMB_EDGE = 132;
@@ -150,6 +152,7 @@ export default function ElysianStudioView() {
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [layerThumbs, setLayerThumbs] = useState<string[]>([]);
   const [saved, setSaved] = useState(false);
+  const [provenance, setProvenance] = useState<ProvenanceRecord[]>([]);
 
   const onVerified = useCallback(() => setGatePassed(true), []);
 
@@ -451,15 +454,15 @@ export default function ElysianStudioView() {
     commit([], null);
   }, [commit]);
 
-  const chooseFile = useCallback(
-    (file: File | null) => {
-      if (!file) return;
+  const loadBlob = useCallback(
+    (file: Blob, name: string, origin?: ProvenanceRecord[]) => {
       if (!file.type.startsWith("image/")) {
         setError(t("elysian.notImage"));
         return;
       }
       setBusy(true);
       setError(null);
+      setProvenance(origin ?? []);
       const url = URL.createObjectURL(file);
       const image = new Image();
       image.onload = () => {
@@ -480,7 +483,7 @@ export default function ElysianStudioView() {
           setFuture([]);
           setSelected(null);
           setSaved(false);
-          setFileName(file.name.replace(/\.[^.]+$/, "") || "image");
+          setFileName(name.replace(/\.[^.]+$/, "") || "image");
         } catch (cause) {
           setError(cause instanceof Error ? cause.message : "The image could not be opened.");
         } finally {
@@ -497,6 +500,26 @@ export default function ElysianStudioView() {
     },
     [t],
   );
+
+  const chooseFile = useCallback(
+    (file: File | null) => {
+      if (!file) return;
+      loadBlob(file, file.name);
+    },
+    [loadBlob],
+  );
+
+  // Only consumed once the 18+ gate is open; taking a file the user cannot see
+  // yet would discard it.
+  useHandoffReceiver(
+    "elysian",
+    "image",
+    (incoming) => {
+      loadBlob(incoming.blob, incoming.name, incoming.provenance);
+    },
+    gatePassed,
+  );
+  const provenanceLine = useProvenanceLine(provenance, t);
 
   const saveToLibrary = useCallback(async () => {
     if (!result) return;
@@ -530,6 +553,9 @@ export default function ElysianStudioView() {
         height: decoded.height,
         source: "toolbox",
         thumbnail: null,
+        // The chain grows by this hub's own hop, so the stored record says
+        // plainly that the file was produced here from the named source.
+        provenance: [...provenance, { itemId: null, name, hub: "elysian", at: Date.now() }],
       });
       setSaved(true);
       push("success", t("elysian.savedTitle"), `${name} · ${decoded.width}×${decoded.height} · ${formatBytes(blob.size)}`);
@@ -538,7 +564,7 @@ export default function ElysianStudioView() {
     } finally {
       setBusy(false);
     }
-  }, [add, encode, fileName, output.format, push, result, t]);
+  }, [add, encode, fileName, output.format, provenance, push, result, t]);
 
   const exportFile = useCallback(async () => {
     if (!result) return;
@@ -960,6 +986,12 @@ export default function ElysianStudioView() {
                   {" · "}
                   {ops.length} {t("elysian.layers")}
                 </span>
+                {provenanceLine && (
+                  <span className="kx-muted kx-provenance" data-provenance title={provenanceLine}>
+                    <Icon name="external" size={13} />
+                    {provenanceLine}
+                  </span>
+                )}
                 <div className="kx-row" style={{ gap: 6, flexWrap: "wrap" }}>
                   <div className="kx-segmented" role="group" aria-label={t("elysian.stageMode")}>
                     <button
