@@ -255,7 +255,10 @@ async function runSuite(attempts = 3) {
 async function runChecks(client) {
   check("renderer target available", true);
 
-  await waitFor(client, "Boolean(document.querySelector('.kx-shell'))", 25000, "shell");
+  // Boot budgets, not assertions: this binary is launched straight after
+  // another Electron run in the sequential suite, and 25 s was measured to be
+  // too tight for the first window under that load.
+  await waitFor(client, "Boolean(document.querySelector('.kx-shell'))", 45000, "shell");
 
   // 1. The age gate must be closed in a fresh session.
   await evaluate(client, `window.location.hash = "#/elysian"; true`);
@@ -264,7 +267,7 @@ async function runChecks(client) {
   await waitFor(
     client,
     `Boolean(document.querySelector('.adult-gate-container'))`,
-    25000,
+    45000,
     "Elysian age gate",
   );
   const gateVisible = await evaluate(
@@ -335,7 +338,7 @@ async function runChecks(client) {
       for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) return true;
       return false;
     })()`,
-    25000,
+    45000,
     "Elysian canvas paint",
   );
   await sleep(400);
@@ -420,6 +423,21 @@ async function runChecks(client) {
   check("each operation of the preset becomes a layer", layers === 5, layers);
 
   // 4b. Before/after must reveal the untouched source and return.
+  // The render is asynchronous: a fixed delay can read the canvas mid-update on
+  // a loaded machine. Wait until two consecutive reads agree, which is the real
+  // "settled" condition, and assert on that value.
+  const settledSum = async (expected = null, timeoutMs = 15000) => {
+    const deadline = Date.now() + timeoutMs;
+    let previous = null;
+    while (Date.now() < deadline) {
+      const value = await canvasSum();
+      if (expected !== null && value === expected) return value;
+      if (previous !== null && value === previous) return value;
+      previous = value;
+      await sleep(200);
+    }
+    return previous ?? 0;
+  };
   const canvasSum = () =>
     evaluate(
       client,
@@ -528,8 +546,7 @@ async function runChecks(client) {
       return Boolean(button);
     })()`,
   );
-  await sleep(900);
-  const undoneSum = await canvasSum();
+  const undoneSum = await settledSum(beforePreset);
   check("undo restores the pre-preset pixels", undoneSum === beforePreset, {
     beforePreset,
     undoneSum,
@@ -544,8 +561,7 @@ async function runChecks(client) {
       return Boolean(button);
     })()`,
   );
-  await sleep(900);
-  const redoneSum = await canvasSum();
+  const redoneSum = await settledSum(afterPreset);
   check("redo returns to the edited pixels", redoneSum === afterPreset, {
     afterPreset,
     redoneSum,
