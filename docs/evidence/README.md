@@ -16,6 +16,9 @@ Screenshots captured by the automated smoke suites, not hand-made mockups.
 | `models-validation.png` | runtime probe | Local weight-file validation: real size verdict and SHA-256, explicitly not installed |
 | `morphcore-perspective.png` | `scripts/morphcore-smoke.mjs` | MorphCore geometry studio: trapezoid perspective resampled on real pixels (900×320 working image, transparent wedges measured) |
 | `morphcore-arabic.png` | `scripts/morphcore-smoke.mjs` | The same studio in Arabic RTL after the 18+ gate, with the blocked body-aware catalog listed separately |
+| `elysian-studio-layers.png` | `scripts/elysian-studio-smoke.mjs` | Elysian creative image studio: seven stacked real layers, per-card rendered thumbnails, live text and watermark parameters |
+| `elysian-studio-compare.png` | `scripts/elysian-studio-smoke.mjs` | Split compare between the untouched source and the rendered result |
+| `elysian-studio-arabic.png` | `scripts/elysian-studio-smoke.mjs` | The full studio in Arabic RTL with the mirrored three-column layout |
 
 Reproduce with `npm run verify && npm run smoke:all` against
 `npm run preview` (http://localhost:4173/). The full reports live in the

@@ -26,7 +26,6 @@ import SettingsView from "../views/SettingsView";
 import DiagnosticsView from "../views/DiagnosticsView";
 import ModelsView from "../views/ModelsView";
 import UnavailableView from "../views/UnavailableView";
-import ToolSection from "../views/ToolSection";
 import ToolboxView from "../views/ToolboxView";
 import AiWorkspaceView from "../views/AiWorkspaceView";
 import TemplatesView from "../views/TemplatesView";
@@ -34,7 +33,7 @@ import VisualPatchView from "../views/VisualPatchView";
 import LiveStudioView from "../views/LiveStudioView";
 import MorphCoreView from "../views/MorphCoreView";
 
-const ElysianCanvas = lazy(() => import("../../elysian-canvas/ElysianCanvas"));
+const ElysianStudio = lazy(() => import("../views/ElysianStudioView"));
 
 const ROUTE_IDS = Object.keys(CAPABILITIES) as RouteId[];
 const SIDEBAR_KEY = "knoux-rec.sidebar.v1";
@@ -57,7 +56,7 @@ function initialCollapsed(): boolean {
 
 export default function AppRoot() {
   const { settings } = useSettings();
-  const { ready: libraryReady, error: libraryError, add: addToLibrary } = useLibrary();
+  const { ready: libraryReady, error: libraryError } = useLibrary();
   const recorder = useRecorder();
   const t = (key: string) => translate(settings.language, key);
 
@@ -327,28 +326,9 @@ export default function AppRoot() {
         return <AiWorkspaceView variant="arabic-ai" />;
       case "elysian":
         return (
-          <div className="kx-content">
-            <ToolSection route="elysian">
-              <Suspense fallback={<SectionLoading label="Loading Elysian Canvas" />}>
-                <ElysianCanvas
-                  onClose={() => navigate("dashboard")}
-                  onArchive={async (blob, fileName, width, height) => {
-                    await addToLibrary({
-                      name: fileName,
-                      kind: "image",
-                      mimeType: "image/png",
-                      blob,
-                      duration: 0,
-                      width,
-                      height,
-                      source: "toolbox",
-                      thumbnail: null,
-                    });
-                  }}
-                />
-              </Suspense>
-            </ToolSection>
-          </div>
+          <Suspense fallback={<SectionLoading label="Loading Elysian Canvas" />}>
+            <ElysianStudio />
+          </Suspense>
         );
       case "live-studio":
         return <LiveStudioView onNavigate={navigate} />;

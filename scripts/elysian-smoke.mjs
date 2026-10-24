@@ -2,9 +2,10 @@
 /**
  * Elysian Canvas runtime smoke test.
  *
- * Drives the Elysian Canvas workspace end to end in the packaged binary:
- * age gate -> image upload -> preset filter -> PNG export with the filters
- * baked into the pixels.
+ * Drives the Elysian creative image studio end to end in the packaged Windows
+ * binary: age gate -> image upload -> effect browser -> preset layer ->
+ * before/after -> library save -> PNG export whose pixels are decoded outside
+ * the application and compared with the source.
  *
  * Usage:
  *   node scripts/elysian-smoke.mjs [--exe <path>] [--port <port>]
@@ -328,7 +329,7 @@ async function runChecks(client) {
   await waitFor(
     client,
     `(() => {
-      const canvas = document.querySelector('canvas.main-canvas');
+      const canvas = document.querySelector('.elys-canvas');
       if (!canvas) return false;
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
       for (let i = 3; i < data.length; i += 4) if (data[i] !== 0) return true;
@@ -342,7 +343,7 @@ async function runChecks(client) {
   const painted = await evaluate(
     client,
     `(() => {
-      const canvas = document.querySelector('canvas.main-canvas');
+      const canvas = document.querySelector('.elys-canvas');
       if (!canvas) return { found: false };
       const ctx = canvas.getContext('2d');
       const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
@@ -352,103 +353,224 @@ async function runChecks(client) {
     })()`,
   );
   check("uploaded image is painted on the canvas", painted.found && painted.nonZero > 0, painted);
+  check(
+    "the studio keeps the source resolution",
+    painted.width === 64 && painted.height === 64,
+    painted,
+  );
 
-  // 4. A preset must change the pixels.
+  // 3b. The effect browser must render a distinct thumbnail per card, so a
+  //     screenshot of a dead card cannot pass as evidence.
+  const browser = await evaluate(
+    client,
+    `(() => {
+      const cards = Array.from(document.querySelectorAll('.elys-card'));
+      const thumbs = cards
+        .map((card) => card.querySelector('.elys-card-thumb img')?.getAttribute('src') ?? '')
+        .filter((src) => src.startsWith('data:image/png'));
+      return { cards: cards.length, thumbs: thumbs.length, unique: new Set(thumbs).size };
+    })()`,
+  );
+  check(
+    "the effect browser renders real per-card previews",
+    browser.cards > 0 && browser.thumbs === browser.cards && browser.unique === browser.thumbs,
+    browser,
+  );
+
+  // 4. A preset must change the pixels and register its layers.
   const beforePreset = await evaluate(
     client,
     `(() => {
-      const canvas = document.querySelector('canvas.main-canvas');
+      const canvas = document.querySelector('.elys-canvas');
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
       let sum = 0;
       for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
       return sum;
     })()`,
   );
-  await evaluate(
+  const presetClicked = await evaluate(
     client,
     `(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((b) => /vintage/i.test(b.textContent ?? ''));
+      const button = document.querySelector('.elys-card[data-preset-id="noir"]');
       if (button) button.click();
       return Boolean(button);
     })()`,
   );
-  await sleep(600);
+  await sleep(900);
   const afterPreset = await evaluate(
     client,
     `(() => {
-      const canvas = document.querySelector('canvas.main-canvas');
+      const canvas = document.querySelector('.elys-canvas');
       const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
       let sum = 0;
       for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
       return sum;
     })()`,
   );
+  const layers = await evaluate(
+    client,
+    `document.querySelectorAll('.elys-layers .elys-layer').length`,
+  );
+  check("the Noir preset is applied from the browser", presetClicked === true);
   check(
-    "the Vintage preset changes the rendered pixels",
+    "the Noir preset changes the rendered pixels",
     beforePreset !== afterPreset,
     { beforePreset, afterPreset },
   );
+  check("each operation of the preset becomes a layer", layers === 5, layers);
 
-  // 4b. The compare toggle must repaint the untouched source and return.
+  // 4b. Before/after must reveal the untouched source and return.
   const canvasSum = () =>
     evaluate(
       client,
       `(() => {
-        const canvas = document.querySelector('canvas.main-canvas');
+        const canvas = document.querySelector('.elys-canvas');
         const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
         let sum = 0;
         for (let i = 0; i < data.length; i += 4) sum += data[i] + data[i + 1] + data[i + 2];
         return sum;
       })()`,
     );
-  const compareClicked = await evaluate(
+  const peek = await evaluate(
     client,
     `(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((b) => /before \\/ after/i.test(b.textContent ?? ''));
-      if (button) button.click();
-      return Boolean(button);
+      const buttons = Array.from(document.querySelectorAll('.elys-stage-bar button'));
+      const button = buttons.find((b) => /original/i.test(b.textContent ?? ''));
+      if (!button) return { found: false };
+      button.dispatchEvent(new Event('pointerdown', { bubbles: true }));
+      return { found: true };
     })()`,
   );
-  await sleep(600);
-  const compareSum = await canvasSum();
-  check(
-    "before/after repaints the untouched source",
-    compareClicked && compareSum === beforePreset,
-    { beforePreset, compareSum },
+  await sleep(400);
+  const peekState = await evaluate(
+    client,
+    `(() => {
+      const image = document.querySelector('.elys-peek');
+      return { shown: Boolean(image), natural: image?.naturalWidth ?? 0 };
+    })()`,
   );
   await evaluate(
     client,
     `(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((b) => /show edits/i.test(b.textContent ?? ''));
+      const buttons = Array.from(document.querySelectorAll('.elys-stage-bar button'));
+      const button = buttons.find((b) => /original/i.test(b.textContent ?? ''));
+      button?.dispatchEvent(new Event('pointerup', { bubbles: true }));
+      return true;
+    })()`,
+  );
+  await sleep(400);
+  const peekReleased = await evaluate(
+    client,
+    `(() => ({ hidden: !document.querySelector('.elys-peek'), sum: (() => {
+      const canvas = document.querySelector('.elys-canvas');
+      const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data;
+      let total = 0;
+      for (let i = 0; i < data.length; i += 4) total += data[i] + data[i + 1] + data[i + 2];
+      return total;
+    })() }))()`,
+  );
+  check(
+    "before/after overlays the untouched source",
+    peek.found && peekState.shown && peekState.natural === 64,
+    { peek, peekState },
+  );
+  check(
+    "releasing returns to the edited pixels",
+    peekReleased.hidden && peekReleased.sum === afterPreset,
+    { afterPreset, released: peekReleased.sum },
+  );
+
+  // 4c. Split compare must mount both sides from real image data.
+  await evaluate(
+    client,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('.elys-stage-bar button')).find(
+        (b) => /split compare/i.test(b.textContent ?? ''),
+      );
       if (button) button.click();
       return Boolean(button);
     })()`,
   );
-  await sleep(600);
-  const restoredSum = await canvasSum();
-  check(
-    "before/after returns to the edited pixels",
-    restoredSum === afterPreset,
-    { afterPreset, restoredSum },
+  await sleep(900);
+  const split = await evaluate(
+    client,
+    `(() => {
+      const images = Array.from(document.querySelectorAll('.elys-compare img'));
+      return {
+        count: images.length,
+        decoded: images.every((image) => image.complete && image.naturalWidth > 0),
+        distinct: images.length === 2 && images[0].src !== images[1].src,
+      };
+    })()`,
   );
+  check("split compare shows both sides decoded", split.count === 2 && split.decoded, split);
+  check("split compare distinguishes original from result", split.distinct, split);
+  await evaluate(
+    client,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('.elys-stage-bar button')).find(
+        (b) => /split compare/i.test(b.textContent ?? ''),
+      );
+      if (button) button.click();
+      return true;
+    })()`,
+  );
+  await sleep(700);
 
-  // 4c. Saving persists the verified PNG into the local library.
+  // 4d. Undo must return to the untouched source pixels.
+  await evaluate(
+    client,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('.elys-actions button')).find(
+        (b) => /undo/i.test(b.textContent ?? ''),
+      );
+      if (button) button.click();
+      return Boolean(button);
+    })()`,
+  );
+  await sleep(900);
+  const undoneSum = await canvasSum();
+  check("undo restores the pre-preset pixels", undoneSum === beforePreset, {
+    beforePreset,
+    undoneSum,
+  });
+  await evaluate(
+    client,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('.elys-actions button')).find(
+        (b) => /redo/i.test(b.textContent ?? ''),
+      );
+      if (button) button.click();
+      return Boolean(button);
+    })()`,
+  );
+  await sleep(900);
+  const redoneSum = await canvasSum();
+  check("redo returns to the edited pixels", redoneSum === afterPreset, {
+    afterPreset,
+    redoneSum,
+  });
+
+  // 4e. Saving persists the verified PNG into the local library.
   const saveClicked = await evaluate(
     client,
     `(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((b) => /save to library/i.test(b.textContent ?? ''));
+      const button = Array.from(document.querySelectorAll('.elys-dock button')).find((b) => /save to library/i.test(b.textContent ?? ''));
       if (button) button.click();
       return Boolean(button);
     })()`,
   );
-  await sleep(1500);
+  await sleep(2000);
   const saveNote = await evaluate(
     client,
-    `document.querySelector('.elysian-export-note')?.textContent ?? null`,
+    `(() => {
+      const button = Array.from(document.querySelectorAll('.elys-dock button')).find((b) => /saved|save to library/i.test(b.textContent ?? ''));
+      return button?.textContent?.trim() ?? null;
+    })()`,
   );
   check(
-    "saving reports a verified PNG",
-    saveClicked && Boolean(saveNote && /Saved elysian-edit-.* KB/.test(saveNote)),
+    "saving confirms a completed write",
+    saveClicked && /Saved/i.test(saveNote ?? ""),
     saveNote,
   );
   const archived = await evaluate(
@@ -461,12 +583,14 @@ async function runChecks(client) {
         const request = db.transaction('items', 'readonly').objectStore('items').getAll();
         request.onerror = () => resolve(null);
         request.onsuccess = async () => {
-          const items = request.result ?? [];
+          const items = (request.result ?? []).filter((item) => /-elysian\\.png$/.test(item.name));
           const latest = items.reduce((best, item) => (!best || item.createdAt > best.createdAt ? item : best), null);
           if (!latest) return resolve(null);
           const head = new Uint8Array(await latest.blob.slice(0, 8).arrayBuffer());
           resolve({
             name: latest.name,
+            width: latest.width,
+            height: latest.height,
             size: latest.blob.size,
             magic: Array.from(head).map((value) => value.toString(16).padStart(2, '0')).join(' '),
           });
@@ -479,18 +603,19 @@ async function runChecks(client) {
     "the library stores the real PNG blob",
     Boolean(
       archived &&
-        /^elysian-edit-\d+\.png$/.test(archived.name) &&
         archived.size > 100 &&
-        archived.magic.startsWith("89 50 4e 47 0d 0a 1a 0a"),
+        archived.magic.startsWith("89 50 4e 47 0d 0a 1a 0a") &&
+        archived.width === 64 &&
+        archived.height === 64,
     ),
     archived,
   );
 
-  // 5. Export must write a PNG file with the filters baked in.
+  // 5. Export must write a PNG file with the layers baked into the pixels.
   await evaluate(
     client,
     `(() => {
-      const button = Array.from(document.querySelectorAll('button')).find((b) => /download/i.test(b.textContent ?? ''));
+      const button = Array.from(document.querySelectorAll('.elys-dock button')).find((b) => /^export$/i.test((b.textContent ?? '').trim()));
       if (button) button.click();
       return Boolean(button);
     })()`,
@@ -515,9 +640,8 @@ async function runChecks(client) {
     check("exported file is a valid PNG", isPng, { bytes: bytes.length });
     check("exported file is not empty", bytes.length > 100, bytes.length);
 
-    // Independent proof that the adjustment reached the exported pixels: the
-    // exported file is decoded here, outside the application, and compared
-    // with the pixels of the source image.
+    // Independent proof that the layers reached the exported pixels: the file
+    // is decoded here, outside the application, and compared with the source.
     try {
       const image = decodePng(bytes);
       check(
@@ -527,7 +651,7 @@ async function runChecks(client) {
       );
       let differing = 0;
       let total = 0;
-      let warmer = 0;
+      let grey = 0;
       for (let y = 0; y < image.height; y += 1) {
         for (let x = 0; x < image.width; x += 1) {
           const index = (y * image.width + x) * image.channels;
@@ -539,8 +663,9 @@ async function runChecks(client) {
           const b = image.pixels[index + 2];
           total += 1;
           if (r !== sourceR || g !== sourceG || b !== sourceB) differing += 1;
-          // The Vintage preset is a warm tone, so red gains against the source.
-          if (r - sourceR > g - sourceG) warmer += 1;
+          // The Noir preset desaturates, so every painted pixel must lose its
+          // channel spread entirely.
+          if (Math.abs(r - g) <= 2 && Math.abs(g - b) <= 2) grey += 1;
         }
       }
       check(
@@ -549,9 +674,9 @@ async function runChecks(client) {
         { differing, total },
       );
       check(
-        "the exported pixels show the warm shift of the preset",
-        warmer > total * 0.5,
-        { warmer, total },
+        "the exported pixels are genuinely desaturated",
+        grey > total * 0.95,
+        { grey, total },
       );
     } catch (error) {
       check("the exported PNG could be decoded independently", false, String(error));

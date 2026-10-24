@@ -128,9 +128,19 @@ advertised before they exist.
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Upload, slider filters, presets, before/after, verified export, library save | LOCAL | VERIFIED (18 checks in the packaged app) |
-| Full professional suite (crop/resize/rotate, HSL, curves, text/shapes/borders, history, zoom) | LOCAL | PARTIAL — slider/preset core only |
-| AI retouch / background removal | MODEL-LOCAL | BLOCKED (no weights) |
+| Non-destructive layer stack: add, select, reorder, remove, history replay, undo/redo, clear | LOCAL | VERIFIED (51 browser checks + 26 packaged checks) |
+| Effect browser with per-card previews rendered from the working image | LOCAL | VERIFIED (unique genuine thumbnails) |
+| Crop (drag selection on the canvas), resize, rotate to any angle, horizontal/vertical flip | LOCAL | VERIFIED |
+| Exposure, brightness, contrast, gamma, vignette | LOCAL | VERIFIED (29 numeric unit tests on the pipeline) |
+| Saturation, temperature | LOCAL | VERIFIED |
+| Blur, unsharp sharpen, pixelate | LOCAL | VERIFIED |
+| Border, text, tiled watermark (real glyph rasterisation) | LOCAL | VERIFIED |
+| Eight presets composed from the same operations, editable as layers | LOCAL | VERIFIED (Noir measured as genuinely desaturated) |
+| Split compare, hold-to-peek original, zoom and pan stage | LOCAL | VERIFIED |
+| Output dock: PNG/JPEG/WebP, quality, export scale, measured byte size | LOCAL | VERIFIED |
+| Save to IndexedDB library with independent decode and pixel-identical reopen | LOCAL | VERIFIED |
+| Neural retouch, background removal, super resolution, style transfer, auto composition, generative fill | MODEL-LOCAL / ONLINE | BLOCKED — listed with the missing artefact, no preview, no control |
+| Curves/histogram, layer masks, brush-local edits | LOCAL | NOT-IMPLEMENTED |
 
 ## HUB 10 — Body Editor
 

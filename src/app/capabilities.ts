@@ -147,10 +147,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "elysian",
     state: "PARTIAL",
     summary:
-      "Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle.",
+      "Full creative image studio on a non-destructive layer stack: crop, resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, sharpen, pixelate, borders, text and tiled watermarks, plus eight presets built from the same operations. The effect browser renders its thumbnails by running those operations on the working image.",
     requirements: ["Image input", "Model weights for the AI pipeline"],
     evidence:
-      "scripts/elysian-smoke.mjs drives the packaged binary (18/18): age gate, upload, preset filter, compare repaint, verified PNG export with independently decoded pixels, and the saved library blob signature.",
+      "src/services/imageOps.ts is a pure RGBA pipeline covered by 29 numeric unit tests (exact crop rectangles, bilinear mapping, radius-limited blur, unsharp overshoot, grey-channel presets). scripts/elysian-studio-smoke.mjs drives the workspace in Chromium (51/51): age gate, unique per-card thumbnails, stacked and reordered layers, history replay, pixel-identical undo/redo, drag crop, rotate, text and watermark rendering, split compare, IndexedDB save with an identical re-open, PNG and half-scale JPEG exports decoded independently, and Arabic RTL. The neural services stay listed as blocked with no preview.",
     adult: true,
   },
   "body-editor": {

@@ -35,7 +35,13 @@ const VIEW_FILES = [
   "src/views/ToolboxView.tsx",
   "src/views/VisualPatchView.tsx",
   "src/views/LiveStudioView.tsx",
+  "src/views/MorphCoreView.tsx",
+  "src/views/ElysianStudioView.tsx",
 ];
+
+// Registries that carry user-visible labels through a key field rather than a
+// t("…") call, so their literals are checked against the dictionary too.
+const KEY_FIELD_FILES = ["src/services/elysianPresets.ts"];
 
 const TEXT_PATTERN = />\s*([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})\s*</g;
 const ATTRIBUTE_PATTERN =
@@ -116,6 +122,17 @@ for (const file of VIEW_FILES) {
   // A word boundary keeps setters such as setFit("contain") from being
   // mistaken for translation lookups.
   for (const match of text.matchAll(/\bt\("([a-zA-Z][a-zA-Z0-9.]*)"\)/g)) {
+    if (!dictionaryKeys.has(match[1])) {
+      failures.push(`${file}: missing translation key "${match[1]}"`);
+    }
+  }
+}
+
+// Registries declare labels through key fields; a typo there is invisible until
+// the UI renders the raw key, so the gate resolves them as well.
+for (const file of KEY_FIELD_FILES) {
+  const text = fs.readFileSync(path.join(root, file), "utf8");
+  for (const match of text.matchAll(/\b(?:labelKey|reasonKey):\s*"([a-zA-Z][a-zA-Z0-9.]*)"/g)) {
     if (!dictionaryKeys.has(match[1])) {
       failures.push(`${file}: missing translation key "${match[1]}"`);
     }
