@@ -552,6 +552,36 @@ async function runChecks(client) {
   });
 
   // 4e. Saving persists the verified PNG into the local library.
+  // Anything this run did not write must not be able to satisfy the check
+  // below, so previously stored studio exports are removed first. The packaged
+  // app keeps its user data between runs, and the retry wrapper can reach this
+  // point on a second attempt with the first attempt's item still present.
+  await evaluate(
+    client,
+    `new Promise((resolve) => {
+      const open = indexedDB.open('knoux-rec.library');
+      open.onerror = () => resolve(-1);
+      open.onsuccess = () => {
+        const db = open.result;
+        const transaction = db.transaction('items', 'readwrite');
+        const store = transaction.objectStore('items');
+        const request = store.getAll();
+        request.onsuccess = async () => {
+          const stale = (request.result ?? []).filter((item) => /-elysian\.(png|jpg|jpeg|webp)$/i.test(item.name));
+          for (const item of stale) store.delete(item.id);
+          transaction.oncomplete = () => {
+            db.close();
+            resolve(stale.length);
+          };
+          transaction.onerror = () => {
+            db.close();
+            resolve(-1);
+          };
+        };
+        request.onerror = () => resolve(-1);
+      };
+    })`,
+  );
   const saveClicked = await evaluate(
     client,
     `(() => {
@@ -560,13 +590,21 @@ async function runChecks(client) {
       return Boolean(button);
     })()`,
   );
-  await sleep(2000);
+  // Encode + decode + IndexedDB write is timed, not guessed: on a loaded
+  // machine a fixed delay used to read the label before the write finished.
   const saveNote = await evaluate(
     client,
-    `(() => {
-      const button = Array.from(document.querySelectorAll('.elys-dock button')).find((b) => /saved|save to library/i.test(b.textContent ?? ''));
-      return button?.textContent?.trim() ?? null;
-    })()`,
+    `new Promise((resolve) => {
+      const deadline = Date.now() + 25000;
+      const poll = () => {
+        const button = Array.from(document.querySelectorAll('.elys-dock button')).find((b) => /saved|save to library/i.test(b.textContent ?? ''));
+        const label = button?.textContent?.trim() ?? null;
+        if (/saved/i.test(label ?? '') || Date.now() > deadline) return resolve(label);
+        setTimeout(poll, 250);
+      };
+      poll();
+    })`,
+    30000,
   );
   check(
     "saving confirms a completed write",
@@ -612,14 +650,24 @@ async function runChecks(client) {
   );
 
   // 5. Export must write a PNG file with the layers baked into the pixels.
-  await evaluate(
+  const exportClicked = await evaluate(
     client,
-    `(() => {
-      const button = Array.from(document.querySelectorAll('.elys-dock button')).find((b) => /^export$/i.test((b.textContent ?? '').trim()));
-      if (button) button.click();
-      return Boolean(button);
-    })()`,
+    `new Promise((resolve) => {
+      const deadline = Date.now() + 20000;
+      const poll = () => {
+        const button = Array.from(document.querySelectorAll('.elys-dock button')).find((b) => /^export$/i.test((b.textContent ?? '').trim()));
+        if (button && !button.disabled) {
+          button.click();
+          return resolve(true);
+        }
+        if (Date.now() > deadline) return resolve(false);
+        setTimeout(poll, 250);
+      };
+      poll();
+    })`,
+    25000,
   );
+  check("the export control is offered", exportClicked === true, exportClicked);
   let exported = null;
   const deadline = Date.now() + 15000;
   while (Date.now() < deadline) {
