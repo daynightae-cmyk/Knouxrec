@@ -48,12 +48,16 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Service | Mode | Status | Notes |
 | --- | --- | --- | --- |
 | Capture display | LOCAL | VERIFIED | Real pixels from the display stream |
-| Window / region capture | LOCAL | PARTIAL | Display picker; explicit region selection NOT-IMPLEMENTED |
+| In-editor crop (region) | LOCAL | VERIFIED | Drag-rectangle crop on the captured canvas (16-check smoke) |
+| Annotations: arrow, rectangle, ellipse, highlight, text | LOCAL | VERIFIED | Real canvas drawing with colour/stroke controls |
+| Sensitive-region pixelate / blur | LOCAL | VERIFIED | Real mosaic and canvas-filter blur on the selected region |
+| Undo / redo history | LOCAL | VERIFIED | Compressed snapshots (bounded), restored pixel-exact |
+| Before/after comparison | LOCAL | VERIFIED | Toggle renders the untouched capture over the edited canvas |
+| Save as new image + export PNG | LOCAL | VERIFIED | Library blob + downloaded bytes decode at the edited size |
+| Fresh capture opens the editor | LOCAL | VERIFIED | Auto-open once the library row exists |
+| Window / region capture at OS level | LOCAL | PARTIAL | Full display capture + editor crop; OS region picker NOT-IMPLEMENTED |
 | Delayed capture | LOCAL | NOT-IMPLEMENTED | Timer + same capture path |
-| Convert/resize | LOCAL | VERIFIED | Toolbox processors |
-| Crop / rotate / flip | LOCAL | PARTIAL | Rotate/flip/crop processors added to the Toolbox (below) |
-| Annotate / highlight / arrows / text / pixelate / blur / watermark | LOCAL | PARTIAL | Pixelate added in the Toolbox; annotation canvas NOT-IMPLEMENTED |
-| Compare two captures | LOCAL | PARTIAL | Live Studio compare works for one job; capture-to-capture compare NOT-IMPLEMENTED |
+| Watermark | LOCAL | NOT-IMPLEMENTED | Text tool covers ad-hoc labels; no dedicated watermark preset |
 
 ## HUB 04 — Media Library
 
@@ -149,8 +153,9 @@ advertised before they exist.
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Manifest inventory, weight probes, expected bytes, SHA-256, license/source | LOCAL | PARTIAL (displayed; dedicated integrity test pending) |
-| Import/validate/remove local weights | LOCAL | NOT-IMPLEMENTED |
+| Manifest inventory, weight probes, expected bytes, SHA-256, license/source | LOCAL | VERIFIED (displayed from real probes) |
+| Validate a local weight file (size vs manifest + SHA-256) | LOCAL | VERIFIED (in-browser hashing; never claims installation) |
+| Install / remove weights, health checks | LOCAL | NOT-IMPLEMENTED (rejected: no legitimate artifact pipeline yet) |
 | Health checks / hardware estimates | LOCAL | NOT-IMPLEMENTED |
 | Remote provider connection | ONLINE | NOT-IMPLEMENTED (requires explicit user setup) |
 

@@ -40,3 +40,5 @@ artifacts
 *.sw?
 
 release-g3
+release-g4
+release-g5

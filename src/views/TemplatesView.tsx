@@ -179,32 +179,63 @@ export default function TemplatesView({
     [],
   );
 
-  // Real thumbnails: each card paints its template at a small resolution.
+  // Real thumbnails: render several playhead samples and keep the frame with
+  // the most visual content, so dark openings or empty overlays are not the
+  // face of a template.
   useEffect(() => {
     const engine = engineRef.current;
     if (!engine || templates.length === 0) return;
     let cancelled = false;
+
+    const scoreFrame = (canvas: HTMLCanvasElement): number => {
+      const context = canvas.getContext("2d", { willReadFrequently: true });
+      if (!context) return 0;
+      const data = context.getImageData(0, 0, canvas.width, canvas.height).data;
+      let sum = 0;
+      let sumSq = 0;
+      let samples = 0;
+      for (let index = 0; index < data.length; index += 4 * 16) {
+        const luminance =
+          0.299 * data[index] + 0.587 * data[index + 1] + 0.114 * data[index + 2];
+        sum += luminance;
+        sumSq += luminance * luminance;
+        samples += 1;
+      }
+      if (samples === 0) return 0;
+      const mean = sum / samples;
+      return sumSq / samples - mean * mean;
+    };
+
     const build = async () => {
       const next: Record<string, string> = {};
       for (const template of templates) {
         if (cancelled) return;
-        try {
-          const canvas = await engine.renderTemplate(
-            template.id,
-            {},
-            {
-              resolution: { width: 480, height: 270 },
-              fps: 12,
-              quality: "draft",
-              format: "png-sequence",
-              backgroundColor: "#14141b",
-            },
-            Math.min(template.duration - 0.1, Math.max(0.5, template.duration * 0.6)),
-          );
-          next[template.id] = canvas.toDataURL("image/png");
-        } catch {
-          // A template that cannot paint a thumbnail simply keeps the placeholder.
+        let best: { score: number; url: string } | null = null;
+        const duration = Math.max(0.4, template.duration);
+        for (const ratio of [0.2, 0.4, 0.6, 0.8]) {
+          try {
+            const time = Math.min(duration - 0.05, Math.max(0.15, duration * ratio));
+            const canvas = await engine.renderTemplate(
+              template.id,
+              {},
+              {
+                resolution: { width: 480, height: 270 },
+                fps: 12,
+                quality: "draft",
+                format: "png-sequence",
+                backgroundColor: "#14141b",
+              },
+              time,
+            );
+            const score = scoreFrame(canvas);
+            if (!best || score > best.score) {
+              best = { score, url: canvas.toDataURL("image/png") };
+            }
+          } catch {
+            // Keep scanning; one unrenderable sample should not lose the card.
+          }
         }
+        if (best) next[template.id] = best.url;
       }
       if (!cancelled) setThumbs(next);
     };

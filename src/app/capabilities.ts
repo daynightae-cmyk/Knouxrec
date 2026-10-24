@@ -77,9 +77,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "capture",
     labelKey: "screenshots",
     state: "VERIFIED",
-    summary: "Real pixel capture from the display stream with PNG/JPEG/WebP encoding.",
+    summary:
+      "Real display capture plus a full editor: crop, arrows, shapes, highlight, text, blur/pixelate, undo/redo, compare, library save and verified PNG export; fresh captures open directly in the editor.",
     requirements: ["Screen capture permission"],
-    evidence: "Canvas drawImage from a live display stream; blob signature checked before saving.",
+    evidence:
+      "scripts/screenshot-editor-smoke.mjs captures a real frame from the display stream and drives the editor (16 checks): crop geometry, pixel-changing annotations and blur, undo, compare, the stored PNG and the exported bytes.",
   },
   library: {
     id: "library",
@@ -189,9 +191,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "intelligence",
     labelKey: "models",
     state: "MISSING_MODEL",
-    summary: "Model manifest inventory with explicit weight-file verification.",
+    summary:
+      "Model manifest inventory with explicit weight-file probes plus a local validation workflow (size against the manifest, SHA-256 of the chosen file); nothing is installed or executed.",
     requirements: ["Weight binaries"],
-    evidence: "Only model.json graph metadata ships; no weights.bin present.",
+    evidence:
+      "Only model.json graph metadata ships; no weights.bin present. The validation panel hashes a selected file in-browser and reports the size verdict without claiming installation.",
   },
   settings: {
     id: "settings",

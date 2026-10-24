@@ -66,12 +66,28 @@ Product direction updates committed on top of the checkpoint:
 - Service inventory: `COMPLETE_SERVICE_CATALOG.md` records every hub, its real
   services, modes, statuses and remaining gaps.
 
+## Creative hubs increment (2026-10-24, second pass)
+
+- **Screenshot Studio**: a real editor now opens from fresh captures or any
+  library image — drag-crop, arrow/rectangle/ellipse/highlight/text,
+  pixelate/blur regions, undo/redo, before/after, save-as-new and verified
+  PNG export. Suite: screenshot-editor-smoke 16/16 with real capture bytes.
+- **Templates**: thumbnails now scan four playhead samples and keep the frame
+  with the highest luminance variance, so dark openings no longer represent a
+  template; cards keep real thumbnails and a labelled development catalog.
+- **Model Manager**: a local validation workflow hashes a selected weight file
+  (SHA-256), compares its size against the manifest and states explicitly that
+  nothing is installed or executed.
+- **Modal shell**: dialogs now portal to document.body, fixing clipping by
+  transformed route containers for every dialog in the product.
+
 ## Delivered after this section
 
-The remaining hub redesigns (Screenshot Studio tools, MorphCore geometric
-suite, Elysian broadening, Models import/health, dashboard global search,
-workflow chains) are specified in `COMPLETE_SERVICE_CATALOG.md` and must not
-be reported as implemented until each processor is verified.
+The remaining hub work (Screenshot delayed capture/watermark/OS region picker,
+MorphCore geometric suite, Elysian broadening, dashboard global search,
+workflow chains, model installation pipeline) is specified in
+`COMPLETE_SERVICE_CATALOG.md` and must not be reported as implemented until
+each processor is verified.
 
 ## Test evidence (this checkout)
 

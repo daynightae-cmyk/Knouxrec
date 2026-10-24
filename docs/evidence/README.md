@@ -12,6 +12,8 @@ Screenshots captured by the automated smoke suites, not hand-made mockups.
 | `templates-gallery.png` | `scripts/templates-smoke.mjs` | Visual template gallery with genuine 480×270 rendered thumbnails and category filters |
 | `toolbox-crop.png` | `scripts/toolbox-smoke.mjs` | Image Cropper result in the Live Studio-enabled Toolbox (300×200 real output) |
 | `live-studio-compare.png` | `scripts/live-studio-smoke.mjs` | react-compare-slider with real source/processed pixels and resizable panels |
+| `screenshot-editor.png` | `scripts/screenshot-editor-smoke.mjs` | Screenshot editor after a real capture with crop, arrow, text and blur applied |
+| `models-validation.png` | runtime probe | Local weight-file validation: real size verdict and SHA-256, explicitly not installed |
 
 Reproduce with `npm run verify && npm run smoke:all` against
 `npm run preview` (http://localhost:4173/). The full reports live in the
