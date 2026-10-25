@@ -42,6 +42,12 @@ const VIEW_FILES = [
   "src/views/AudioStudioView.tsx",
 ];
 
+// Shared workspace surfaces render user-visible text too, so they are held to
+// the same standard as the views.
+const VIEW_FILES_SHARED = ["src/ui/CurveEditor.tsx"];
+
+const SCANNED_FILES = [...VIEW_FILES, ...VIEW_FILES_SHARED];
+
 // Registries that carry user-visible labels through a key field rather than a
 // t("…") call, so their literals are checked against the dictionary too.
 const KEY_FIELD_FILES = ["src/services/elysianPresets.ts"];
@@ -74,7 +80,7 @@ const ALLOWED = new Set([
 
 const dictionary = fs.readFileSync(path.join(root, "src/i18n/translate.ts"), "utf8");
 
-for (const file of VIEW_FILES) {
+for (const file of SCANNED_FILES) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
   const hits = new Set();
   for (const match of text.matchAll(TEXT_PATTERN)) hits.add(match[1].trim());
@@ -120,7 +126,7 @@ const dictionaryKeys = new Set(
     (match) => match[1],
   ),
 );
-for (const file of VIEW_FILES) {
+for (const file of SCANNED_FILES) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
   // A word boundary keeps setters such as setFit("contain") from being
   // mistaken for translation lookups.
@@ -134,7 +140,7 @@ for (const file of VIEW_FILES) {
 // Registries declare labels through key fields rather than a t("...") call, so
 // a typo there stays invisible until the UI renders the raw key. Both the
 // dedicated registry files and the view files are resolved here.
-for (const file of [...VIEW_FILES, ...KEY_FIELD_FILES]) {
+for (const file of [...SCANNED_FILES, ...KEY_FIELD_FILES]) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
   for (const match of text.matchAll(/\b(?:labelKey|reasonKey):\s*"([a-zA-Z][a-zA-Z0-9.]*)"/g)) {
     if (!dictionaryKeys.has(match[1])) {
@@ -150,5 +156,5 @@ if (failures.length) {
 }
 
 console.log(
-  `i18n gate: PASSED (${VIEW_FILES.length} views, ${arabicValues.length} translated strings)`,
+  `i18n gate: PASSED (${VIEW_FILES.length} views + ${VIEW_FILES_SHARED.length} shared surfaces, ${arabicValues.length} translated strings)`,
 );

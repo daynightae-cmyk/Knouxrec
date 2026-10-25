@@ -688,6 +688,56 @@ const STRINGS: Dictionary = {
   "elysian.effect.border": { en: "Border", ar: "إطار" },
   "elysian.effect.text": { en: "Text", ar: "نص" },
   "elysian.effect.watermark": { en: "Watermark", ar: "علامة مائية" },
+  "elysian.effect.curves": { en: "Tone curves", ar: "منحنى الدرجات" },
+
+  "elysian.curve.linear": { en: "Linear", ar: "خطي" },
+  "elysian.curve.contrast": { en: "S contrast", ar: "تباين على شكل S" },
+  "elysian.curve.matte": { en: "Matte", ar: "مطفي" },
+  "elysian.curve.open": { en: "Open shadows", ar: "فتح الظلال" },
+
+  "elysian.curves.workbench": { en: "Tone curve workbench", ar: "طاولة منحنيات الدرجات" },
+  "elysian.curves.channels": { en: "Channel", ar: "القناة" },
+  "elysian.curves.channel.rgb": { en: "RGB", ar: "الألوان" },
+  "elysian.curves.channel.r": { en: "Red", ar: "أحمر" },
+  "elysian.curves.channel.g": { en: "Green", ar: "أخضر" },
+  "elysian.curves.channel.b": { en: "Blue", ar: "أزرق" },
+  "elysian.curves.auto": { en: "Auto levels", ar: "مستويات تلقائية" },
+  "elysian.curves.autoHint": {
+    en: "Stretch the measured shadow and highlight edges across the full scale.",
+    ar: "يمدّ حافتي الظلال والإضاءات المقاستين على كامل المقياس.",
+  },
+  "elysian.curves.add": { en: "Add point", ar: "إضافة نقطة" },
+  "elysian.curves.reset": { en: "Straighten", ar: "تسوية المنحنى" },
+  "elysian.curves.plot": {
+    en: "Curve plot: input level across, output level up",
+    ar: "رسم المنحنى: المُدخل أفقيًا والمُخرج رأسيًا",
+  },
+  "elysian.curves.point": { en: "Curve point", ar: "نقطة المنحنى" },
+  "elysian.curves.shapes": { en: "Curve shapes", ar: "أشكال المنحنى" },
+  "elysian.curves.slope": { en: "slope", ar: "الميل" },
+  "elysian.curves.mean": { en: "Mean", ar: "المتوسط" },
+  "elysian.curves.shadows": { en: "Shadows", ar: "الظلال" },
+  "elysian.curves.highlights": { en: "Highlights", ar: "الإضاءات" },
+  "elysian.curves.range": { en: "Ton range", ar: "المدى" },
+  "elysian.curves.input": { en: "In", ar: "مدخل" },
+  "elysian.curves.output": { en: "Out", ar: "مخرج" },
+  "elysian.curves.axisInput": {
+    en: "input: shadows to highlights",
+    ar: "المُدخل: من الظل إلى الضوء",
+  },
+  "elysian.curves.axisOutput": {
+    en: "output: dark to bright",
+    ar: "المُخرج: من الداكن إلى الفاتح",
+  },
+  "elysian.curves.remove": { en: "Remove point", ar: "حذف النقطة" },
+  "elysian.curves.dragHint": {
+    en: "Drag a handle, click empty plot to add one, arrow keys nudge the focused handle.",
+    ar: "اسحب مقبضًا، وانقر على مساحة فارغة لإضافة نقطة، وأسهم لوحة المفاتيح تحرّك المقبض المحدد.",
+  },
+  "elysian.curves.inInspector": {
+    en: "This layer is edited on the curve table below the stage.",
+    ar: "يُحرَّر هذا الطبق على طاولة المنحنى أسفل المساحة.",
+  },
 
   "elysian.preset.noir": { en: "Noir", ar: "نوار" },
   "elysian.preset.bleach": { en: "Bleach print", ar: "طبعة مبيّضة" },
@@ -697,6 +747,8 @@ const STRINGS: Dictionary = {
   "elysian.preset.punch": { en: "Punch", ar: "قوة" },
   "elysian.preset.vhs": { en: "VHS", ar: "في إتش إس" },
   "elysian.preset.signature": { en: "Signed print", ar: "طبعة موقّعة" },
+  "elysian.preset.mattefilm": { en: "Matte film", ar: "فيلم مطفي" },
+  "elysian.preset.crossprocess": { en: "Cross process", ar: "معالجة متقاطعة" },
 
   "elysian.blocked.retouch": { en: "Neural retouch", ar: "تنعيم عصبي" },
   "elysian.blocked.retouchReason": {

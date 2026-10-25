@@ -16,8 +16,11 @@ import { downloadBlob, formatBytes } from "../lib/format";
 import {
   applyOps,
   cropPixels,
+  histogramPixels,
   meanDifference,
   resizePixels,
+  type CurveChannel,
+  type Histogram,
   type Op,
   type Pixels,
   type Rasterizer,
@@ -32,6 +35,7 @@ import {
   type EffectDefinition,
 } from "../services/elysianPresets";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
+import { CurveWorkbench } from "../ui/CurveEditor";
 import { useHandoffReceiver, useProvenanceLine } from "../ui/handoff";
 import type { ProvenanceRecord } from "../state/types";
 
@@ -87,6 +91,11 @@ function instantiate(effect: EffectDefinition, width: number, height: number): O
       height: Math.max(8, Math.round(height * 0.75)),
     };
   }
+  // Curve layers own their control points: copy them so the shared card
+  // template is never the object the user drags.
+  if (effect.op.kind === "curves") {
+    return { ...effect.op, points: effect.op.points.map((point) => ({ ...point })) };
+  }
   return effect.op;
 }
 
@@ -125,6 +134,7 @@ export default function ElysianStudioView() {
   const scratchRef = useRef<HTMLCanvasElement | null>(null);
   const zoomRef = useRef<ReactZoomPanPinchContentRef | null>(null);
   const resultRef = useRef<Pixels | null>(null);
+  const curveHistRef = useRef<{ key: string; value: Histogram | null }>({ key: "", value: null });
 
   const [gatePassed, setGatePassed] = useState(false);
   const [base, setBase] = useState<Pixels | null>(null);
@@ -404,7 +414,7 @@ export default function ElysianStudioView() {
   );
 
   const updateSelected = useCallback(
-    (patch: Record<string, number | string | boolean>) => {
+    (patch: Record<string, unknown>) => {
       if (selected === null || !ops[selected]) return;
       const current = ops[selected] as unknown as Record<string, unknown>;
       const next = [...ops];
@@ -613,6 +623,31 @@ export default function ElysianStudioView() {
 
   /* ------------------------------------------------------------ derived */
   const selectedOp = selected !== null ? ops[selected] ?? null : null;
+
+  /**
+   * The curve workbench plots the distribution of the pixels *entering* this
+   * layer: the chain up to but not including the curve itself. Dragging a
+   * handle must not re-run the whole stack, so the measurement is cached
+   * against a signature of the prefix rather than of the full op list.
+   */
+  const curvesHistogram = useMemo(() => {
+    if (!base || selected === null || !selectedOp || selectedOp.kind !== "curves") return null;
+    const signature = `${base.width}x${base.height}|${ops
+      .slice(0, selected)
+      .map((op) => JSON.stringify(op))
+      .join("|")}`;
+    if (curveHistRef.current.key === signature) return curveHistRef.current.value;
+    let value: Histogram | null = null;
+    try {
+      const input = selected === 0 ? base : applyOps(base, ops.slice(0, selected), rasterize);
+      value = histogramPixels(input);
+    } catch {
+      value = null;
+    }
+    curveHistRef.current = { key: signature, value };
+    return value;
+  }, [base, ops, rasterize, selected, selectedOp]);
+
   const inspector = useMemo(() => {
     if (!selectedOp || !base) return null;
     switch (selectedOp.kind) {
@@ -690,6 +725,10 @@ export default function ElysianStudioView() {
             )}
           </>
         );
+      case "curves":
+        // The curve is edited on its own workbench under the stage, where the
+        // plot has room to be precise. The inspector keeps the layer actions.
+        return <p className="kx-card-sub">{t("elysian.curves.inInspector")}</p>;
       case "text":
         return (
           <>
@@ -1124,6 +1163,17 @@ export default function ElysianStudioView() {
                   </span>
                 )}
               </div>
+
+              {selectedOp && selectedOp.kind === "curves" && (
+                <CurveWorkbench
+                  channel={selectedOp.channel}
+                  points={selectedOp.points}
+                  histogram={curvesHistogram}
+                  onChannel={(value: CurveChannel) => updateSelected({ channel: value })}
+                  onPoints={(value) => updateSelected({ points: value })}
+                  t={t}
+                />
+              )}
 
               <div className="elys-actions">
                 <button type="button" className="kx-btn kx-btn-primary" onClick={undo} disabled={!past.length || busy}>

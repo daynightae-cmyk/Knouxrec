@@ -3391,9 +3391,236 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
   box-shadow: 0 0 0 1px var(--kx-accent-line);
 }
 
+/* ---------- tone curve workbench ---------- */
+
+.elys-curves {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.elys-curves-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.elys-curves-head .kx-segmented {
+  flex-wrap: wrap;
+}
+
+.elys-curves-head .kx-segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.elys-curves-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  flex: none;
+}
+
+.elys-curves-body {
+  display: grid;
+  grid-template-columns: minmax(190px, 268px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.elys-curves-plot {
+  position: relative;
+  direction: ltr;
+}
+
+.elys-curves-svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  touch-action: none;
+  border: 1px solid var(--kx-border-strong);
+  border-radius: var(--kx-radius-xs);
+  background: linear-gradient(180deg, rgba(6, 6, 12, 0.94), rgba(14, 14, 22, 0.88));
+}
+
+.elys-curves-grid line {
+  stroke: rgba(255, 255, 255, 0.09);
+  stroke-width: 0.6;
+}
+
+.elys-curves-diagonal {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-dasharray: 4 5;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.elys-curves-hist {
+  opacity: 0.28;
+}
+
+.elys-curves-line {
+  fill: none;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+}
+
+.elys-curves-handle {
+  fill: var(--kx-elev-2);
+  stroke: var(--kx-text-soft);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+
+.elys-curves-handle.is-active {
+  fill: var(--kx-accent);
+  stroke: #ffffff;
+}
+
+.elys-curves-handle:focus-visible {
+  outline: none;
+  stroke: var(--kx-accent);
+  stroke-width: 3;
+}
+
+.elys-curves-axes {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+  direction: ltr;
+}
+
+.elys-curves-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.elys-curves-shapes {
+  flex-wrap: wrap;
+}
+
+.elys-curves-readout {
+  margin: 0;
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-sm);
+  letter-spacing: 0.02em;
+  direction: ltr;
+  text-align: start;
+}
+
+.elys-curves-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+  margin: 0;
+  direction: ltr;
+}
+
+.elys-curves-stats > div {
+  padding: 6px 8px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-bg-soft);
+}
+
+.elys-curves-stats dt {
+  font-size: var(--kx-text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kx-text-faint);
+}
+
+.elys-curves-stats dd {
+  margin: 2px 0 0;
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-md);
+}
+
+.elys-curves-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 184px;
+  overflow: auto;
+  direction: ltr;
+}
+
+.elys-curves-points li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.elys-curves-row-no {
+  width: 18px;
+  flex: none;
+  text-align: center;
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+}
+
+.elys-curves-num {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+}
+
+.elys-curves-num input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-bg-soft);
+  color: var(--kx-text);
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-sm);
+}
+
+.elys-curves-num input:focus-visible {
+  outline: none;
+  border-color: var(--kx-accent-line);
+}
+
+.elys-curves-remove {
+  flex: none;
+}
+
 @media (max-width: 1280px) {
   .elys-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .elys-curves-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .elys-curves-svg {
+    max-width: 320px;
   }
 
   .elys-browser,

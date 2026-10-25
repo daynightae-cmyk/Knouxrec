@@ -1,6 +1,6 @@
 # KNOuX REC — complete service catalog
 
-Date: 2026-10-24 · Branch `feat/sovereign-2026-10-24` · Baseline `425dc23`
+Date: 2026-10-25 · Branch `feat/services-2026-10-25` · Baseline `1f8ca2d`
 
 This is the product inventory behind every hub. It records what genuinely
 exists, what is a real processor away, and what needs weights, native engines
@@ -12,13 +12,13 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 
 | Registry | File | What it drives |
 | --- | --- | --- |
-| Route capabilities | `src/app/capabilities.ts` | 16 routes, honest state, evidence strings, sidebar indicators |
+| Route capabilities | `src/app/capabilities.ts` | 18 routes, honest state, evidence strings, sidebar indicators |
 | Media tools | `src/services/mediaTools.ts` + `mediaJobs.ts` | Real local processors with validation, cancellation, verification |
 | AI catalog | `src/data/aiCatalog.ts` | 38 canonical tasks (15 deterministic, 23 model-gated) |
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
-| Service registry | `src/data/serviceRegistry.ts` | 121 entries across 17 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
+| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 18 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
 | Workflow chains | `src/services/workflowChains.ts` | Four named chains that sequence the existing processors; no chain owns pixel or encoder math of its own |
 
 ## HUB 01 — Dashboard / Command Center
@@ -30,7 +30,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Capture screenshot | LOCAL | VERIFIED | Canvas capture, PNG/JPEG/WebP |
 | Audio recording | LOCAL | PARTIAL | Microphone path exists inside recordings; standalone audio recorder is NOT-IMPLEMENTED |
 | Recent media, storage, jobs, model readiness | LOCAL | VERIFIED | Real IndexedDB/registry data |
-| Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (121 entries) by English label, Arabic label, hub, mode and blocker |
+| Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (123 entries) by English label, Arabic label, hub, mode and blocker |
 | One-click workflows | LOCAL | VERIFIED — four chains on the Dashboard, 30 checks in `scripts/workflow-smoke.mjs` |
 
 ## HUB 02 — Recording Studio
@@ -136,19 +136,21 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Non-destructive layer stack: add, select, reorder, remove, history replay, undo/redo, clear | LOCAL | VERIFIED (51 browser checks + 26 packaged checks) |
+| Non-destructive layer stack: add, select, reorder, remove, history replay, undo/redo, clear | LOCAL | VERIFIED (70 browser checks + 26 packaged checks) |
 | Effect browser with per-card previews rendered from the working image | LOCAL | VERIFIED (unique genuine thumbnails) |
 | Crop (drag selection on the canvas), resize, rotate to any angle, horizontal/vertical flip | LOCAL | VERIFIED |
-| Exposure, brightness, contrast, gamma, vignette | LOCAL | VERIFIED (29 numeric unit tests on the pipeline) |
+| Exposure, brightness, contrast, gamma, vignette | LOCAL | VERIFIED (43 numeric unit tests on the pipeline) |
 | Saturation, temperature | LOCAL | VERIFIED |
+| Tone curves: monotone 256-entry transfer tables per channel, draggable and typeable control points, keyboard nudging, preset shapes, auto levels from the measured range | LOCAL | VERIFIED (curve table maths unit-tested; browser drag, type, channel, auto and no-op paths asserted) |
+| Histogram of the pixels entering a layer: per-channel and Rec.601 luma bins, mean, shadow/highlight clip fractions, measured tonal range | LOCAL | VERIFIED (transparent pixels excluded; large images sampled with a bounded stride) |
 | Blur, unsharp sharpen, pixelate | LOCAL | VERIFIED |
 | Border, text, tiled watermark (real glyph rasterisation) | LOCAL | VERIFIED |
-| Eight presets composed from the same operations, editable as layers | LOCAL | VERIFIED (Noir measured as genuinely desaturated) |
+| Ten presets composed from the same operations, editable as layers | LOCAL | VERIFIED (Noir measured as genuinely desaturated; two presets are built from real curve layers) |
 | Split compare, hold-to-peek original, zoom and pan stage | LOCAL | VERIFIED |
 | Output dock: PNG/JPEG/WebP, quality, export scale, measured byte size | LOCAL | VERIFIED |
 | Save to IndexedDB library with independent decode and pixel-identical reopen | LOCAL | VERIFIED |
 | Neural retouch, background removal, super resolution, style transfer, auto composition, generative fill | MODEL-LOCAL / ONLINE | BLOCKED — listed with the missing artefact, no preview, no control |
-| Curves/histogram, layer masks, brush-local edits | LOCAL | NOT-IMPLEMENTED |
+| Layer masks, brush-local edits, healing | LOCAL | NOT-IMPLEMENTED — needs a paint surface and a mask channel in the pipeline |
 
 ## HUB 10 — Body Editor
 

@@ -8,7 +8,7 @@
  * never given a fake preview.
  */
 
-import type { Op } from "./imageOps";
+import type { CurvePoint, Op } from "./imageOps";
 
 export type EffectCategory = "geometry" | "light" | "colour" | "detail" | "marks";
 
@@ -42,6 +42,70 @@ const slider = (
   max: number,
   step = 1,
 ) => ({ field, labelKey, min, max, step });
+
+/**
+ * Curve shapes are literal transfer functions, not looks baked into a file.
+ * The card preview, the workbench and the saved layer all read the same
+ * points, so what the user drags is what the pixels do.
+ */
+export type CurveShape = {
+  id: string;
+  labelKey: string;
+  points: CurvePoint[];
+};
+
+/** The curve a new layer starts with: a gentle S, so it visibly does work. */
+export const DEFAULT_CURVE_POINTS: CurvePoint[] = [
+  { input: 0, output: 0 },
+  { input: 64, output: 52 },
+  { input: 128, output: 134 },
+  { input: 192, output: 208 },
+  { input: 255, output: 255 },
+];
+
+export const CURVE_SHAPES: CurveShape[] = [
+  {
+    id: "linear",
+    labelKey: "elysian.curve.linear",
+    points: [
+      { input: 0, output: 0 },
+      { input: 255, output: 255 },
+    ],
+  },
+  {
+    id: "contrast",
+    labelKey: "elysian.curve.contrast",
+    points: [
+      { input: 0, output: 0 },
+      { input: 64, output: 48 },
+      { input: 128, output: 134 },
+      { input: 192, output: 212 },
+      { input: 255, output: 255 },
+    ],
+  },
+  {
+    id: "matte",
+    labelKey: "elysian.curve.matte",
+    points: [
+      { input: 0, output: 34 },
+      { input: 64, output: 74 },
+      { input: 128, output: 138 },
+      { input: 192, output: 194 },
+      { input: 255, output: 231 },
+    ],
+  },
+  {
+    id: "open",
+    labelKey: "elysian.curve.open",
+    points: [
+      { input: 0, output: 0 },
+      { input: 64, output: 86 },
+      { input: 128, output: 162 },
+      { input: 192, output: 216 },
+      { input: 255, output: 255 },
+    ],
+  },
+];
 
 export const EFFECTS: EffectDefinition[] = [
   /* geometry */
@@ -90,6 +154,13 @@ export const EFFECTS: EffectDefinition[] = [
   },
 
   /* light */
+  {
+    id: "curves",
+    labelKey: "elysian.effect.curves",
+    category: "light",
+    op: { kind: "curves", channel: "rgb", points: DEFAULT_CURVE_POINTS },
+    controls: [],
+  },
   {
     id: "exposure",
     labelKey: "elysian.effect.exposure",
@@ -320,6 +391,41 @@ export const PRESETS: PresetDefinition[] = [
         weight: "600",
         shadow: false,
       },
+    ],
+  },
+  {
+    id: "mattefilm",
+    labelKey: "elysian.preset.mattefilm",
+    ops: [
+      { kind: "curves", channel: "rgb", points: CURVE_SHAPES[2].points },
+      { kind: "saturation", amount: -16 },
+      { kind: "temperature", amount: -8 },
+    ],
+  },
+  {
+    id: "crossprocess",
+    labelKey: "elysian.preset.crossprocess",
+    ops: [
+      { kind: "curves", channel: "rgb", points: CURVE_SHAPES[1].points },
+      {
+        kind: "curves",
+        channel: "r",
+        points: [
+          { input: 0, output: 18 },
+          { input: 128, output: 118 },
+          { input: 255, output: 248 },
+        ],
+      },
+      {
+        kind: "curves",
+        channel: "b",
+        points: [
+          { input: 0, output: 30 },
+          { input: 128, output: 150 },
+          { input: 255, output: 255 },
+        ],
+      },
+      { kind: "saturation", amount: 22 },
     ],
   },
 ];
