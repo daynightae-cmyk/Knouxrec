@@ -1,99 +1,55 @@
-# KNOuX REC — review plan for the next pull request
+# KNOuX REC — review plan for `feat/services-2026-10-25`
 
-Date: 2026-10-24 · Branch `feat/sovereign-2026-10-24`
+## Scope of this branch
 
-## Why this document exists
+Every service the product claims to offer that was still a gap became a real
+workspace: tone curves, mesh warp, microphone-only recording, scheduled start,
+hotkey remapping, mask selection and the proportion mirror — plus the capture
+and pipeline fixes those surfaced. The per-slice evidence lives in
+`docs/STATUS_2026-10-25_SERVICES.md`; the per-hub inventory lives in
+`docs/COMPLETE_SERVICE_CATALOG.md`.
 
-PR #1 was **merged**, not left as a draft. Remote `main` moved from `3619910`
-to `6fd62a2` (`Merge pull request #1 from …/feat/sovereign-2026-10-24`). The
-previous plan is therefore obsolete and the branch must be re-based in scope
-against the real remote state, not against what was written earlier today.
+## Commits
 
-## Verified Git state at the time of writing
+`git log --oneline b515dbf..HEAD` — 19 commits, grouped as:
 
-| Item | Value |
-| --- | --- |
-| Local branch | `feat/sovereign-2026-10-24` |
-| Local HEAD | `c5000bb` |
-| `origin/main` after `git fetch --prune` | `6fd62a2` |
-| Commits ahead of `origin/main` | 13 |
-| Commits behind `origin/main` | 1 (the merge commit itself) |
-| Working tree | only the documentation and counter changes of this plan |
-| Push state | **nothing pushed in this session; no merge, no deploy, no release** |
+1. tooling and library work carried from the previous checkpoint
+   (`35aa1b5`, `f1812c0`, `1f8ca2d`),
+2. `5bed19b` tone curves, `8327c49` mesh warp,
+3. `4bae5d7`/`84a3398`/`634548` capture and trim robustness,
+4. `213cdaa`/`fd8bb0e` microphone recording and scheduled start,
+5. `4b62215` hotkey remapping,
+6. `4ab366d` mask selection,
+7. `31c42cb` proportion mirror (and the removal of the dead
+   `UnavailableView`),
+8. `a15794f`/`b09c971`/`e759608`/`f792103` harness waits, line endings and a
+   layout fix.
 
-The nine commits that existed when the milestone was issued are all still
-present and unmodified; four were added on top of them. Nothing was rebased,
-squashed, reordered or dropped.
+## What a reviewer should look at first
 
+- `src/services/imageOps.ts` — the curves LUT and the purity fix; the composite
+  steps now copy before writing.
+- `src/services/geometryOps.ts` — the displacement sign convention and the
+  clamp at the frame edge.
+- `src/services/recordingEngine.ts` — the audio-only branch, the analyser
+  window, and the two trim strategies. The trim is the one known flaky path.
+- `src/services/hotkeys.ts` — `sanitiseHotkeys`, which repairs a hand-edited
+  settings file rather than trusting it.
+- `src/views/BodyProportionsView.tsx` — the claim this screen makes and the
+  claim it refuses to make.
+
+## Verification expected before merge
+
+```bash
+npm run verify      # green at this tip: 227 unit tests, i18n 24 views
+npm run smoke:all   # see the status document: not green as a chain
 ```
-c5000bb chore(style): restore LF line endings on the files touched this milestone
-c10264c feat(integration): cross-hub handoff with provenance chains
-8efa0ad feat(batch): bounded batch queue over the already-verified processors
-2cd8849 feat(audio): local audio studio on real sample math
-87cc8f6 docs(status): restore the file's original LF line endings
-a9ec1fb docs(status): record the product implementation batch with its evidence
-b6cc162 feat(workflows): four real workflow chains on the dashboard
-fa1f710 feat(discover): canonical service registry with unified discovery
-077ddfe feat(elysian): full creative image studio on a real pixel pipeline
-e413d1d feat(morphcore): real local geometry studio with pixel-verified transforms
-0d04587 feat(hubs): real Screenshot Studio editor, best-frame template thumbnails and weight validation
-4963594 feat(product): complete service catalog, three new image processors and a visual template gallery
-425dc23 feat(ui): adopt accessible tooltips, resizable studio panels, compare, zoom and waveforms
-```
 
-## Proposed next PR
+The batch is mergeable with the trim limitation recorded. It is not presented
+as production-ready: the packaged binary predates it, and the real-time capture
+paths remain the least reliable part of the product.
 
-| Field | Proposal |
-| --- | --- |
-| Branch | push the existing `feat/sovereign-2026-10-24` to `origin` (fast-forward; no force) |
-| Base | `main` at `6fd62a2` |
-| Title | `feat: KNOuX REC — creative studios, service discovery and real workflow chains` |
-| State | **Draft** until review is requested explicitly |
-| Merge | not performed by me; requires a decision from the director |
+## Not in this branch
 
-Before pushing, the plan requires: `git fetch` and confirmation that
-`origin/main` has not moved again; a review of every file in the diff for
-secrets, private media, credentials and generated binaries; and a green
-`npm run verify` plus a full sequential `npm run smoke:all` whose exit code and
-assertion totals are recorded from the reports, not from console lines.
-
-## What the PR would contain
-
-**Creative studios.** Elysian Canvas is now a full image workspace on a pure
-RGBA pipeline with a non-destructive layer stack, an effect browser whose
-thumbnails are produced by running those operations on the user's own image,
-split compare, zoom and pan, and an output dock that measures real encoded
-bytes. MorphCore is a manual geometry studio with genuine resampling. Audio
-Studio is a real local audio workspace: waveform, selection, playback, trim,
-split, silence detection and cutting, gain, peak normalisation, fades, reverse,
-channel conversion and browser biquad filters.
-
-**Scale and structure.** A canonical service registry of 121 entries across 17
-hubs with execution mode, honest status, destination route and missing
-dependency, surfaced through a searchable Discover section. Four named workflow
-chains that sequence already-verified processors. A bounded batch queue with
-per-file progress, failure isolation, cancellation and output verification.
-
-**Integration.** A cross-hub handoff so a stored file opens directly in another
-workspace without re-importing, with a provenance chain recorded on every
-derived save and originals left byte-identical.
-
-**What it does not deliver.** No installer build (electron-builder's final
-rename is blocked by an external file lock on this machine). No model-backed
-feature is enabled: neural retouch, background removal, super resolution, style
-transfer, auto composition, generative fill, body-aware deformation, speech to
-text, OCR and Arabic model tasks all remain blocked with the missing artefact
-named. MP3 and AAC audio encoding remain unavailable and the controls say so.
-
-## Verified result at merge time
-
-`npm run smoke:all` completed with **exit code 0**: 21 smoke commands, 21 reports
-on disk, **765 assertions and 765 passing, 0 failing**, computed by
-`node scripts/count-smoke.mjs` (which exited 0 as well). Unit tests: 12 files,
-148 tests. CI on the head: 4/4.
-
-## Verification reporting rule
-
-The headline numbers come from `node scripts/count-smoke.mjs`, which reads the
-report each smoke command writes. See `docs/VERIFICATION_METHOD.md` for the
-counting definition. Console `PASS` lines are a cross-check only.
+No packaging, no installer, no weights, no online providers. The 11 BLOCKED
+services stay blocked with their missing artefact named.

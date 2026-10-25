@@ -55,6 +55,9 @@ const REPORT_CANDIDATES = [
   ["smoke:audio-studio", "artifacts/evidence/audio-studio/report.json"],
   ["smoke:batch", "artifacts/evidence/batch/report.json"],
   ["smoke:handoff", "artifacts/evidence/handoff/report.json"],
+  ["smoke:audio-recording", "artifacts/evidence/audio-recording/report.json"],
+  ["smoke:hotkeys", "artifacts/evidence/hotkeys/report.json"],
+  ["smoke:proportions", "artifacts/evidence/proportions/report.json"],
 ];
 
 const byCommand = new Map(REPORT_CANDIDATES);

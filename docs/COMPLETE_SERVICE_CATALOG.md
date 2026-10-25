@@ -18,7 +18,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
-| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 18 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
+| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 17 hubs with execution mode, honest status, destination route and missing dependency — 104 VERIFIED, 5 PARTIAL, 3 NOT-IMPLEMENTED, 11 BLOCKED; drives the Discover section and is audited by `serviceRegistry.test.ts` |
 | Workflow chains | `src/services/workflowChains.ts` | Four named chains that sequence the existing processors; no chain owns pixel or encoder math of its own |
 
 ## HUB 01 — Dashboard / Command Center
@@ -28,7 +28,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Start screen recording | LOCAL | VERIFIED | Studio + hotkeys + TopBar |
 | Start window/camera recording | LOCAL | VERIFIED | Real pickers; camera via getUserMedia |
 | Capture screenshot | LOCAL | VERIFIED | Canvas capture, PNG/JPEG/WebP |
-| Audio recording | LOCAL | VERIFIED | Standalone microphone take from the dashboard quick action (Voice memo) — real getDisplayMedia-free `getUserMedia`, live dBFS meter, saved as an `audio/*` library item; 29 checks in `scripts/audio-recording-smoke.mjs` |
+| Audio recording | LOCAL | VERIFIED | Standalone microphone take from the dashboard quick action (Voice memo) — real getDisplayMedia-free `getUserMedia`, live dBFS meter, saved as an `audio/*` library item; 35 checks in `scripts/audio-recording-smoke.mjs` |
 | Recent media, storage, jobs, model readiness | LOCAL | VERIFIED | Real IndexedDB/registry data |
 | Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (123 entries) by English label, Arabic label, hub, mode and blocker |
 | One-click workflows | LOCAL | VERIFIED — four chains on the Dashboard, 30 checks in `scripts/workflow-smoke.mjs` |
