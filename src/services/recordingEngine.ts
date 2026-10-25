@@ -748,14 +748,13 @@ export async function trimMedia(
 ): Promise<Blob> {
   const requested = Math.max(0.1, end - start);
   let lastError: Error | null = null;
-  // The second attempt is not the same attempt twice. A capture session that
-  // starves while driven by animation frames is retried with a timer-paced
-  // painter and a short pre-roll, which is the condition it starved under.
-  for (let attempt = 1; attempt <= 2; attempt += 1) {
+  // Two structurally different encoders, in order of preference. The canvas
+  // bridge bounds the working resolution; if its capture session delivers
+  // nothing, the element's own stream is tried — the same mechanism that made
+  // the source file in the first place, so it cannot be starved of surfaces.
+  for (const strategy of ["canvas", "element"] as const) {
     try {
-      const clip = await trimMediaOnce(source, start, end, onProgress, {
-        timerPaced: attempt > 1,
-      });
+      const clip = await trimMediaOnce(source, start, end, onProgress, { strategy });
       const measured = await measureMediaDuration(clip);
       // A session that started before the first frame was painted produces a
       // clip materially shorter than the range asked for. That is retried
@@ -800,8 +799,9 @@ async function trimMediaOnce(
   start: number,
   end: number,
   onProgress: ((fraction: number) => void) | undefined,
-  options: { timerPaced?: boolean } = {},
+  options: { strategy?: "canvas" | "element" } = {},
 ): Promise<Blob> {
+  const strategy = options.strategy ?? "canvas";
   if (!(end > start)) throw new Error("The trim range is empty.");
   const isAudioSource = source.type.startsWith("audio");
   const media = document.createElement(isAudioSource ? "audio" : "video");
@@ -862,7 +862,7 @@ async function trimMediaOnce(
     let canvas: HTMLCanvasElement | null = null;
     let context: CanvasRenderingContext2D | null = null;
 
-    if (hasPicture) {
+    if (hasPicture && strategy === "canvas") {
       canvas = document.createElement("canvas");
       const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
       canvas.width = Math.max(2, Math.round(video.videoWidth * scale));
@@ -906,24 +906,20 @@ async function trimMediaOnce(
     });
 
     recorder.start(250);
-    // A pre-roll on the retry: the compositor needs a painted frame before it
-    // starts sampling, and starting playback in the same task can mean the
-    // first sample never happens.
-    if (options.timerPaced) {
-      await new Promise((resolve) => window.setTimeout(resolve, 250));
-    }
+    // A short pre-roll so a painted frame exists before sampling begins.
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
     await media.play();
     onProgress?.(0);
 
     let raf = 0;
-    let timer = 0;
+    let elementTimer = 0;
     let stopped = false;
     let painted = 0;
     const stopCapture = () => {
       if (stopped) return;
       stopped = true;
       if (raf) window.cancelAnimationFrame(raf);
-      if (timer) window.clearInterval(timer);
+      if (elementTimer) window.clearInterval(elementTimer);
       media.pause();
       if (recorder.state !== "inactive") recorder.stop();
     };
@@ -949,29 +945,16 @@ async function trimMediaOnce(
         }
         raf = window.requestAnimationFrame(paint);
       };
-      if (options.timerPaced) {
-        // Twenty frames a second driven by a timer, not by animation frames:
-        // a starved page still paints, so the sampler always has a fresh
-        // surface to read.
-        const tick = () => {
-          if (stopped) return;
-          drawFrame();
-          if (media.currentTime >= end || media.ended) stopCapture();
-        };
-        timer = window.setInterval(tick, 50);
-      } else {
-        paint();
-      }
+      paint();
     } else {
-      const tick = window.setInterval(report, 150);
-      media.addEventListener("ended", () => {
-        window.clearInterval(tick);
-        stopCapture();
-      });
-      window.setTimeout(() => {
-        window.clearInterval(tick);
-        stopCapture();
-      }, duration * 1000 + 2000);
+      // The element's own stream: there is no canvas to paint, so the only job
+      // here is to stop when playback reaches the end of the requested range.
+      elementTimer = window.setInterval(() => {
+        report();
+        if (media.currentTime >= end || media.ended) stopCapture();
+      }, 60);
+      media.addEventListener("ended", () => stopCapture());
+      window.setTimeout(() => stopCapture(), (duration + 6) * 1000);
     }
 
     // Watchdog: a stalled decoder must not hang the job forever.
