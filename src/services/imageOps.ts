@@ -144,7 +144,11 @@ export function cropPixels(source: Pixels, x: number, y: number, width: number, 
   return { width: outWidth, height: outHeight, data: out };
 }
 
-function sampleBilinear(source: Pixels, fx: number, fy: number): [number, number, number, number] {
+export function sampleBilinear(
+  source: Pixels,
+  fx: number,
+  fy: number,
+): [number, number, number, number] {
   const x = Math.max(0, Math.min(source.width - 1, fx));
   const y = Math.max(0, Math.min(source.height - 1, fy));
   const x0 = Math.floor(x);

@@ -276,7 +276,7 @@ const STRINGS: Dictionary = {
 
   // Geometry studio
   "geo.description": {
-    en: "Manual geometric image transformations with real resampling: independent stretch, free rotation, pinch/bulge, trapezoid perspective and a sine warp, plus history and export.",
+    en: "Manual geometric image transformations with real resampling: independent stretch, free rotation, pinch/bulge, trapezoid perspective, a sine warp and a draggable mesh lattice, plus history and export.",
     ar: "تحويلات هندسية يدوية للصور بإعادة أخذ عينات حقيقية: تمدد مستقل، تدوير حر، انقباض/انتفاخ، منظور شبه منحرف، وتمويج جيبي، مع السجل والتصدير.",
   },
   "geo.honestTitle": { en: "Manual geometry, not AI body reconstruction.", ar: "هندسة يدوية، وليست إعادة بناء جسم بالذكاء الاصطناعي." },
@@ -335,6 +335,17 @@ const STRINGS: Dictionary = {
   "geo.bottomWidth": { en: "Bottom width", ar: "العرض السفلي" },
   "geo.amplitude": { en: "Amplitude", ar: "السعة" },
   "geo.frequency": { en: "Frequency", ar: "التردد" },
+  "geo.mode.mesh": { en: "Mesh warp", ar: "انحناء شبكي" },
+  "geo.meshColumns": { en: "Grid across", ar: "أعمدة الشبكة" },
+  "geo.meshRows": { en: "Grid down", ar: "صفوف الشبكة" },
+  "geo.meshFlatten": { en: "Flatten grid", ar: "تسوية الشبكة" },
+  "geo.meshPull": { en: "Total pull", ar: "مجموع السحب" },
+  "geo.meshOverlay": { en: "Mesh control points", ar: "نقاط الشبكة" },
+  "geo.meshVertex": { en: "Point", ar: "نقطة" },
+  "geo.meshHint": {
+    en: "Drag any point to pull the image with it. The preview lightens while you drag and returns to full quality when you release.",
+    ar: "اسحب أي نقطة لتجرّ الصورة معها. تُخفَّف المعاينة أثناء السحب وتعود إلى كامل جودتها عند الإفراج.",
+  },
   "geo.apply": { en: "Apply transform", ar: "تطبيق التحويل" },
   "geo.reset": { en: "Reset all", ar: "إعادة الكل" },
   "geo.undo": { en: "Undo", ar: "تراجع" },

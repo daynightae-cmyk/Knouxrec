@@ -162,10 +162,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "morphCore",
     state: "PARTIAL",
     summary:
-      "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective and a sine warp, with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
+      "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective, a sine warp and a draggable mesh lattice (2×2 up to 6×6 per axis, keyboard-editable control points), with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
     requirements: ["An image to transform"],
     evidence:
-      "scripts/morphcore-smoke.mjs drives the studio in Chromium (51/51): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control.",
+      "src/services/geometryOps.ts holds the mesh as pure functions over RGBA bytes, covered by 11 unit tests (a flat lattice is byte-identical, a pulled vertex moves content with it and leaves a far column untouched, displacement stays local, border pulls survive a density change, alpha follows its pixels). scripts/morphcore-smoke.mjs drives the studio in Chromium (67/67): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, the mesh lattice drags under a real pointer and under arrow keys, flattening restores the exact source bytes and Apply bakes the warp, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control.",
     adult: true,
   },
   "audio-studio": {

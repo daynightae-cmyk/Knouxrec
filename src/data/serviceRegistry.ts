@@ -202,7 +202,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "mc-pinch", hub: "morphcore", labelEn: "Pinch and bulge", label: "انقباض وانتفاخ", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
   entry({ id: "mc-perspective", hub: "morphcore", labelEn: "Trapezoid perspective", label: "منظور شبه منحرف", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
   entry({ id: "mc-warp", hub: "morphcore", labelEn: "Sine wave warp", label: "تمويج جيبي", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
-  entry({ id: "mc-mesh", hub: "morphcore", labelEn: "Mesh warp with draggable points", label: "شبكة انحناء بنقاط قابلة للسحب", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A mesh solver and control-point overlay" }),
+  entry({ id: "mc-mesh", hub: "morphcore", labelEn: "Mesh warp with draggable points", label: "شبكة انحناء بنقاط قابلة للسحب", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
   entry({ id: "mc-body", hub: "morphcore", labelEn: "Body-aware deformation (legacy catalogue)", label: "تشويه واعٍ بالجسم", mode: "MODEL-LOCAL", status: "BLOCKED", route: "morphcore", needs: "Segmentation weights and a native morphology engine" }),
 
   /* ------------------------------------------------------------ elysian */

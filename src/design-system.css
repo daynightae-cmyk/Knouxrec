@@ -2901,6 +2901,51 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
   max-height: 60vh;
 }
 
+/* The mesh overlay has to sit exactly over the painted canvas, so the canvas
+   gets a shrink-wrapping box of its own instead of being positioned against
+   the whole stage. */
+.kx-geo-frame {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.kx-geo-mesh {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  overflow: visible;
+}
+
+.kx-geo-mesh-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.42);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.kx-geo-mesh-vertex {
+  fill: var(--kx-accent);
+  stroke: rgba(20, 19, 10, 0.9);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+
+.kx-geo-mesh-vertex.is-active {
+  fill: #ffffff;
+  stroke: var(--kx-accent);
+}
+
+.kx-geo-mesh-vertex:focus-visible {
+  outline: none;
+  stroke: var(--kx-cyan);
+  stroke-width: 2.4;
+}
+
 .kx-geo-original {
   position: absolute;
   inset: 0;

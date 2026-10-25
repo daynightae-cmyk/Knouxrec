@@ -121,7 +121,7 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Geometry studio: open image, live preview, apply, undo/redo, reset, compare, save, export | LOCAL | VERIFIED (51 checks in `scripts/morphcore-smoke.mjs`) |
+| Geometry studio: open image, live preview, apply, undo/redo, reset, compare, save, export | LOCAL | VERIFIED (67 checks in `scripts/morphcore-smoke.mjs`) |
 | Independent horizontal/vertical stretch with predicted source-coordinate mapping | LOCAL | VERIFIED |
 | Free rotation to any angle with horizontal/vertical mirror | LOCAL | VERIFIED |
 | Pinch / bulge with radius and centre control | LOCAL | VERIFIED (only pixels inside the declared radius change) |
@@ -130,7 +130,7 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 | 18+ age gate kept from the legacy route, session-scoped, nothing stored permanently | LOCAL | VERIFIED |
 | Preserved body-aware catalog (50 tools) shown separately with no run control | UNAVAILABLE | BLOCKED (no native morphology engine, no segmentation weights) |
 | Body-aware deformation, masking driven by anatomy | MODEL-LOCAL | BLOCKED (segmentation weights absent) |
-| Mesh warp with draggable control points | LOCAL | NOT-IMPLEMENTED (planned; the current transforms are parametric, not mesh-driven) |
+| Mesh warp with draggable control points (lattice 2×2 to 6×6, keyboard nudge, density change keeps the border pull, flatten restores the source bytes) | LOCAL | VERIFIED — `src/services/geometryOps.ts` inverts a bilinear displacement field over raw RGBA bytes; 11 unit tests plus a real pointer drag in the browser smoke. Sampling clamps at the frame, so a pull beyond the edge stretches border pixels instead of inventing detail |
 
 ## HUB 09 — Elysian Canvas
 
