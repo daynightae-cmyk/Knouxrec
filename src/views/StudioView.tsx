@@ -162,7 +162,7 @@ export default function StudioView({
                       t("studio.meterValue").replace("{dB}", dB).replace("{avg}", average),
                   }}
                 />
-                <div className="kx-preview-timestamp" dir="ltr">
+                <div className="kx-card-sub kx-mono" dir="ltr" style={{ marginTop: 2 }}>
                   {t("studio.audioSource")}
                 </div>
               </div>
