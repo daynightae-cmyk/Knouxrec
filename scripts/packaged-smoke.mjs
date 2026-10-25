@@ -308,20 +308,27 @@ async function runChecks(client) {
 
   for (const route of ROUTES) {
     await evaluate(client, `window.location.hash = "#/${route}"; true`);
-    await sleep(500);
-    const state = await evaluate(
-      client,
-      `(() => {
-        const heading = document.querySelector("h1, .kx-card-title");
-        return {
-          hash: window.location.hash,
-          heading: (heading?.textContent || "").trim(),
-          rootChildren: document.getElementById("root")?.childElementCount ?? 0,
-          errorBoundary: /This section failed to render/i.test(document.body.innerText || ""),
-          errorPage: /ERR_|refused to load|Application error/i.test(document.body.innerText || "")
-        };
-      })()`,
-    );
+    // The packaged renderer is slower than the dev build on a loaded machine,
+    // and a fixed sleep reported an empty heading for a route that was merely
+    // still rendering. Poll for the state the check is about.
+    let state = { hash: "", heading: "", rootChildren: 0, errorBoundary: false, errorPage: false };
+    for (let attempt = 0; attempt < 24; attempt += 1) {
+      await sleep(250);
+      state = await evaluate(
+        client,
+        `(() => {
+          const heading = document.querySelector("h1, .kx-card-title");
+          return {
+            hash: window.location.hash,
+            heading: (heading?.textContent || "").trim(),
+            rootChildren: document.getElementById("root")?.childElementCount ?? 0,
+            errorBoundary: /This section failed to render/i.test(document.body.innerText || ""),
+            errorPage: /ERR_|refused to load|Application error/i.test(document.body.innerText || "")
+          };
+        })()`,
+      );
+      if (state.rootChildren > 0 && state.heading) break;
+    }
     check(`route ${route} renders`, state.rootChildren > 0 && Boolean(state.heading), state);
     check(`route ${route} has no error boundary`, !state.errorBoundary, state.heading);
     check(`route ${route} is not an error page`, !state.errorPage, state.heading);
@@ -365,7 +372,17 @@ async function runChecks(client) {
   check("packaged app logs no renderer console errors", result.consoleErrors.length === 0, result.consoleErrors);
   check("packaged app throws no uncaught errors", result.pageErrors.length === 0, result.pageErrors);
 
-  const shot = await client.send("Page.captureScreenshot", { format: "png" });
+  // A screenshot of a busy renderer can time out; one retry is enough to tell
+  // a slow frame from a broken one, and a second failure still fails the run.
+  let shot = null;
+  for (let attempt = 1; attempt <= 2 && !shot; attempt += 1) {
+    try {
+      shot = await client.send("Page.captureScreenshot", { format: "png" }, 30000);
+    } catch (error) {
+      if (attempt === 2) throw error;
+      await sleep(800);
+    }
+  }
   fs.writeFileSync(
     path.join(evidenceDir, "40-packaged-dashboard.png"),
     Buffer.from(shot.data, "base64"),

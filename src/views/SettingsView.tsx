@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useSettings } from "../state/SettingsContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useToast } from "../state/ToastContext";
@@ -6,13 +6,57 @@ import { translate } from "../i18n/translate";
 import { Icon } from "../app/icons";
 import { ConfirmDialog, SectionHeader, StatCard } from "./ui";
 import { formatBytes, formatDuration } from "../lib/format";
+import {
+  comboFromEvent,
+  comboParts,
+  DEFAULT_HOTKEYS,
+  findConflict,
+  HOTKEY_ACTIONS,
+  type HotkeyAction,
+} from "../services/hotkeys";
 
 export default function SettingsView() {
   const { settings, update, updateRecorder, reset } = useSettings();
   const { items } = useLibrary();
   const { push } = useToast();
-  const t = (key: string) => translate(settings.language, key);
+  const t = useCallback((key: string) => translate(settings.language, key), [settings.language]);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [capturing, setCapturing] = useState<HotkeyAction | null>(null);
+  const [conflict, setConflict] = useState<string | null>(null);
+
+  // While a shortcut is being recorded the listener owns the keyboard: it
+  // stops propagation so the very combination being entered cannot also fire
+  // its old action, and Escape is the only way out without a change.
+  useEffect(() => {
+    if (!capturing) return;
+    const handler = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.key === "Escape") {
+        setCapturing(null);
+        setConflict(null);
+        return;
+      }
+      const combo = comboFromEvent(event);
+      if (!combo) return;
+      const clash = findConflict(settings.hotkeys, combo, capturing);
+      if (clash) {
+        const label = HOTKEY_ACTIONS.find((entry) => entry.action === clash);
+        setConflict(
+          t("settings.hotkeyConflict")
+            .replace("{combo}", combo)
+            .replace("{action}", label ? t(label.labelKey) : clash),
+        );
+        return;
+      }
+      update({ hotkeys: { ...settings.hotkeys, [capturing]: combo } });
+      setCapturing(null);
+      setConflict(null);
+      push("success", t("settings.hotkeySaved"), t("settings.hotkeySavedBody").replace("{combo}", combo));
+    };
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
+  }, [capturing, push, settings.hotkeys, t, update]);
 
   const totalBytes = items.reduce((sum, item) => sum + item.size, 0);
   const totalSeconds = items
@@ -262,6 +306,75 @@ export default function SettingsView() {
                 onChange={(event) => update({ screenshotQuality: Number(event.target.value) })}
               />
             </label>
+          </div>
+        </div>
+
+        <div className="kx-card" data-hotkey-card>
+          <div className="kx-card-title">
+            <span>{t("settings.shortcuts")}</span>
+            <Icon name="hash" size={18} />
+          </div>
+          <p className="kx-card-sub">{t("settings.shortcutsNote")}</p>
+
+          <ul className="kx-hotkey-list">
+            {HOTKEY_ACTIONS.map(({ action, labelKey, hintKey }) => {
+              const parts = comboParts(settings.hotkeys[action] ?? "");
+              const recording = capturing === action;
+              return (
+                <li key={action} data-hotkey-row={action} data-combo={settings.hotkeys[action] ?? ""}>
+                  <span className="kx-hotkey-label">
+                    <strong>{t(labelKey)}</strong>
+                    <em>{t(hintKey)}</em>
+                  </span>
+                  <span className="kx-hotkey-keys" dir="ltr" data-hotkey-value={action}>
+                    {recording ? (
+                      <span className="kx-hotkey-capture">{t("settings.hotkeyPress")}</span>
+                    ) : parts.length ? (
+                      parts.map((part) => <kbd key={`${action}-${part}`}>{part}</kbd>)
+                    ) : (
+                      <span className="kx-muted">{t("settings.hotkeyNone")}</span>
+                    )}
+                  </span>
+                  <button
+                    type="button"
+                    className="kx-btn kx-btn-sm"
+                    data-hotkey-edit={action}
+                    aria-pressed={recording}
+                    onClick={() => {
+                      setCapturing(recording ? null : action);
+                      setConflict(null);
+                    }}
+                  >
+                    {recording ? t("settings.hotkeyCancel") : t("settings.hotkeyChange")}
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+
+          {conflict && (
+            <div className="kx-notice" data-tone="danger" data-hotkey-conflict role="alert">
+              <Icon name="alert" size={16} />
+              <div>{conflict}</div>
+            </div>
+          )}
+
+          <div className="kx-row" style={{ gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm"
+              data-hotkey-reset
+              onClick={() => {
+                update({ hotkeys: { ...DEFAULT_HOTKEYS } });
+                setConflict(null);
+                setCapturing(null);
+                push("success", t("settings.hotkeyReset"), t("settings.hotkeyResetBody"));
+              }}
+            >
+              <Icon name="refresh" size={13} />
+              {t("settings.hotkeyReset")}
+            </button>
+            <span className="kx-card-sub">{t("settings.hotkeyEscape")}</span>
           </div>
         </div>
 

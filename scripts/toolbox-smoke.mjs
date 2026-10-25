@@ -856,9 +856,9 @@ try {
     })),
   );
   report.catalog = catalog;
-  check("toolbox catalog lists eleven tools", catalog.length === 11, catalog.length);
+  check("toolbox catalog lists thirteen tools", catalog.length === 13, catalog.length);
   check(
-    "catalog shows the eleven documented tools",
+    "catalog shows the thirteen documented tools",
     [
       "Image Resizer",
       "Image Filters",
@@ -866,6 +866,8 @@ try {
       "Image Rotator",
       "Image Cropper",
       "Image Pixelator",
+      "Image compressor",
+      "Frame sheet",
       "Video Thumbnail",
       "Audio Visualizer",
       "Text Image Generator",
@@ -1186,6 +1188,90 @@ try {
     });
     report.tools.push({ tool: "image-pixelate", preview, meta, persisted, exported });
     await shot(page, "05d-pixelate-result");
+  }
+
+  /* ------------------------------------------------------- Image Compressor */
+  {
+    await openTool(page, "Image compressor");
+    await assertWrongMime(page, "Image compressor");
+    await uploadFile(page, SOURCE_PNG);
+    await waitForSourceImage(page);
+    await clickButton(page, "Run");
+    await waitForResult(page);
+    const preview = await inspectPreview(page);
+    const meta = await resultMeta(page);
+    const chips = (meta?.chips ?? []).join(" | ");
+    const savedPercent = Number((chips.match(/savedPercent\s+(-?[\d.]+)/) ?? [])[1] ?? 0);
+    const reportedOutput = Number((chips.match(/outputBytes\s+(\d+)/) ?? [])[1] ?? -1);
+    check(
+      "image-compress: the frame is kept and the result is a JPEG",
+      preview.width === 640 && preview.height === 480 && /image\/jpeg/.test(meta?.summary ?? ""),
+      { width: preview.width, height: preview.height, summary: meta?.summary },
+    );
+    check(
+      "image-compress: the saving is measured from the real source bytes",
+      savedPercent > 0 && reportedOutput > 0 && reportedOutput < 104117,
+      { savedPercent, reportedOutput, chips },
+    );
+    await saveToLibrary(page);
+    const persisted = await readPersisted(page, "compressed");
+    const exported = await exportAndVerify(page, persisted);
+    verifyArtifact({
+      label: "image-compress",
+      preview,
+      meta,
+      persisted,
+      exported,
+      expectedWidth: 640,
+      expectedHeight: 480,
+      expectedMime: "image/jpeg",
+      expectedMagic: "ff d8",
+      expectedExtension: "jpg",
+    });
+    report.tools.push({ tool: "image-compress", preview, meta, persisted, exported });
+    await shot(page, "05e-compress-result");
+  }
+
+  /* ----------------------------------------------------------- Frame Sheet */
+  {
+    await openTool(page, "Frame sheet");
+    await assertWrongMime(page, "Frame sheet");
+    await uploadFile(page, VIDEO_FIXTURE);
+    await waitForSourceMedia(page, "video");
+    await clickButton(page, "Run");
+    await waitForResult(page);
+    const preview = await inspectPreview(page);
+    const meta = await resultMeta(page);
+    const sheetChips = (meta?.chips ?? []).join(" | ");
+    const sheetCount = Number((sheetChips.match(/count\s+(\d+)/) ?? [])[1] ?? 0);
+    const sheetDuration = Number((sheetChips.match(/duration\s+([\d.]+)/) ?? [])[1] ?? 0);
+    check(
+      "video-frame-sheet: the default 6 frames compose a 3x2 sheet",
+      preview.width === 992 && preview.height === 428 && /image\/png/.test(meta?.summary ?? ""),
+      { width: preview.width, height: preview.height, summary: meta?.summary },
+    );
+    check(
+      "video-frame-sheet: every tile is a sampled frame from a measured duration",
+      sheetCount === 6 && sheetDuration > 0,
+      { sheetCount, sheetDuration, sheetChips },
+    );
+    await saveToLibrary(page);
+    const persisted = await readPersisted(page, "sheet");
+    const exported = await exportAndVerify(page, persisted);
+    verifyArtifact({
+      label: "video-frame-sheet",
+      preview,
+      meta,
+      persisted,
+      exported,
+      expectedWidth: 992,
+      expectedHeight: 428,
+      expectedMime: "image/png",
+      expectedMagic: "89 50 4e 47",
+      expectedExtension: "png",
+    });
+    report.tools.push({ tool: "video-frame-sheet", preview, meta, persisted, exported });
+    await shot(page, "05f-frame-sheet");
   }
 
   /* -------------------------------------------------------- Video Thumbnail */

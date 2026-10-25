@@ -36,6 +36,22 @@ export type WatermarkOp = {
   color: string;
 };
 
+/** Which part of the signal a tone curve touches. */
+export type CurveChannel = "rgb" | "r" | "g" | "b";
+
+/**
+ * One control point of a tone curve, both axes in the 0–255 domain. The curve
+ * is a real transfer function: every input level maps through it to an output
+ * level, exactly like a curves adjustment in a raster editor.
+ */
+export type CurvePoint = { input: number; output: number };
+
+export type CurvesOp = {
+  kind: "curves";
+  channel: CurveChannel;
+  points: CurvePoint[];
+};
+
 export type Op =
   | { kind: "crop"; x: number; y: number; width: number; height: number }
   | { kind: "resize"; width: number; height: number }
@@ -52,6 +68,7 @@ export type Op =
   | { kind: "sharpen"; amount: number }
   | { kind: "pixelate"; blocks: number }
   | { kind: "border"; width: number; color: string; opacity: number }
+  | CurvesOp
   | TextOp
   | WatermarkOp;
 
@@ -78,6 +95,7 @@ export const OP_LABELS: Record<OpKind, string> = {
   sharpen: "Sharpen",
   pixelate: "Pixelate",
   border: "Border",
+  curves: "Curves",
   text: "Text",
   watermark: "Watermark",
 };
@@ -126,7 +144,11 @@ export function cropPixels(source: Pixels, x: number, y: number, width: number, 
   return { width: outWidth, height: outHeight, data: out };
 }
 
-function sampleBilinear(source: Pixels, fx: number, fy: number): [number, number, number, number] {
+export function sampleBilinear(
+  source: Pixels,
+  fx: number,
+  fy: number,
+): [number, number, number, number] {
   const x = Math.max(0, Math.min(source.width - 1, fx));
   const y = Math.max(0, Math.min(source.height - 1, fy));
   const x0 = Math.floor(x);
@@ -332,6 +354,258 @@ export function vignettePixels(source: Pixels, amount: number): Pixels {
 }
 
 /* ------------------------------------------------------------------ */
+/* Tone curves                                                        */
+/* ------------------------------------------------------------------ */
+
+export const IDENTITY_CURVE: CurvePoint[] = [
+  { input: 0, output: 0 },
+  { input: 255, output: 255 },
+];
+
+const clampLevel = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
+
+/**
+ * Sort, de-duplicate and clamp the control points. Two points on the same
+ * input level would make the transfer function undefined, so the earlier one
+ * is dropped and the last one the caller supplied wins.
+ */
+export function normaliseCurvePoints(points: CurvePoint[]): CurvePoint[] {
+  const sorted = points
+    .map((point) => ({ input: clampLevel(point.input), output: clampLevel(point.output) }))
+    .sort((a, b) => a.input - b.input);
+  const out: CurvePoint[] = [];
+  for (const point of sorted) {
+    const last = out[out.length - 1];
+    if (last && last.input === point.input) out[out.length - 1] = point;
+    else out.push(point);
+  }
+  if (!out.length) return IDENTITY_CURVE.map((point) => ({ ...point }));
+  return out;
+}
+
+/**
+ * Build the 256-entry transfer table from the control points with a monotone
+ * cubic (Fritsch–Carlson) interpolation. Monotone matters: an ordinary spline
+ * overshoots between knots, which produces banding and reversals a real image
+ * adjustment must not have. Levels outside the point range hold flat at the
+ * nearest endpoint, and the finished table is forced non-decreasing.
+ */
+export function buildCurveLut(points: CurvePoint[]): Uint8ClampedArray {
+  const knots = normaliseCurvePoints(points);
+  const lut = new Uint8ClampedArray(256);
+  if (knots.length < 2) {
+    for (let v = 0; v < 256; v += 1) lut[v] = v;
+    return lut;
+  }
+
+  const xs = knots.map((point) => point.input);
+  const ys = knots.map((point) => point.output);
+  const count = knots.length;
+  const width: number[] = [];
+  const secant: number[] = [];
+  for (let i = 0; i < count - 1; i += 1) {
+    const dx = Math.max(1e-6, xs[i + 1] - xs[i]);
+    width.push(dx);
+    secant.push((ys[i + 1] - ys[i]) / dx);
+  }
+
+  const slope: number[] = new Array(count).fill(0);
+  slope[0] = secant[0];
+  slope[count - 1] = secant[count - 2];
+  for (let i = 1; i < count - 1; i += 1) {
+    slope[i] = secant[i - 1] * secant[i] <= 0 ? 0 : (secant[i - 1] + secant[i]) / 2;
+  }
+  for (let i = 0; i < count - 1; i += 1) {
+    if (secant[i] === 0) {
+      slope[i] = 0;
+      slope[i + 1] = 0;
+      continue;
+    }
+    const alpha = slope[i] / secant[i];
+    const beta = slope[i + 1] / secant[i];
+    const radius = alpha * alpha + beta * beta;
+    if (radius > 9) {
+      const tau = 3 / Math.sqrt(radius);
+      slope[i] = tau * alpha * secant[i];
+      slope[i + 1] = tau * beta * secant[i];
+    }
+  }
+
+  for (let level = 0; level < 256; level += 1) {
+    if (level <= xs[0]) {
+      lut[level] = ys[0];
+      continue;
+    }
+    if (level >= xs[count - 1]) {
+      lut[level] = ys[count - 1];
+      continue;
+    }
+    let segment = 0;
+    while (segment < count - 2 && xs[segment + 1] <= level) segment += 1;
+    const t = (level - xs[segment]) / width[segment];
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const h00 = 2 * t3 - 3 * t2 + 1;
+    const h10 = t3 - 2 * t2 + t;
+    const h01 = -2 * t3 + 3 * t2;
+    const h11 = t3 - t2;
+    lut[level] =
+      h00 * ys[segment] +
+      h10 * width[segment] * slope[segment] +
+      h01 * ys[segment + 1] +
+      h11 * width[segment] * slope[segment + 1];
+  }
+
+  for (let level = 1; level < 256; level += 1) {
+    if (lut[level] < lut[level - 1]) lut[level] = lut[level - 1];
+  }
+  return lut;
+}
+
+/** The output level a given input level lands on — used by the editor. */
+export function evaluateCurve(points: CurvePoint[], input: number): number {
+  return buildCurveLut(points)[clampLevel(input)];
+}
+
+export function curvePixels(source: Pixels, channel: CurveChannel, points: CurvePoint[]): Pixels {
+  const lut = buildCurveLut(points);
+  const paintRed = channel === "rgb" || channel === "r";
+  const paintGreen = channel === "rgb" || channel === "g";
+  const paintBlue = channel === "rgb" || channel === "b";
+  const out = new Uint8ClampedArray(source.data.length);
+  for (let i = 0; i < out.length; i += 4) {
+    out[i] = paintRed ? lut[source.data[i]] : source.data[i];
+    out[i + 1] = paintGreen ? lut[source.data[i + 1]] : source.data[i + 1];
+    out[i + 2] = paintBlue ? lut[source.data[i + 2]] : source.data[i + 2];
+    out[i + 3] = source.data[i + 3];
+  }
+  return { width: source.width, height: source.height, data: out };
+}
+
+/* ------------------------------------------------------------------ */
+/* Histogram                                                          */
+/* ------------------------------------------------------------------ */
+
+export type Histogram = {
+  /** 256 bins of sampled pixels per channel plus Rec.601 luma. */
+  r: number[];
+  g: number[];
+  b: number[];
+  luma: number[];
+  /** Pixels actually counted; large images are systematically sampled. */
+  samples: number;
+  /** Every bin was walked with this step, so counts can be compared honestly. */
+  stride: number;
+  max: number;
+  mean: number;
+  /** Fraction of sampled pixels sitting in the four darkest bins. */
+  shadows: number;
+  /** Fraction sitting in the four brightest bins. */
+  highlights: number;
+  /** First and last luminance bin that hold a sample. */
+  lowInput: number;
+  highInput: number;
+};
+
+const emptyBins = () => new Array<number>(256).fill(0);
+
+/**
+ * Count the tonal distribution of real pixels. Fully transparent pixels are
+ * skipped — they carry no image information and would fake a shadow spike.
+ * The stride keeps the cost bounded on a 1400 px working image without
+ * changing the shape of the distribution.
+ */
+export function histogramPixels(
+  source: Pixels,
+  options: { stride?: number } = {},
+): Histogram {
+  const pixels = source.width * source.height;
+  const stride = Math.max(
+    1,
+    options.stride ?? Math.ceil(pixels / 200_000),
+  );
+  const r = emptyBins();
+  const g = emptyBins();
+  const b = emptyBins();
+  const luma = emptyBins();
+  let samples = 0;
+  let lumaSum = 0;
+
+  for (let index = 0; index < pixels; index += stride) {
+    const at = index * 4;
+    if (source.data[at + 3] < 8) continue;
+    const red = source.data[at];
+    const green = source.data[at + 1];
+    const blue = source.data[at + 2];
+    r[red] += 1;
+    g[green] += 1;
+    b[blue] += 1;
+    const level = Math.max(0, Math.min(255, Math.round(0.299 * red + 0.587 * green + 0.114 * blue)));
+    luma[level] += 1;
+    lumaSum += level;
+    samples += 1;
+  }
+
+  let max = 0;
+  for (let level = 0; level < 256; level += 1) max = Math.max(max, luma[level]);
+  let lowInput = 0;
+  while (lowInput < 255 && luma[lowInput] === 0) lowInput += 1;
+  let highInput = 255;
+  while (highInput > 0 && luma[highInput] === 0) highInput -= 1;
+
+  const shadowCount = luma[0] + luma[1] + luma[2] + luma[3];
+  const highlightCount = luma[252] + luma[253] + luma[254] + luma[255];
+
+  return {
+    r,
+    g,
+    b,
+    luma,
+    samples,
+    stride,
+    max,
+    mean: samples ? lumaSum / samples : 0,
+    shadows: samples ? shadowCount / samples : 0,
+    highlights: samples ? highlightCount / samples : 0,
+    lowInput: samples ? lowInput : 0,
+    highInput: samples ? highInput : 255,
+  };
+}
+
+/** Percentile of a histogram, in level units. */
+export function histogramPercentile(bins: number[], samples: number, fraction: number): number {
+  if (!samples) return fraction < 0.5 ? 0 : 255;
+  const target = samples * Math.max(0, Math.min(1, fraction));
+  let seen = 0;
+  for (let level = 0; level < bins.length; level += 1) {
+    seen += bins[level];
+    if (seen >= target) return level;
+  }
+  return bins.length - 1;
+}
+
+/**
+ * Auto levels without a model: clip a small fraction from both ends of the
+ * luminance range and stretch the rest across the full scale. Everything is
+ * measured from the pixels in front of it, so the result is reproducible and
+ * never invents detail the file does not contain.
+ */
+export function autoCurvePoints(histogram: Histogram, clip = 0.004): CurvePoint[] {
+  if (!histogram.samples) return IDENTITY_CURVE.map((point) => ({ ...point }));
+  const low = histogramPercentile(histogram.luma, histogram.samples, Math.min(clip, 0.2));
+  const high = histogramPercentile(histogram.luma, histogram.samples, Math.max(0.8, 1 - clip));
+  if (high - low < 8) return IDENTITY_CURVE.map((point) => ({ ...point }));
+  const span = high - low;
+  const median = histogramPercentile(histogram.luma, histogram.samples, 0.5);
+  const mid = Math.max(low, Math.min(high, median));
+  return [
+    { input: low, output: 0 },
+    { input: mid, output: Math.round(((mid - low) / span) * 255) },
+    { input: high, output: 255 },
+  ];
+}
+
+/* ------------------------------------------------------------------ */
 /* Detail                                                             */
 /* ------------------------------------------------------------------ */
 
@@ -470,7 +744,8 @@ export function borderPixels(source: Pixels, width: number, color: string, opaci
 /* Pipeline                                                           */
 /* ------------------------------------------------------------------ */
 
-function applyText(target: Pixels, op: TextOp, rasterize: Rasterizer | undefined): Pixels {
+function applyText(source: Pixels, op: TextOp, rasterize: Rasterizer | undefined): Pixels {
+  const target = clonePixels(source);
   if (!rasterize || !op.text) return target;
   rasterize(target, (context, width, height) => {
     context.clearRect(0, 0, width, height);
@@ -488,7 +763,8 @@ function applyText(target: Pixels, op: TextOp, rasterize: Rasterizer | undefined
   return target;
 }
 
-function applyWatermark(target: Pixels, op: WatermarkOp, rasterize: Rasterizer | undefined): Pixels {
+function applyWatermark(source: Pixels, op: WatermarkOp, rasterize: Rasterizer | undefined): Pixels {
+  const target = clonePixels(source);
   if (!rasterize || !op.text) return target;
   rasterize(target, (context, width, height) => {
     context.clearRect(0, 0, width, height);
@@ -514,7 +790,9 @@ function applyWatermark(target: Pixels, op: WatermarkOp, rasterize: Rasterizer |
 /**
  * Run the whole chain. Text and watermark steps composite onto the working
  * surface through the injected rasteriser, so the pipeline stays pure and
- * testable while the app still renders real glyphs.
+ * testable while the app still renders real glyphs. Every step hands back a
+ * new buffer: the caller's base pixels are never written in place, which is
+ * what lets the same chain run twice and produce the same image.
  */
 export function applyOps(source: Pixels, ops: Op[], rasterize?: Rasterizer): Pixels {
   let current = source;
@@ -564,6 +842,9 @@ export function applyOps(source: Pixels, ops: Op[], rasterize?: Rasterizer): Pix
         break;
       case "border":
         current = borderPixels(current, op.width, op.color, op.opacity);
+        break;
+      case "curves":
+        current = curvePixels(current, op.channel, op.points);
         break;
       case "text":
         current = applyText(current, op, rasterize);

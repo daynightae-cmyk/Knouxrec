@@ -33,6 +33,7 @@ export interface LibraryContextValue {
   update: (id: string, patch: Pick<LibraryItem, "blob"> & Partial<LibraryItem>) => Promise<void>;
   rename: (id: string, name: string) => Promise<void>;
   toggleFavorite: (id: string) => Promise<void>;
+  setCollection: (id: string, collection: string) => Promise<void>;
   remove: (id: string) => Promise<void>;
   urlFor: (id: string) => string | null;
   reload: () => Promise<void>;
@@ -175,6 +176,18 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
     );
   }, [items]);
 
+  const setCollection = useCallback(async (id: string, collection: string) => {
+    await libraryStore.setCollection(id, collection);
+    const value = collection.trim();
+    setItems((previous) =>
+      previous.map((item) =>
+        item.id === id
+          ? { ...item, collection: value || undefined }
+          : item,
+      ),
+    );
+  }, []);
+
   const remove = useCallback(async (id: string) => {
     await libraryStore.remove(id);
     const url = urls.current.get(id);
@@ -184,8 +197,8 @@ export function LibraryProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ items, ready, error, add, update, rename, toggleFavorite, remove, urlFor, reload }),
-    [items, ready, error, add, update, rename, toggleFavorite, remove, urlFor, reload],
+    () => ({ items, ready, error, add, update, rename, toggleFavorite, setCollection, remove, urlFor, reload }),
+    [items, ready, error, add, update, rename, toggleFavorite, setCollection, remove, urlFor, reload],
   );
 
   return <LibraryContext.Provider value={value}>{children}</LibraryContext.Provider>;

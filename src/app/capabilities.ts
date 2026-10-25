@@ -94,10 +94,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "studio",
     state: "VERIFIED",
     summary:
-      "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output.",
+      "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output, including a microphone-only session that never asks for a display surface and meters the live input in dBFS, and a countdown that starts the chosen source on its own.",
     requirements: ["Screen capture permission", "MediaRecorder support"],
     evidence:
-      "RecordingSession records real timestamps from the active media stream; output is written to IndexedDB.",
+      "RecordingSession branches on the capture mode: the display path composes screen, microphone and webcam tracks, while the audio path opens the microphone alone, encodes the container the runtime actually supports (probed with isTypeSupported, never assumed) and measures its level from an AnalyserNode on the same stream. The countdown lives in the recorder context for this page only, so a reload can never begin recording behind the user. scripts/audio-recording-smoke.mjs drives the real pipeline in Chromium with a fake capture device (34/34): no video surface exists for an audio take, the meter holds the loudest moment of the signal, pause holds the clock, a 3-second countdown arms, decreases, fires on its own and clears itself, cancelling it really prevents the recording, the saved blob decodes back to non-silent audio with a real duration, the dashboard voice memo records a second take, and the Arabic build matches. src/services/audioRecording.test.ts pins the engine contract with 11 unit tests, including that a missing audio container is refused before the microphone is opened.",
   },
   screenshots: {
     id: "screenshots",
@@ -151,10 +151,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "visualPatch",
     state: "PARTIAL",
     summary:
-      "Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export.",
+      "Region based image editor with the fifty preserved tools and their real canvas processors: paint a freehand stroke or drag a rectangle, see the mask over the picture, erase or grow it, apply the tool, compare, undo and export.",
     requirements: ["An image to edit"],
     evidence:
-      "scripts/visual-patch-smoke.mjs now verifies the full pipeline (21/21): paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven.",
+      "src/services/maskOps.ts holds the selection geometry as pure functions (rectangle normalisation, polygon hit testing, segment distance, grow/shrink about a centroid) with 10 unit tests. scripts/visual-patch-smoke.mjs verifies the full pipeline (28/28): the painted mask is visible on the overlay, freehand/rectangle/erase all exist, a dragged rectangle becomes a rectangular region, growing changes the measured extent, erase removes the region under the pointer, clearing empties list and overlay, then paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven.",
   },
   morphcore: {
     id: "morphcore",
@@ -162,10 +162,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "morphCore",
     state: "PARTIAL",
     summary:
-      "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective and a sine warp, with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
+      "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective, a sine warp and a draggable mesh lattice (2×2 up to 6×6 per axis, keyboard-editable control points), with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
     requirements: ["An image to transform"],
     evidence:
-      "scripts/morphcore-smoke.mjs drives the studio in Chromium (51/51): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control.",
+      "src/services/geometryOps.ts holds the mesh as pure functions over RGBA bytes, covered by 11 unit tests (a flat lattice is byte-identical, a pulled vertex moves content with it and leaves a far column untouched, displacement stays local, border pulls survive a density change, alpha follows its pixels). scripts/morphcore-smoke.mjs drives the studio in Chromium (67/67): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, the mesh lattice drags under a real pointer and under arrow keys, flattening restores the exact source bytes and Apply bakes the warp, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control.",
     adult: true,
   },
   "audio-studio": {
@@ -196,21 +196,26 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "elysian",
     state: "PARTIAL",
     summary:
-      "Full creative image studio on a non-destructive layer stack: crop, resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, sharpen, pixelate, borders, text and tiled watermarks, plus eight presets built from the same operations. The effect browser renders its thumbnails by running those operations on the working image.",
+      "Full creative image studio on a non-destructive layer stack: crop, resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, sharpen, pixelate, borders, text and tiled watermarks, a tone-curve workbench with a measured histogram and per-channel curves, plus ten presets built from the same operations. The effect browser renders its thumbnails by running those operations on the working image.",
     requirements: ["Image input", "Model weights for the AI pipeline"],
     evidence:
-      "src/services/imageOps.ts is a pure RGBA pipeline covered by 29 numeric unit tests (exact crop rectangles, bilinear mapping, radius-limited blur, unsharp overshoot, grey-channel presets). scripts/elysian-studio-smoke.mjs drives the workspace in Chromium (51/51): age gate, unique per-card thumbnails, stacked and reordered layers, history replay, pixel-identical undo/redo, drag crop, rotate, text and watermark rendering, split compare, IndexedDB save with an identical re-open, PNG and half-scale JPEG exports decoded independently, and Arabic RTL. The neural services stay listed as blocked with no preview.",
+      "src/services/imageOps.ts is a pure RGBA pipeline covered by 43 numeric unit tests (exact crop rectangles, bilinear mapping, radius-limited blur, unsharp overshoot, grey-channel presets, monotone curve tables, measured histograms and auto-levels stretch, plus the guarantee that a composite step never writes back into the caller's base pixels). scripts/elysian-studio-smoke.mjs drives the workspace in Chromium (70/70): age gate, unique per-card thumbnails, stacked and reordered layers, history replay, pixel-identical undo/redo, drag crop, rotate, text and watermark rendering, the tone-curve workbench (dragged handle, typed level, per-channel curve, auto levels, straight line that is byte-identical to the source, keyboard nudging), split compare, IndexedDB save with an identical re-open, PNG and half-scale JPEG exports decoded independently, and Arabic RTL. The neural services stay listed as blocked with no preview.",
     adult: true,
   },
   "body-editor": {
     id: "body-editor",
     group: "create",
     labelKey: "bodyEditor",
-    state: "MISSING_MODEL",
+    state: "PARTIAL",
     summary:
-      "Age-gated body editor UI preserved. It depends on segmentation models whose weight files are not distributed.",
-    requirements: ["Age verification", "Segmentation weights", "Inference runtime"],
-    evidence: "public/models/*/model.json manifests exist, weights.bin files do not.",
+      "Age-gated proportion mirror: place five height guides and two edge guides on your own photograph and read the spans between them in pixels and in head lengths, with the artist's canon available as a placement aid. No body recognition, no reshaping, and the body-aware services stay listed as blocked.",
+    requirements: [
+      "Age verification",
+      "An image to measure",
+      "Segmentation weights for the blocked tools",
+    ],
+    evidence:
+      "src/services/proportions.ts holds the measurement maths as pure functions (span, head length, heads tall, width per head, canon placement, clamping) with 7 unit tests. scripts/proportions-smoke.mjs drives the screen in Chromium (20/20): a child year is refused, an adult declaration opens the mirror, a 400x800 photograph stages at its own size, seven guides measure 384 px and exactly four heads by default, dragging the hip guide re-measures the span, arrow keys nudge a focused guide, canon placement lands chin/shoulder/waist on whole and half heads, the on-page report carries every number, the two body-aware services are listed as blocked with no control, saving archives the source with provenance, and Arabic renders translated. Weight files for the blocked services still do not exist.",
     adult: true,
   },
   "offline-ai": {
@@ -251,9 +256,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "system",
     labelKey: "settings",
     state: "VERIFIED",
-    summary: "Persisted appearance, language and recording defaults.",
+    summary:
+      "Persisted appearance, language and recording defaults, plus keyboard shortcuts that the user can rebind, with conflicts refused before they are stored.",
     requirements: [],
-    evidence: "Settings persist in localStorage and are applied to the document root.",
+    evidence:
+      "Settings persist in localStorage and are applied to the document root. src/services/hotkeys.ts canonicalises combinations, refuses a shortcut without a modifier, refuses a duplicate and repairs a hand-edited settings file (12 unit tests); the settings screen records a combination live and Escape leaves it alone; scripts/hotkeys-smoke.mjs drives the real window listener (17/17) — a rebound Ctrl+Alt+K starts and stops a microphone take and archives it, the screenshot binding still lands a file, the binding survives a reload, and the Arabic card stays translated.",
   },
   diagnostics: {
     id: "diagnostics",

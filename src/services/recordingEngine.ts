@@ -1,7 +1,7 @@
 import type { RecorderSettings } from "../state/types";
 import { patchWebmDuration } from "./webm";
 
-export type CaptureMode = "screen" | "window" | "webcam";
+export type CaptureMode = "screen" | "window" | "webcam" | "audio";
 
 export interface CaptureSupport {
   display: boolean;
@@ -22,6 +22,11 @@ export interface CaptureRequest {
   webcamOverlay: boolean;
   webcamPosition: RecorderSettings["webcamPosition"];
   webcamSize: RecorderSettings["webcamSize"];
+  /** Optional microphone selection for an audio-only session. */
+  audioDeviceId?: string | null;
+  echoCancellation?: boolean;
+  noiseSuppression?: boolean;
+  autoGainControl?: boolean;
 }
 
 export interface CaptureResult {
@@ -43,6 +48,10 @@ interface ActiveCapture {
   mimeType: string;
   width: number;
   height: number;
+  /** An audio-only session has no frame, so nothing may ask it for one. */
+  audioOnly: boolean;
+  analyser: AnalyserNode | null;
+  levelBuffer: Float32Array | null;
 }
 
 const MIME_CANDIDATES = [
@@ -51,6 +60,17 @@ const MIME_CANDIDATES = [
   "video/webm",
   "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
   "video/mp4",
+];
+
+/**
+ * Audio-only containers, probed before use. Opus in WebM is what Chromium
+ * actually encodes here; the list is walked in order and nothing is promised
+ * that `isTypeSupported` has not confirmed.
+ */
+const AUDIO_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
 ];
 
 export function detectCaptureSupport(): CaptureSupport {
@@ -84,6 +104,12 @@ export function pickMimeType(): string | null {
   return MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
 }
 
+/** The container the runtime can really encode for a microphone-only session. */
+export function pickAudioMimeType(): string {
+  if (typeof MediaRecorder === "undefined") return "";
+  return AUDIO_MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
 function stopStream(stream: MediaStream | null | undefined): void {
   stream?.getTracks().forEach((track) => {
     try {
@@ -92,6 +118,21 @@ function stopStream(stream: MediaStream | null | undefined): void {
       /* noop */
     }
   });
+}
+
+/**
+ * Close an audio graph if there is one that can be closed. A session that
+ * failed halfway through building its meter can hold a half-initialised
+ * context, and cleanup must never be the thing that throws while a microphone
+ * is still open.
+ */
+function closeAudioContext(context: AudioContext | null): void | Promise<void> {
+  if (!context || typeof context.close !== "function") return;
+  try {
+    return context.close().catch(() => undefined);
+  } catch {
+    /* noop */
+  }
 }
 
 async function mixAudioStreams(
@@ -152,11 +193,145 @@ export class RecordingSession {
 
   previewStream(): MediaStream | null {
     if (!this.active) return null;
-    return new MediaStream(this.active.stream.getVideoTracks());
+    const tracks = this.active.stream.getVideoTracks();
+    // An audio-only session has no frame to show; the studio draws a level
+    // meter for it instead of an empty video surface.
+    if (tracks.length === 0) return null;
+    return new MediaStream(tracks);
+  }
+
+  /**
+   * Peak input level of the live microphone, 0…1, measured from the very same
+   * stream that is being encoded. Zero when nothing is recording or the meter
+   * could not be built.
+   */
+  level(): number {
+    const active = this.active;
+    if (!active?.analyser || !active.levelBuffer) return 0;
+    try {
+      active.analyser.getFloatTimeDomainData(active.levelBuffer);
+    } catch {
+      return 0;
+    }
+    let peak = 0;
+    for (let index = 0; index < active.levelBuffer.length; index += 1) {
+      const value = Math.abs(active.levelBuffer[index]);
+      if (value > peak) peak = value;
+    }
+    return Math.min(1, peak);
+  }
+
+  /**
+   * Microphone-only session: no display surface, no compositor, no frame.
+   * The container is whatever the runtime admits to encoding, probed rather
+   * than assumed.
+   */
+  private async startAudio(
+    request: CaptureRequest,
+  ): Promise<{ width: number; height: number }> {
+    if (typeof MediaRecorder === "undefined") {
+      throw new Error("MediaRecorder is not available in this runtime.");
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Microphone capture is unavailable in this runtime.");
+    }
+    const mimeType = pickAudioMimeType();
+    if (!mimeType) {
+      throw new Error("This runtime cannot encode an audio-only recording.");
+    }
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: request.echoCancellation ?? true,
+          noiseSuppression: request.noiseSuppression ?? true,
+          autoGainControl: request.autoGainControl ?? true,
+          ...(request.audioDeviceId ? { deviceId: { exact: request.audioDeviceId } } : {}),
+        },
+        video: false,
+      });
+    } catch (error) {
+      throw new Error(
+        `Microphone permission was denied or unavailable: ${
+          error instanceof Error ? error.message : "unknown error"
+        }`,
+      );
+    }
+
+    if (stream.getAudioTracks().length === 0) {
+      stopStream(stream);
+      throw new Error("The microphone returned no audio track.");
+    }
+
+    let context: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let levelBuffer: Float32Array | null = null;
+    try {
+      context = new AudioContext();
+      analyser = context.createAnalyser();
+      // 16384 frames is ~340 ms at 48 kHz. A small window would only be
+      // honest if the page read it every few milliseconds; a starved page
+      // reads ten times a second, and a 21 ms window silently loses every
+      // transient that falls between two reads.
+      analyser.fftSize = 16384;
+      analyser.smoothingTimeConstant = 0;
+      // An analyser is only pulled when something downstream consumes it, so
+      // the graph ends in a muted gain node: the page never hears the
+      // microphone, but the measurement runs.
+      const sink = context.createGain();
+      sink.gain.value = 0;
+      context.createMediaStreamSource(stream).connect(analyser);
+      analyser.connect(sink);
+      sink.connect(context.destination);
+      levelBuffer = new Float32Array(analyser.fftSize);
+      await context.resume().catch(() => undefined);
+    } catch {
+      // Metering is a nicety: a recording must not fail because the analyser
+      // could not be built.
+      analyser = null;
+      levelBuffer = null;
+    }
+
+    try {
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128_000,
+      });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+      this.active = {
+        recorder,
+        chunks,
+        stream,
+        ownedStreams: [stream],
+        audioContext: context,
+        canvasTimer: null,
+        mimeType,
+        width: 0,
+        height: 0,
+        audioOnly: true,
+        analyser,
+        levelBuffer,
+      };
+      this.startedAt = performance.now();
+      this.pausedTotal = 0;
+      this.pausedAt = 0;
+      recorder.start(1000);
+      return { width: 0, height: 0 };
+    } catch (error) {
+      stopStream(stream);
+      await closeAudioContext(context);
+      throw error;
+    }
   }
 
   async start(request: CaptureRequest): Promise<{ width: number; height: number }> {
     if (this.active) throw new Error("A recording is already in progress.");
+
+    if (request.mode === "audio") return this.startAudio(request);
 
     const mimeType = pickMimeType();
     if (!mimeType || typeof MediaRecorder === "undefined") {
@@ -326,6 +501,9 @@ export class RecordingSession {
         mimeType,
         width,
         height,
+        audioOnly: false,
+        analyser: null,
+        levelBuffer: null,
       };
       this.startedAt = performance.now();
       this.pausedTotal = 0;
@@ -338,7 +516,7 @@ export class RecordingSession {
       // cancel() cannot clean up. Release every acquired stream here instead.
       this.active = null;
       ownedStreams.forEach(stopStream);
-      await audioContext?.close().catch(() => undefined);
+      await closeAudioContext(audioContext);
       throw error;
     }
   }
@@ -415,7 +593,7 @@ export class RecordingSession {
       if (active.canvasTimer !== null) window.clearInterval(active.canvasTimer);
       active.ownedStreams.forEach(stopStream);
       stopStream(active.stream);
-      await active.audioContext?.close().catch(() => undefined);
+      await closeAudioContext(active.audioContext);
       this.active = null;
     }
 
@@ -423,15 +601,20 @@ export class RecordingSession {
       throw new Error("The recorder produced an empty file. Nothing was saved.");
     }
 
-    const patched = await patchWebmDuration(blob, durationMs);
-    const thumbnail = await createThumbnailFromBlob(patched);
+    const audioOnly = active.audioOnly;
+    let patched = blob;
+    if (!audioOnly) {
+      patched = await patchWebmDuration(blob, durationMs);
+    }
     return {
       blob: patched,
       mimeType: patched.type || active.mimeType,
       durationMs,
       width: active.width,
       height: active.height,
-      thumbnail,
+      // An audio file has no frame to offer; inventing one would be a colour
+      // swatch dressed up as a preview.
+      thumbnail: audioOnly ? null : await createThumbnailFromBlob(patched),
     };
   }
 
@@ -446,7 +629,7 @@ export class RecordingSession {
     if (active.canvasTimer !== null) window.clearInterval(active.canvasTimer);
     active.ownedStreams.forEach(stopStream);
     stopStream(active.stream);
-    active.audioContext?.close().catch(() => undefined);
+    closeAudioContext(active.audioContext);
     this.active = null;
   }
 }
@@ -564,15 +747,27 @@ export async function trimMedia(
   onProgress?: (fraction: number) => void,
 ): Promise<Blob> {
   const requested = Math.max(0.1, end - start);
-  const first = await trimMediaOnce(source, start, end, onProgress);
-  if (first.size > 0) {
-    const measured = await measureMediaDuration(first);
-    // A session that started before the first frame was painted produces a
-    // clip materially shorter than the range asked for. That is retried rather
-    // than relabelled with the requested duration.
-    if (measured === null || measured >= requested * 0.8) return first;
+  let lastError: Error | null = null;
+  // Two structurally different encoders, in order of preference. The canvas
+  // bridge bounds the working resolution; if its capture session delivers
+  // nothing, the element's own stream is tried — the same mechanism that made
+  // the source file in the first place, so it cannot be starved of surfaces.
+  for (const strategy of ["canvas", "element"] as const) {
+    try {
+      const clip = await trimMediaOnce(source, start, end, onProgress, { strategy });
+      const measured = await measureMediaDuration(clip);
+      // A session that started before the first frame was painted produces a
+      // clip materially shorter than the range asked for. That is retried
+      // rather than relabelled with the requested duration.
+      if (measured === null || measured >= requested * 0.8) return clip;
+      lastError = new Error(
+        `The trim produced a ${measured.toFixed(2)} s clip for a ${requested.toFixed(2)} s range.`,
+      );
+    } catch (cause) {
+      lastError = cause instanceof Error ? cause : new Error(String(cause));
+    }
   }
-  return trimMediaOnce(source, start, end, onProgress);
+  throw lastError ?? new Error("The trim produced no media.");
 }
 
 /** Real playable duration of a produced file, or null when it reports none. */
@@ -604,7 +799,9 @@ async function trimMediaOnce(
   start: number,
   end: number,
   onProgress: ((fraction: number) => void) | undefined,
+  options: { strategy?: "canvas" | "element" } = {},
 ): Promise<Blob> {
+  const strategy = options.strategy ?? "canvas";
   if (!(end > start)) throw new Error("The trim range is empty.");
   const isAudioSource = source.type.startsWith("audio");
   const media = document.createElement(isAudioSource ? "audio" : "video");
@@ -635,7 +832,12 @@ async function trimMediaOnce(
     throw new Error("This runtime cannot re-encode media in the browser.");
   }
 
+  // The compositor surface is created inside the try block; cleanup has to be
+  // able to release it from outside.
+  let surfaceCanvas: HTMLCanvasElement | null = null;
   const cleanup = () => {
+    surfaceCanvas?.remove();
+    surfaceCanvas = null;
     media.pause();
     media.removeAttribute("src");
     media.load();
@@ -660,11 +862,19 @@ async function trimMediaOnce(
     let canvas: HTMLCanvasElement | null = null;
     let context: CanvasRenderingContext2D | null = null;
 
-    if (hasPicture) {
+    if (hasPicture && strategy === "canvas") {
       canvas = document.createElement("canvas");
       const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
       canvas.width = Math.max(2, Math.round(video.videoWidth * scale));
       canvas.height = Math.max(2, Math.round(video.videoHeight * scale));
+      // Attached but invisible, like the decoder above it. A detached canvas
+      // can be drawn without the compositor ever sampling it, which shows up
+      // as "frames painted, zero chunks" in the encoder — the same failure the
+      // video element had before it was attached.
+      canvas.style.cssText =
+        "position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:0;pointer-events:none";
+      document.body.appendChild(canvas);
+      surfaceCanvas = canvas;
       context = canvas.getContext("2d", { willReadFrequently: false });
       if (!context) throw new Error("The 2D canvas context is unavailable.");
       // A fixed rate is the configuration Chromium reliably feeds to
@@ -696,15 +906,20 @@ async function trimMediaOnce(
     });
 
     recorder.start(250);
+    // A short pre-roll so a painted frame exists before sampling begins.
+    await new Promise((resolve) => window.setTimeout(resolve, 250));
     await media.play();
     onProgress?.(0);
 
     let raf = 0;
+    let elementTimer = 0;
     let stopped = false;
+    let painted = 0;
     const stopCapture = () => {
       if (stopped) return;
       stopped = true;
       if (raf) window.cancelAnimationFrame(raf);
+      if (elementTimer) window.clearInterval(elementTimer);
       media.pause();
       if (recorder.state !== "inactive") recorder.stop();
     };
@@ -715,30 +930,31 @@ async function trimMediaOnce(
     };
 
     if (canvas && context) {
+      const drawFrame = () => {
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        painted += 1;
+        report();
+      };
       const paint = () => {
         if (stopped) return;
+        drawFrame();
         if (media.currentTime >= end || media.ended) {
-          // One last frame at the boundary, then stop exactly here.
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          report();
+          // The boundary frame has just been drawn; stop exactly here.
           stopCapture();
           return;
         }
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
-        report();
         raf = window.requestAnimationFrame(paint);
       };
       paint();
     } else {
-      const tick = window.setInterval(report, 150);
-      media.addEventListener("ended", () => {
-        window.clearInterval(tick);
-        stopCapture();
-      });
-      window.setTimeout(() => {
-        window.clearInterval(tick);
-        stopCapture();
-      }, duration * 1000 + 2000);
+      // The element's own stream: there is no canvas to paint, so the only job
+      // here is to stop when playback reaches the end of the requested range.
+      elementTimer = window.setInterval(() => {
+        report();
+        if (media.currentTime >= end || media.ended) stopCapture();
+      }, 60);
+      media.addEventListener("ended", () => stopCapture());
+      window.setTimeout(() => stopCapture(), (duration + 6) * 1000);
     }
 
     // Watchdog: a stalled decoder must not hang the job forever.
@@ -758,7 +974,20 @@ async function trimMediaOnce(
     });
 
     const blob = await result;
-    return blob.size ? patchWebmDuration(blob, duration * 1000) : blob;
+    if (!blob.size) {
+      // Both halves are named because they fail for different reasons: a paint
+      // count of zero means the decoder never presented a frame, a zero chunk
+      // count with a live paint count means the capture session was starved.
+      const tracks = stream.getVideoTracks();
+      const track = tracks[0];
+      throw new Error(
+        `The trim captured no media (${painted} frames painted, ${chunks.length} chunks, ` +
+          `recorder ${recorder.state}, ${tracks.length} track(s) ` +
+          `${track ? track.readyState : "none"}, ` +
+          `media ${video.readyState} at ${video.currentTime.toFixed(2)}s).`,
+      );
+    }
+    return patchWebmDuration(blob, duration * 1000);
   } finally {
     cleanup();
   }

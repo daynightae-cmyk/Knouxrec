@@ -915,6 +915,378 @@ html[data-theme="light"] .kx-topbar {
   box-shadow: 0 0 0 1px rgba(255, 77, 94, 0.2), 0 24px 60px rgba(255, 77, 94, 0.12);
 }
 
+/* A microphone-only session has no frame, so the preview surface carries the
+   signal itself: brand, meter and readout stacked in the middle. */
+.kx-preview-audio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  width: 100%;
+  padding: 26px 22px;
+}
+
+.kx-preview-audio-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--kx-font-display);
+  letter-spacing: 0.12em;
+  font-size: var(--kx-text-xs);
+  color: var(--kx-text-soft);
+  text-transform: uppercase;
+}
+
+.kx-meter {
+  width: min(100%, 460px);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kx-meter-track {
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: rgba(4, 4, 8, 0.72);
+  padding: 4px;
+}
+
+.kx-meter-canvas {
+  display: block;
+  width: 100%;
+  height: 46px;
+}
+
+.kx-meter-readout {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-soft);
+}
+
+.kx-meter-flag {
+  min-height: 1em;
+  font-family: var(--kx-font-display);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kx-text-faint);
+}
+
+.kx-meter-flag[data-level-clip="clip"] {
+  color: var(--kx-danger);
+}
+
+.kx-meter-flag[data-level-clip="silent"] {
+  color: var(--kx-text-faint);
+}
+
+/* ---------- shortcut bindings ---------- */
+
+.kx-hotkey-list {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.kx-hotkey-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+}
+
+.kx-hotkey-label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kx-hotkey-label strong {
+  font-size: var(--kx-text-sm);
+  font-weight: 600;
+}
+
+.kx-hotkey-label em {
+  font-style: normal;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+}
+
+.kx-hotkey-keys {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.kx-hotkey-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: 3px 6px;
+  border: 1px solid var(--kx-border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--kx-elev-2);
+  color: var(--kx-text);
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-2xs);
+  letter-spacing: 0.04em;
+}
+
+.kx-hotkey-capture {
+  font-size: var(--kx-text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kx-accent);
+  animation: kx-pulse 1.2s ease-in-out infinite;
+}
+
+.kx-hotkey-keys kbd + kbd::before {
+  content: "+";
+  margin-inline-end: 4px;
+  color: var(--kx-text-faint);
+}
+
+/* ---------- visual patch mask ---------- */
+
+.kx-mask-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 168px;
+  overflow: auto;
+}
+
+.kx-mask-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-surface);
+  font-size: var(--kx-text-2xs);
+}
+
+.kx-mask-kind {
+  flex: 1;
+  color: var(--kx-text-soft);
+}
+
+.kx-mask-list .kx-btn {
+  padding: 2px 6px;
+}
+
+/* ---------- manual proportion mirror ---------- */
+
+.kx-prop-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 344px);
+  gap: 16px;
+  align-items: start;
+  margin-top: 14px;
+}
+
+.kx-prop-stage-card {
+  min-width: 0;
+}
+
+.kx-prop-stage {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  line-height: 0;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius);
+  background: #07070c;
+  overflow: hidden;
+}
+
+.kx-prop-stage img {
+  display: block;
+  max-width: 100%;
+  max-height: 62vh;
+}
+
+.kx-prop-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+}
+
+.kx-prop-guide {
+  stroke: rgba(255, 222, 0, 0.78);
+  stroke-width: 1.5;
+  stroke-dasharray: 7 5;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.kx-prop-guide.is-active {
+  stroke: #ffffff;
+  stroke-dasharray: none;
+}
+
+.kx-prop-hit {
+  fill: transparent;
+  cursor: ns-resize;
+}
+
+.kx-prop-hit[aria-orientation="horizontal"] {
+  cursor: ew-resize;
+}
+
+.kx-prop-hit:focus-visible {
+  outline: none;
+  fill: rgba(255, 222, 0, 0.14);
+}
+
+.kx-prop-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.kx-measure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
+  margin: 12px 0 0;
+}
+
+.kx-measure-grid > div {
+  padding: 6px 8px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-bg-soft);
+}
+
+.kx-measure-grid dt {
+  font-size: var(--kx-text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kx-text-faint);
+}
+
+.kx-measure-grid dd {
+  margin: 2px 0 0;
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-md);
+}
+
+.kx-prop-rows {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.kx-prop-rows li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-soft);
+}
+
+.kx-prop-blocked {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.kx-prop-blocked li {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+}
+
+.kx-prop-blocked li > span:first-child {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.kx-prop-blocked em {
+  font-style: normal;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+}
+
+.kx-prop-report {
+  margin-top: 10px;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-soft);
+}
+
+.kx-prop-report summary {
+  cursor: pointer;
+  color: var(--kx-text-soft);
+}
+
+.kx-prop-report pre {
+  margin: 8px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-bg-soft);
+  color: var(--kx-text-soft);
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-2xs);
+  line-height: 1.5;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 1100px) {
+  .kx-prop-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .kx-hotkey-list li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .kx-hotkey-keys {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
 .kx-preview video,
 .kx-preview img {
   width: 100%;
@@ -2901,6 +3273,51 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
   max-height: 60vh;
 }
 
+/* The mesh overlay has to sit exactly over the painted canvas, so the canvas
+   gets a shrink-wrapping box of its own instead of being positioned against
+   the whole stage. */
+.kx-geo-frame {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.kx-geo-mesh {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  overflow: visible;
+}
+
+.kx-geo-mesh-line {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.42);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.kx-geo-mesh-vertex {
+  fill: var(--kx-accent);
+  stroke: rgba(20, 19, 10, 0.9);
+  stroke-width: 1.2;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+
+.kx-geo-mesh-vertex.is-active {
+  fill: #ffffff;
+  stroke: var(--kx-accent);
+}
+
+.kx-geo-mesh-vertex:focus-visible {
+  outline: none;
+  stroke: var(--kx-cyan);
+  stroke-width: 2.4;
+}
+
 .kx-geo-original {
   position: absolute;
   inset: 0;
@@ -3391,9 +3808,236 @@ input[type="range"]:disabled { cursor: not-allowed; opacity: 0.5; }
   box-shadow: 0 0 0 1px var(--kx-accent-line);
 }
 
+/* ---------- tone curve workbench ---------- */
+
+.elys-curves {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.elys-curves-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.elys-curves-head .kx-segmented {
+  flex-wrap: wrap;
+}
+
+.elys-curves-head .kx-segmented button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.elys-curves-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  display: inline-block;
+  flex: none;
+}
+
+.elys-curves-body {
+  display: grid;
+  grid-template-columns: minmax(190px, 268px) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.elys-curves-plot {
+  position: relative;
+  direction: ltr;
+}
+
+.elys-curves-svg {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  touch-action: none;
+  border: 1px solid var(--kx-border-strong);
+  border-radius: var(--kx-radius-xs);
+  background: linear-gradient(180deg, rgba(6, 6, 12, 0.94), rgba(14, 14, 22, 0.88));
+}
+
+.elys-curves-grid line {
+  stroke: rgba(255, 255, 255, 0.09);
+  stroke-width: 0.6;
+}
+
+.elys-curves-diagonal {
+  stroke: rgba(255, 255, 255, 0.2);
+  stroke-dasharray: 4 5;
+  stroke-width: 0.7;
+  vector-effect: non-scaling-stroke;
+}
+
+.elys-curves-hist {
+  opacity: 0.28;
+}
+
+.elys-curves-line {
+  fill: none;
+  stroke-width: 2.2;
+  vector-effect: non-scaling-stroke;
+  stroke-linecap: round;
+}
+
+.elys-curves-handle {
+  fill: var(--kx-elev-2);
+  stroke: var(--kx-text-soft);
+  stroke-width: 1.4;
+  vector-effect: non-scaling-stroke;
+  cursor: grab;
+}
+
+.elys-curves-handle.is-active {
+  fill: var(--kx-accent);
+  stroke: #ffffff;
+}
+
+.elys-curves-handle:focus-visible {
+  outline: none;
+  stroke: var(--kx-accent);
+  stroke-width: 3;
+}
+
+.elys-curves-axes {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+  direction: ltr;
+}
+
+.elys-curves-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+.elys-curves-shapes {
+  flex-wrap: wrap;
+}
+
+.elys-curves-readout {
+  margin: 0;
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-sm);
+  letter-spacing: 0.02em;
+  direction: ltr;
+  text-align: start;
+}
+
+.elys-curves-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 6px;
+  margin: 0;
+  direction: ltr;
+}
+
+.elys-curves-stats > div {
+  padding: 6px 8px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-bg-soft);
+}
+
+.elys-curves-stats dt {
+  font-size: var(--kx-text-2xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kx-text-faint);
+}
+
+.elys-curves-stats dd {
+  margin: 2px 0 0;
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-md);
+}
+
+.elys-curves-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 184px;
+  overflow: auto;
+  direction: ltr;
+}
+
+.elys-curves-points li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.elys-curves-row-no {
+  width: 18px;
+  flex: none;
+  text-align: center;
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+}
+
+.elys-curves-num {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-size: var(--kx-text-2xs);
+  color: var(--kx-text-faint);
+}
+
+.elys-curves-num input {
+  width: 100%;
+  min-width: 0;
+  padding: 4px 6px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-xs);
+  background: var(--kx-bg-soft);
+  color: var(--kx-text);
+  font-family: var(--kx-font-numeric);
+  font-size: var(--kx-text-sm);
+}
+
+.elys-curves-num input:focus-visible {
+  outline: none;
+  border-color: var(--kx-accent-line);
+}
+
+.elys-curves-remove {
+  flex: none;
+}
+
 @media (max-width: 1280px) {
   .elys-layout {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .elys-curves-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .elys-curves-svg {
+    max-width: 320px;
   }
 
   .elys-browser,
@@ -4007,6 +4651,70 @@ html[data-theme="light"] .kx-audio-element {
     position: static;
     max-height: none;
   }
+}
+
+/* ---------- delayed capture ---------- */
+
+.kx-shot-delay {
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 12px;
+}
+
+.kx-shot-delay .kx-chip[aria-pressed="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+  color: var(--kx-text);
+}
+
+.kx-shot-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 5, 10, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.kx-shot-countdown-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 36px;
+  border-radius: var(--kx-radius-lg);
+  border: 1px solid var(--kx-accent-line);
+  background: var(--kx-elev-1);
+  box-shadow: var(--kx-shadow-3);
+  text-align: center;
+}
+
+.kx-shot-countdown-number {
+  font-family: var(--kx-font-display);
+  font-size: 4.2rem;
+  line-height: 1;
+  color: var(--kx-accent);
+}
+
+/* ---------- library collections ---------- */
+
+.kx-collection-bar {
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 8px 10px;
+  margin-bottom: 12px;
+  border: 1px solid var(--kx-border);
+  border-radius: var(--kx-radius-sm);
+  background: var(--kx-surface);
+}
+
+.kx-collection-bar .kx-chip[aria-pressed="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+  color: var(--kx-text);
 }
 
 /* ---------- cross-hub handoff ---------- */

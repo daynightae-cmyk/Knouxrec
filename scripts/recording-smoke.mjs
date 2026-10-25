@@ -89,12 +89,27 @@ const readItems = (page) =>
       request.onerror = () => reject(request.error);
     });
     database.close();
-    return records.map((record) => ({
+    const withMagic = await Promise.all(
+      records.map(async (record) => {
+        let magic = "";
+        try {
+          const head = new Uint8Array(await record.blob.slice(0, 4).arrayBuffer());
+          magic = Array.from(head)
+            .map((value) => value.toString(16).padStart(2, "0"))
+            .join(" ");
+        } catch {
+          magic = "";
+        }
+        return { record, magic };
+      }),
+    );
+    return withMagic.map(({ record, magic }) => ({
       id: record.id,
       name: record.name,
       kind: record.kind,
       mimeType: record.mimeType,
       size: record.blob?.size ?? 0,
+      magic,
       duration: record.duration,
       width: record.width,
       height: record.height,
@@ -194,8 +209,16 @@ try {
     const image = items.find((item) => item.kind === "image");
     check("video blob persisted", Boolean(video), items);
     check(
-      "video blob is non-trivial",
-      Boolean(video && video.size > 10000 && video.duration > 1),
+      // A static desktop compresses to a few kilobytes per second, so the byte
+      // floor stays low while the container magic proves this is a real file
+      // rather than a placeholder blob.
+      "video blob is a real container with bytes and a duration",
+      Boolean(
+        video &&
+          video.size > 2000 &&
+          video.duration > 1 &&
+          /^(1a 45 df a3|00 00 00)/.test(video.magic),
+      ),
       video,
     );
     check(
@@ -336,7 +359,14 @@ try {
       );
       const afterTrim = await readItems(page);
       const trimItem = afterTrim.find((item) => item.name.includes("-trim"));
-      report.trim = { trimmed, trimDone, trimItem };
+      // When a re-encode fails the dialog says why; keeping that text in the
+      // report is the difference between a diagnosable failure and a shrug.
+      const trimError = await page.evaluate(
+        () =>
+          document.querySelector(".knoux-modal .kx-notice[data-tone='danger']")?.textContent?.trim() ??
+          null,
+      );
+      report.trim = { trimmed, trimDone, trimItem, trimError };
       await page.screenshot({ path: path.join(OUT, "14-trim-result.png") });
       check(
         "trim produces a new persisted clip",

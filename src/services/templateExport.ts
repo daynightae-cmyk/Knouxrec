@@ -37,11 +37,26 @@ export interface TemplateExportOutput {
 }
 
 /** Errors with this name are treated as real cancellations by the registry. */
-/** Signals a capture session that produced nothing; retried once by the caller. */
+/**
+ * Signals a capture session that produced no usable media. The frame, chunk
+ * and byte counts travel with it: whether the loop never drew or the recorder
+ * never received is the difference between a drawing bug and a starved
+ * compositor, and the message is the only evidence a smoke run leaves behind.
+ */
 export class EmptyCaptureError extends Error {
-  constructor() {
-    super("The encoder produced an empty video.");
+  readonly frames: number;
+  readonly chunks: number;
+  readonly bytes: number;
+
+  constructor(detail: { frames: number; chunks: number; bytes: number }) {
+    super(
+      `The encoder produced an empty video (drew ${detail.frames} frames, ` +
+        `${detail.chunks} chunks, ${detail.bytes} bytes).`,
+    );
     this.name = "EmptyCaptureError";
+    this.frames = detail.frames;
+    this.chunks = detail.chunks;
+    this.bytes = detail.bytes;
   }
 }
 
@@ -116,23 +131,37 @@ async function verifyWebm(
 }
 
 /**
- * Encode a template to WebM, retrying once if the capture session delivered
- * nothing at all. Cancellation is never retried.
+ * Encode a template to WebM. A capture session that delivers nothing is retried
+ * up to three times: Chromium occasionally hands a canvas stream no compositor
+ * frames at all, and one lost session must not fail an export that is otherwise
+ * fine. The budget is bounded and cancellation is never retried.
  */
+const CAPTURE_ATTEMPTS = 3;
+
 export async function exportTemplateVideo(
   spec: TemplateExportSpec,
   onProgress: (report: TemplateExportReport) => void,
   token: { cancelled: boolean },
 ): Promise<TemplateExportOutput> {
-  try {
-    return await exportTemplateVideoOnce(spec, onProgress, token);
-  } catch (cause) {
-    if (cause instanceof EmptyCaptureError && !token.cancelled) {
-      onProgress({ percent: 1, message: "The capture produced nothing; retrying once." });
-      return exportTemplateVideoOnce(spec, onProgress, token);
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= CAPTURE_ATTEMPTS; attempt += 1) {
+    try {
+      return await exportTemplateVideoOnce(spec, onProgress, token);
+    } catch (cause) {
+      if (cause instanceof EmptyCaptureError && !token.cancelled && attempt < CAPTURE_ATTEMPTS) {
+        lastError = cause;
+        onProgress({
+          percent: 1,
+          message: `${cause.message} Retrying the capture (attempt ${attempt + 1} of ${CAPTURE_ATTEMPTS}).`,
+        });
+        // Give the compositor a beat before spending another session.
+        await new Promise((resolve) => window.setTimeout(resolve, 250 * attempt));
+        continue;
+      }
+      throw cause;
     }
-    throw cause;
   }
+  throw lastError ?? new Error("The template video could not be encoded.");
 }
 
 async function exportTemplateVideoOnce(
@@ -163,13 +192,15 @@ async function exportTemplateVideoOnce(
     throw new Error("This browser cannot capture a canvas stream.");
   }
 
-  // A fixed capture rate is what Chromium delivers reliably from a canvas
-  // stream. It has a consequence that used to be hidden: the encoded length is
-  // the number of frames the compositor actually presented divided by this
-  // rate, so on a machine that cannot sustain spec.fps the clip comes out
-  // shorter than requested. The loop below records a short tail to reduce that,
-  // and the result now reports the duration measured from the produced file
-  // next to the one that was asked for, so the shortfall is visible.
+  // A canvas capture stream samples the bitmap on the compositor's clock. The
+  // consequence used to be hidden and is now faced head on: the encoded length
+  // is the number of samples the compositor actually accepted divided by the
+  // requested rate. A wall-clock loop alone loses that race on a busy machine —
+  // it stops having delivered 30 samples per second, so a two-second ident
+  // comes out under a second long. The loop below therefore keeps drawing
+  // frames until BOTH the frame count and the wall clock have covered the
+  // request. A loaded machine spends more real time producing the clip and the
+  // motion may be choppy; the duration stops lying.
   const stream = canvas.captureStream(spec.fps);
   const recorder = new MediaRecorder(stream, {
     mimeType,
@@ -186,34 +217,23 @@ async function exportTemplateVideoOnce(
   void stopped.catch(() => undefined);
 
   let frames = 0;
-  // Extra wall time recorded after the animation reaches its end.
-  const TAIL_SECONDS = 0.35;
+  // Wall time still matters: the sampler only ticks spec.fps times per second,
+  // so a session that finishes drawing its frames in half the requested length
+  // has only fed the recorder half the samples. Both conditions have to hold.
+  const TAIL_SECONDS = 0.2;
   try {
     recorder.start(100);
-    // The clip is paced by delivered frames, not by the wall clock. A canvas
-    // captureStream advances its media time by the frames it is actually given,
-    // so a wall-clock loop on a busy machine stops after fewer frames than
-    // requested and silently produces a short video. Driving the loop from the
-    // frame count makes the encoded duration equal the request even when the
-    // machine needs longer than real time to get there.
     const targetFrames = Math.max(1, Math.round(spec.duration * spec.fps));
     const startedAt = performance.now();
+    const ceilingMs = Math.max(20_000, (spec.duration + 6) * 1_000 + targetFrames * 500);
     await new Promise<void>((resolve) => {
-      const tick = async () => {
-        if (token.cancelled) {
+      const step = async () => {
+        const elapsed = (performance.now() - startedAt) / 1000;
+        if (token.cancelled || elapsed * 1000 > ceilingMs) {
           resolve();
           return;
         }
-        // The animation follows the wall clock and the loop stops on the wall
-        // clock. Because the stream now carries real timestamps, that makes the
-        // encoded clip the requested length whatever frame rate the machine
-        // sustains; only the smoothness changes, never the duration.
-        const elapsed = (performance.now() - startedAt) / 1000;
-        const time = Math.min(spec.duration, elapsed);
-        // Recording runs a short tail past the animation so the container's
-        // last timestamp is at or after the requested length. A clip that ends
-        // a quarter second early loses the closing frame; holding the finished
-        // frame for a moment does not.
+        const time = Math.min(spec.duration, frames / spec.fps);
         await engine.renderTemplate(
           spec.templateId,
           spec.customizations,
@@ -222,16 +242,16 @@ async function exportTemplateVideoOnce(
         );
         frames += 1;
         onProgress({
-          percent: Math.round((time / spec.duration) * 100),
-          message: `Rendering and encoding frame ${frames} (target ${targetFrames})`,
+          percent: Math.min(100, Math.round((frames / targetFrames) * 100)),
+          message: `Rendering and encoding frame ${frames} of ${targetFrames}`,
         });
-        if (elapsed >= spec.duration + TAIL_SECONDS) {
+        if (frames >= targetFrames && elapsed >= spec.duration + TAIL_SECONDS) {
           resolve();
           return;
         }
-        window.requestAnimationFrame(() => void tick());
+        window.requestAnimationFrame(() => void step());
       };
-      window.requestAnimationFrame(() => void tick());
+      window.requestAnimationFrame(() => void step());
     });
 
     // Give the encoder a moment to capture the final frame.
@@ -244,9 +264,8 @@ async function exportTemplateVideoOnce(
     const blob = new Blob(chunks, { type: mimeType.split(";")[0] });
     if (blob.size < 1000) {
       // Chromium sometimes delivers no frame at all to a canvas capture stream
-      // for a given recording session. Retrying once is bounded and keeps a
-      // single lost session from failing an export that is otherwise fine.
-      throw new EmptyCaptureError();
+      // for a given recording session; the counts say which half failed.
+      throw new EmptyCaptureError({ frames, chunks: chunks.length, bytes: blob.size });
     }
     const { measured } = await verifyWebm(blob, spec.duration);
     // MediaRecorder leaves the container duration unset, which makes the file

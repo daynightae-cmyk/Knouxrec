@@ -11,6 +11,7 @@ import { translate } from "../i18n/translate";
 import { useLibrary } from "../state/LibraryContext";
 import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
+import { matchesCombo } from "../services/hotkeys";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import ToastViewport from "./ToastViewport";
@@ -26,13 +27,13 @@ import LibraryView from "../views/LibraryView";
 import SettingsView from "../views/SettingsView";
 import DiagnosticsView from "../views/DiagnosticsView";
 import ModelsView from "../views/ModelsView";
-import UnavailableView from "../views/UnavailableView";
 import ToolboxView from "../views/ToolboxView";
 import AiWorkspaceView from "../views/AiWorkspaceView";
 import TemplatesView from "../views/TemplatesView";
 import VisualPatchView from "../views/VisualPatchView";
 import LiveStudioView from "../views/LiveStudioView";
 import MorphCoreView from "../views/MorphCoreView";
+import BodyProportionsView from "../views/BodyProportionsView";
 import AudioStudioView from "../views/AudioStudioView";
 import BatchView from "../views/BatchView";
 
@@ -227,7 +228,6 @@ export default function AppRoot() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
@@ -238,22 +238,29 @@ export default function AppRoot() {
       ) {
         return;
       }
-      const key = event.key.toLowerCase();
-      if (key === "r") {
+      const bindings = settings.hotkeys;
+      if (matchesCombo(event, bindings.toggle)) {
         event.preventDefault();
-        void recorder.toggle("screen");
-      } else if (key === "p") {
+        void recorder.toggle(recorder.preferredMode);
+      } else if (matchesCombo(event, bindings.pause)) {
         event.preventDefault();
         if (recorder.status === "recording") recorder.pause();
         else if (recorder.status === "paused") recorder.resume();
-      } else if (key === "s") {
+      } else if (matchesCombo(event, bindings.screenshot)) {
         event.preventDefault();
         void recorder.takeScreenshot();
+      } else if (matchesCombo(event, bindings.audio)) {
+        event.preventDefault();
+        if (recorder.status === "recording" || recorder.status === "paused") {
+          if (recorder.mode === "audio") void recorder.stop();
+        } else {
+          void recorder.start("audio");
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [recorder]);
+  }, [recorder, settings.hotkeys]);
 
   const steps: SplashStep[] = [
     {
@@ -326,7 +333,7 @@ export default function AppRoot() {
       case "batch":
         return <BatchView onNavigate={navigate} />;
       case "body-editor":
-        return <UnavailableView route={route} />;
+        return <BodyProportionsView />;
       case "toolbox":
         return <ToolboxView onNavigate={navigate} />;
       case "offline-ai":

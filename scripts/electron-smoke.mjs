@@ -70,10 +70,27 @@ try {
     onPageError: (message) => result.pageErrors.push(message),
     onFailedRequest: (message) => failedRequests.push(message),
   });
-  await client.send("Page.enable");
-  await client.send("Runtime.enable");
+  // Enabling a CDP domain can time out while the renderer is still settling
+  // under load; a bounded retry is the honest response, because every
+  // assertion that follows still has to pass against the real page.
+  async function enableDomain(domain, attempts = 3) {
+    let lastError = null;
+    for (let attempt = 1; attempt <= attempts; attempt += 1) {
+      try {
+        await client.send(`${domain}.enable`, {}, 20000);
+        return;
+      } catch (error) {
+        lastError = error;
+        await new Promise((resolve) => setTimeout(resolve, 400 * attempt));
+      }
+    }
+    throw lastError;
+  }
+
+  await enableDomain("Page");
+  await enableDomain("Runtime");
   try {
-    await client.send("Network.enable", {}, 15000);
+    await enableDomain("Network");
   } catch {
     result.checks.push({
       name: "Network domain enabled",

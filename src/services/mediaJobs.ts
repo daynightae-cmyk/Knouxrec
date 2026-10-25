@@ -17,6 +17,8 @@ import {
   cropImage,
   extractColorPalette,
   extractVideoThumbnail,
+  compressImage,
+  renderFrameSheet,
   filterImage,
   pixelateImage,
   renderAudioWaveform,
@@ -331,6 +333,67 @@ async function processTool(
         height: output.height,
         bytes: output.blob.size,
         metrics: { block, width: output.width, height: output.height },
+        logs,
+      };
+    }
+    case "image-compress": {
+      const format = (optionString(options, "compressFormat", "jpeg") === "webp" ? "webp" : "jpeg") as
+        | "jpeg"
+        | "webp";
+      const quality = Math.round(optionNumber(options, "quality", 82));
+      const maxEdge = Math.round(optionNumber(options, "maxEdge", 1600));
+      const output = await compressImage(file!, { format, quality, maxEdge });
+      const saved = output.report.savedPercent;
+      logs.push(
+        `Encoded ${format.toUpperCase()} at q${quality}, ${output.width}×${output.height}: ` +
+          `${output.report.originalBytes} B → ${output.report.outputBytes} B ` +
+          `(${saved >= 0 ? "-" : "+"}${Math.abs(saved).toFixed(1)}%).`,
+      );
+      return {
+        toolId,
+        blob: output.blob,
+        mimeType: output.mimeType,
+        fileName: `${baseName(request.fileName, "image")}-compressed.${format === "jpeg" ? "jpg" : "webp"}`,
+        width: output.width,
+        height: output.height,
+        bytes: output.blob.size,
+        metrics: {
+          originalBytes: output.report.originalBytes,
+          outputBytes: output.report.outputBytes,
+          savedPercent: Number(saved.toFixed(1)),
+          quality,
+          maxEdge,
+          width: output.width,
+          height: output.height,
+        },
+        logs,
+      };
+    }
+    case "video-frame-sheet": {
+      const count = Math.round(optionNumber(options, "count", 6));
+      const columns = Math.round(optionNumber(options, "columns", 3));
+      const tileWidth = Math.round(optionNumber(options, "tileWidth", 320));
+      const output = await renderFrameSheet(file!, { count, columns, tileWidth });
+      logs.push(
+        `Sampled ${output.count} frames across ${output.duration.toFixed(2)}s into a ${output.width}×${output.height} sheet.`,
+      );
+      return {
+        toolId,
+        blob: output.blob,
+        mimeType: output.mimeType,
+        fileName: `${baseName(request.fileName, "video")}-sheet.png`,
+        width: output.width,
+        height: output.height,
+        duration: output.duration,
+        bytes: output.blob.size,
+        metrics: {
+          count: output.count,
+          columns,
+          tileWidth,
+          duration: Number(output.duration.toFixed(3)),
+          width: output.width,
+          height: output.height,
+        },
         logs,
       };
     }

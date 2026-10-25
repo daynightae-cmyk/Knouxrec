@@ -1,3 +1,5 @@
+import type { HotkeyMap } from "../services/hotkeys";
+
 export type Language = "en" | "ar";
 export type ThemeMode = "dark" | "light";
 
@@ -10,6 +12,11 @@ export interface RecorderSettings {
   webcamPosition: "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
   webcamSize: "small" | "medium" | "large";
   namingPattern: string;
+  /**
+   * Device id of the microphone used for audio-only sessions. Null means the
+   * system default, which is what the browser picks without being told.
+   */
+  audioDeviceId?: string | null;
 }
 
 export interface AppSettings {
@@ -19,6 +26,8 @@ export interface AppSettings {
   recorder: RecorderSettings;
   screenshotFormat: "png" | "jpeg" | "webp";
   screenshotQuality: number;
+  /** Global shortcut bindings; an empty string means no shortcut. */
+  hotkeys: HotkeyMap;
 }
 
 export type LibraryKind = "video" | "image" | "audio";
@@ -46,7 +55,8 @@ export type RouteLabel =
   | "screenshots"
   | "visual-patch"
   | "templates"
-  | "recording";
+  | "recording"
+  | "body";
 
 export interface LibraryItem {
   id: string;
@@ -64,6 +74,8 @@ export interface LibraryItem {
   favorite?: boolean;
   /** Chain of hubs this file was derived through, oldest first. */
   provenance?: ProvenanceRecord[];
+  /** Optional user collection; empty means unfiled. */
+  collection?: string;
 }
 
 export type RecorderStatus =
@@ -78,6 +90,8 @@ export interface RecorderSnapshot {
   status: RecorderStatus;
   elapsed: number;
   error: string | null;
+  /** What the live session is capturing, so views can speak precisely about it. */
+  mode?: "screen" | "window" | "webcam" | "audio" | null;
   lastCapture: {
     id: string;
     name: string;

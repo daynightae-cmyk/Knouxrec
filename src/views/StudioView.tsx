@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
 import { useLibrary } from "../state/LibraryContext";
@@ -9,6 +9,8 @@ import BrandMark from "../app/BrandMark";
 import { EmptyState, PreviewDialog, SectionHeader } from "./ui";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 import type { CaptureMode } from "../services/recordingEngine";
+import { LevelMeter } from "../ui/LevelMeter";
+import { comboParts, HOTKEY_ACTIONS } from "../services/hotkeys";
 import type { LibraryItem } from "../state/types";
 
 function StreamPreview({ stream }: { stream: MediaStream }) {
@@ -45,12 +47,41 @@ export default function StudioView({
   const { settings, updateRecorder } = useSettings();
   const { items, urlFor } = useLibrary();
   const t = (key: string) => translate(settings.language, key);
-  const [mode, setMode] = useState<CaptureMode>("screen");
+  const [mode, setMode] = useState<CaptureMode>(recorder.preferredMode);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
+  const [devices, setDevices] = useState<Array<{ deviceId: string; label: string }>>([]);
+  const [delay, setDelay] = useState(5);
 
   const active = recorder.status === "recording" || recorder.status === "paused";
   const busy = recorder.status === "requesting" || recorder.status === "stopping";
   const videos = items.filter((item) => item.kind === "video").slice(0, 4);
+
+  // Device labels only exist once the microphone has been granted, so the list
+  // is refreshed whenever a session starts or ends rather than guessed at.
+  useEffect(() => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    let cancelled = false;
+    navigator.mediaDevices
+      .enumerateDevices()
+      .then((found) => {
+        if (cancelled) return;
+        setDevices(
+          found
+            .filter((device) => device.kind === "audioinput")
+            .map((device) => ({ deviceId: device.deviceId, label: device.label })),
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [recorder.status]);
+
+  const audioMode = mode === "audio";
+  const selectedDevice = useMemo(
+    () => devices.find((device) => device.deviceId === settings.recorder.audioDeviceId) ?? null,
+    [devices, settings.recorder.audioDeviceId],
+  );
 
   return (
     <div className="kx-content">
@@ -105,7 +136,37 @@ export default function StudioView({
             data-state={recorder.status === "recording" ? "live" : undefined}
             style={{ minHeight: 380 }}
           >
-            {recorder.previewStream ? (
+            {active && recorder.mode === "audio" ? (
+              <div className="kx-preview-audio" data-audio-session>
+                <div className="kx-preview-overlay">
+                  <span className="kx-rec-dot" />
+                  <span>{recorder.status === "paused" ? t("paused") : t("recording")}</span>
+                  <time>{formatDuration(recorder.elapsed)}</time>
+                </div>
+                <BrandMark size={68} />
+                <div className="kx-preview-audio-title">
+                  <Icon name="audio" size={15} />
+                  {t("studio.audioTitle")}
+                </div>
+                <LevelMeter
+                  readLevel={recorder.readLevel}
+                  active={recorder.status === "recording"}
+                  labels={{
+                    aria: t("studio.meterAria"),
+                    peak: t("studio.meterPeak"),
+                    average: t("studio.meterAverage"),
+                    loudest: t("studio.meterLoudest"),
+                    clip: t("studio.meterClip"),
+                    silent: t("studio.meterSilent"),
+                    value: (dB: string, average: string) =>
+                      t("studio.meterValue").replace("{dB}", dB).replace("{avg}", average),
+                  }}
+                />
+                <div className="kx-card-sub kx-mono" dir="ltr" style={{ marginTop: 2 }}>
+                  {t("studio.audioSource")}
+                </div>
+              </div>
+            ) : recorder.previewStream ? (
               <>
                 <StreamPreview stream={recorder.previewStream} />
                 <div className="kx-preview-overlay">
@@ -134,6 +195,9 @@ export default function StudioView({
                   <span className="kx-chip" aria-pressed={mode === "webcam"}>
                     <Icon name="camera" size={14} /> {t("webcam")}
                   </span>
+                  <span className="kx-chip" aria-pressed={mode === "audio"}>
+                    <Icon name="audio" size={14} /> {t("studio.audioChip")}
+                  </span>
                 </div>
               </div>
             )}
@@ -150,10 +214,14 @@ export default function StudioView({
             <div className="kx-stat">
               <span className="kx-stat-label">{t("studio.output")}</span>
               <span className="kx-stat-value">
-                {settings.recorder.quality}p
+                {audioMode ? t("studio.audioValue") : `${settings.recorder.quality}p`}
               </span>
               <span className="kx-stat-hint">
-                {settings.recorder.fps} fps · {settings.recorder.systemAudio ? "system audio" : "no system audio"}
+                {audioMode
+                  ? t("studio.audioHint")
+                  : `${settings.recorder.fps} fps · ${
+                      settings.recorder.systemAudio ? "system audio" : "no system audio"
+                    }`}
               </span>
             </div>
           </div>
@@ -161,7 +229,14 @@ export default function StudioView({
           <div className="kx-notice" data-tone="info">
             <Icon name="info" size={16} />
             <div>
-              <strong>{t("hotkeys")}:</strong> {t("hotkeyHint")}
+              <strong>{t("hotkeys")}:</strong>{" "}
+              <span dir="ltr" className="kx-mono" data-hotkey-hint>
+                {HOTKEY_ACTIONS.map(({ action }) =>
+                  comboParts(settings.hotkeys[action] ?? "").join("+"),
+                )
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
             </div>
           </div>
         </div>
@@ -188,25 +263,125 @@ export default function StudioView({
           <div className="kx-col" style={{ marginTop: 16 }}>
             <div className="kx-field">
               <span className="kx-label">{t("studio.captureSource")}</span>
-              <div className="kx-segmented">
-                {(["screen", "window", "webcam"] as CaptureMode[]).map((option) => (
+              <div className="kx-segmented" data-capture-modes>
+                {(["screen", "window", "webcam", "audio"] as CaptureMode[]).map((option) => (
                   <button
                     key={option}
                     type="button"
                     aria-pressed={mode === option}
-                    onClick={() => setMode(option)}
+                    data-capture-mode={option}
+                    onClick={() => {
+                      setMode(option);
+                      // The toggle shortcut starts whatever source was chosen
+                      // last, so choosing one here is also a preference.
+                      recorder.setPreferredMode(option);
+                    }}
                     disabled={active || busy}
                   >
                     {option === "screen"
                       ? t("screen")
                       : option === "window"
                         ? t("window")
-                        : t("webcam")}
+                        : option === "webcam"
+                          ? t("webcam")
+                          : t("studio.audioChip")}
                   </button>
                 ))}
               </div>
-              <span className="kx-card-sub">{t("studio.screenAndWindowNote")}</span>
+              <span className="kx-card-sub">
+                {audioMode ? t("studio.audioNote") : t("studio.screenAndWindowNote")}
+              </span>
+              {audioMode && (
+                <div className="kx-field" data-microphone-picker>
+                  <span className="kx-label">{t("studio.microphone")}</span>
+                  <select
+                    className="kx-input"
+                    value={settings.recorder.audioDeviceId ?? ""}
+                    aria-label={t("studio.microphone")}
+                    disabled={active || busy}
+                    onChange={(event) =>
+                      updateRecorder({ audioDeviceId: event.target.value || null })
+                    }
+                  >
+                    <option value="">{t("studio.defaultMicrophone")}</option>
+                    {devices.map((device) => (
+                      <option key={device.deviceId} value={device.deviceId}>
+                        {device.label || t("studio.unnamedDevice")}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="kx-card-sub">
+                    {devices.length === 0
+                      ? t("studio.noDevices")
+                      : selectedDevice
+                        ? t("studio.deviceChosen")
+                        : t("studio.deviceNamesHint")}
+                  </span>
+                </div>
+              )}
             </div>
+
+            <div className="kx-field" data-schedule-control>
+              <span className="kx-label">{t("studio.delayLabel")}</span>
+              <div className="kx-row" style={{ gap: 6, flexWrap: "wrap" }}>
+                {[3, 5, 10, 30].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="kx-btn kx-btn-sm"
+                    aria-pressed={delay === value}
+                    data-delay={value}
+                    disabled={active || busy || Boolean(recorder.schedule)}
+                    onClick={() => setDelay(value)}
+                  >
+                    {value}s
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="kx-btn kx-btn-sm kx-btn-primary"
+                  data-schedule-start
+                  onClick={() => recorder.scheduleStart(delay, mode)}
+                  disabled={
+                    active ||
+                    busy ||
+                    Boolean(recorder.schedule) ||
+                    !recorder.support.mediaRecorder
+                  }
+                >
+                  <Icon name="clock" size={13} />
+                  {t("studio.scheduleStart")}
+                </button>
+              </div>
+              <span className="kx-card-sub">{t("studio.delayHint")}</span>
+            </div>
+
+            {recorder.schedule && (
+              <div
+                className="kx-notice"
+                data-tone="info"
+                data-schedule-countdown
+                data-remaining={recorder.schedule.remaining}
+              >
+                <Icon name="clock" size={16} />
+                <div style={{ flex: 1 }}>
+                  <strong>
+                    {t("studio.scheduleIn")} {recorder.schedule.remaining}s
+                  </strong>{" "}
+                  <span className="kx-muted">
+                    {t(`rec.mode.${recorder.schedule.mode}`)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="kx-btn kx-btn-sm"
+                  data-schedule-cancel
+                  onClick={recorder.cancelSchedule}
+                >
+                  {t("studio.scheduleCancel")}
+                </button>
+              </div>
+            )}
 
             <div className="kx-grid kx-grid-2">
               <div className="kx-field">

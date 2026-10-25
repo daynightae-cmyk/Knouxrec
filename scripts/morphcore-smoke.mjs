@@ -13,6 +13,10 @@
  *   - rotate fills the rotated bounding box with transparent corners, flipping
  *     mirrors real pixels,
  *   - wave warp shears rows,
+ *   - the mesh lattice drags: an untouched grid is a pixel-exact no-op, a
+ *     dragged point moves content with it and leaves a far column untouched,
+ *     arrow keys nudge the focused point, density changes keep the border pull,
+ *     flattening restores the source bytes and Apply bakes the warp,
  *   - Apply bakes into history; Undo/Redo restore snapshots pixel-for-pixel;
  *     Reset returns to the untouched fixture,
  *   - the before/after overlay shows the untouched original from real bytes,
@@ -219,6 +223,60 @@ async function setNumberInput(page, value) {
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }, value);
   await sleep(180);
+}
+
+/** Geometry of the mesh overlay, once the layout has stopped moving. */
+async function meshState(page) {
+  return page.evaluate(() => {
+    const svg = document.querySelector("[data-mesh-overlay]");
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    return {
+      vertices: [...svg.querySelectorAll("[data-mesh-vertex]")].map((node) => ({
+        cx: Number(node.getAttribute("cx")),
+        cy: Number(node.getAttribute("cy")),
+      })),
+      lines: svg.querySelectorAll(".kx-geo-mesh-line").length,
+      energy: document.querySelector("[data-mesh-energy]")?.textContent?.trim() ?? "",
+      box: { x: rect.left, y: rect.top, width: rect.width, height: rect.height },
+    };
+  });
+}
+
+async function settledMeshState(page, attempts = 14) {
+  let previous = await meshState(page);
+  for (let index = 0; index < attempts; index += 1) {
+    await sleep(120);
+    const current = await meshState(page);
+    if (
+      current &&
+      previous &&
+      Math.abs(current.box.y - previous.box.y) < 0.5 &&
+      Math.abs(current.box.x - previous.box.x) < 0.5
+    ) {
+      return current;
+    }
+    previous = current;
+  }
+  return previous;
+}
+
+/** Drag a lattice point from where it is to a normalised target. */
+async function dragMeshVertex(page, box, from, to) {
+  const startX = box.x + (from.cx / 100) * box.width;
+  const startY = box.y + (from.cy / 100) * box.height;
+  const endX = box.x + to.u * box.width;
+  const endY = box.y + to.v * box.height;
+  const under = await page.evaluate(
+    ({ x, y }) => document.elementFromPoint(x, y)?.getAttribute("data-mesh-vertex") ?? null,
+    { x: startX, y: startY },
+  );
+  await page.mouse.move(startX, startY);
+  await page.mouse.down();
+  await page.mouse.move(endX, endY, { steps: 10 });
+  await page.mouse.up();
+  await sleep(900);
+  return under;
 }
 
 async function upload(page, file) {
@@ -598,6 +656,139 @@ try {
   );
   report.steps.push({ step: "warp", shifts, spread });
   await shot(page, "05-warp");
+
+  /* -------------------------------------------------------------- mesh */
+  // Start from the untouched fixture so the lattice can be measured against
+  // the bytes the file really holds.
+  await clickButton(page, "Reset all");
+  await sleep(1000);
+  await page.evaluate(() => document.querySelector(".kx-geo-stage")?.scrollIntoView({ block: "center" }));
+  await clickButton(page, "Mesh warp", ".kx-geo-inspector .kx-segmented button");
+  await sleep(900);
+  const idle = await settledMeshState(page);
+  check("mesh: the lattice overlay is drawn over the canvas", Boolean(idle && idle.box.width > 40), idle?.box);
+
+  const idleCanvas = await canvasHash(page);
+  check(
+    "mesh: a 4×4 lattice puts 16 points and 8 guide lines on the frame",
+    Boolean(idle) && idle.vertices.length === 16 && idle.lines === 8,
+    { vertices: idle?.vertices.length, lines: idle?.lines },
+  );
+  check(
+    "mesh: an untouched lattice is a pixel-exact no-op",
+    Boolean(idleCanvas && idleCanvas.sha256 === loaded.sha256),
+    { loaded: loaded.sha256.slice(0, 16), idle: idleCanvas?.sha256.slice(0, 16) },
+  );
+
+  const nearBefore = await pixelAt(page, 200, 133);
+  const farBefore = await pixelAt(page, 540, 133);
+  const grabbed = await dragMeshVertex(page, idle.box, idle.vertices[5], { u: 0.5, v: 1 / 3 });
+  check("mesh: the grab lands on the intended lattice point", grabbed === "5", grabbed);
+
+  const dragged = await meshState(page);
+  const warpedCanvas = await canvasHash(page);
+  const nearAfter = await pixelAt(page, 200, 133);
+  const farAfter = await pixelAt(page, 540, 133);
+  check(
+    "mesh: the vertex follows the pointer",
+    Math.abs(dragged.vertices[5].cx - 50) <= 1.5 && Math.abs(dragged.vertices[5].cy - 33.3) <= 1.5,
+    { vertex: dragged.vertices[5], wanted: { cx: 50, cy: 33.3 } },
+  );
+  check(
+    "mesh: dragging a point re-samples real pixels",
+    Boolean(warpedCanvas && warpedCanvas.sha256 !== idleCanvas.sha256),
+    { idle: idleCanvas?.sha256.slice(0, 12), warped: warpedCanvas?.sha256.slice(0, 12) },
+  );
+  check(
+    "mesh: content travels with the dragged point",
+    nearBefore[0] > 200 && nearAfter[0] < nearBefore[0] - 40,
+    { before: nearBefore, after: nearAfter },
+  );
+  check(
+    "mesh: the pull is local, a far column is untouched",
+    farAfter[0] === farBefore[0] && farAfter[1] === farBefore[1],
+    { before: farBefore, after: farAfter },
+  );
+  check(
+    "mesh: the panel reports the total pull",
+    !/0\.00/.test(dragged.energy) && /[\d.]+/.test(dragged.energy),
+    dragged.energy,
+  );
+  await shot(page, "07-mesh-dragged");
+
+  const focusedVertex = await page.evaluate(() => {
+    const node = document.querySelector('[data-mesh-vertex="9"]');
+    node?.focus();
+    return document.activeElement === node;
+  });
+  check("mesh: a lattice point takes keyboard focus", focusedVertex === true, focusedVertex);
+  const beforeKeys = await meshState(page);
+  for (let index = 0; index < 5; index += 1) await page.keyboard.press("ArrowRight");
+  await sleep(700);
+  const afterKeys = await meshState(page);
+  check(
+    "mesh: arrow keys nudge the focused point",
+    Math.abs(afterKeys.vertices[9].cx - (beforeKeys.vertices[9].cx + 5)) <= 0.6,
+    { before: beforeKeys.vertices[9].cx, after: afterKeys.vertices[9].cx },
+  );
+
+  await setRange(page, "Grid across", 6);
+  await sleep(700);
+  const denser = await meshState(page);
+  check(
+    "mesh: the density control rebuilds the lattice",
+    denser.vertices.length === 24 && denser.lines === 10,
+    { vertices: denser.vertices.length, lines: denser.lines },
+  );
+
+  await page.evaluate(() => document.querySelector('[data-mesh-action="flatten"]')?.click());
+  await sleep(900);
+  const flattened = await canvasHash(page);
+  const flattenedState = await meshState(page);
+  check(
+    "mesh: flattening the grid returns the exact source pixels",
+    Boolean(flattened && flattened.sha256 === loaded.sha256) && /0\.00/.test(flattenedState.energy),
+    { energy: flattenedState.energy, canvas: flattened?.sha256.slice(0, 16) },
+  );
+
+  // A corner is what the lattice keeps when its density changes, so the pull
+  // is proved against the frame rather than an interior point.
+  await dragMeshVertex(page, flattenedState.box, flattenedState.vertices[0], { u: 0.12, v: 0.1 });
+  const cornerPulled = await meshState(page);
+  await setRange(page, "Grid down", 6);
+  await sleep(700);
+  const resized = await meshState(page);
+  check(
+    "mesh: the border pull survives a density change",
+    Math.abs(resized.vertices[0].cx - cornerPulled.vertices[0].cx) <= 1.5 &&
+      Math.abs(resized.vertices[0].cy - cornerPulled.vertices[0].cy) <= 1.5,
+    { before: cornerPulled.vertices[0], after: resized.vertices[0] },
+  );
+
+  await page.evaluate(() => document.querySelector('[data-mesh-action="flatten"]')?.click());
+  await sleep(600);
+  const readyState = await meshState(page);
+  await dragMeshVertex(page, readyState.box, readyState.vertices[14], { u: 0.6, v: 0.55 });
+  const beforeApply = await canvasHash(page);
+  await clickButton(page, "Apply transform");
+  await sleep(900);
+  const bakedState = await meshState(page);
+  const bakedCanvas = await canvasHash(page);
+  check(
+    "mesh: applying bakes the warp into the working image",
+    Boolean(bakedCanvas && bakedCanvas.sha256 !== loaded.sha256) &&
+      Boolean(beforeApply) &&
+      bakedCanvas.sha256 === beforeApply.sha256,
+    { before: beforeApply?.sha256.slice(0, 12), baked: bakedCanvas?.sha256.slice(0, 12) },
+  );
+  check(
+    "mesh: the lattice goes back to its intersections after the bake",
+    bakedState.vertices.length === 16 &&
+      Math.abs(bakedState.vertices[5].cx - 33.3) <= 0.6 &&
+      /0\.00/.test(bakedState.energy),
+    { vertices: bakedState.vertices.length, vertex: bakedState.vertices[5], energy: bakedState.energy },
+  );
+  report.steps.push({ step: "mesh", dragged: dragged.vertices[5], energy: dragged.energy });
 
   /* ------------------------------------------------------------ reset */
   await clickButton(page, "Reset all");

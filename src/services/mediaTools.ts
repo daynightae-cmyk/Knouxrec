@@ -19,6 +19,8 @@ export type MediaToolId =
   | "image-rotate"
   | "image-crop"
   | "image-pixelate"
+  | "image-compress"
+  | "video-frame-sheet"
   | "video-thumbnail"
   | "audio-visualizer"
   | "text-image"
@@ -186,6 +188,35 @@ export const MEDIA_TOOLS: MediaToolDescriptor[] = [
     description: "Mosaic the image by resampling through a low-resolution grid.",
     descriptionAr: "تجميع الصورة عبر شبكة منخفضة الدقة ثم إعادة تكبيرها.",
     accepts: ["image/png", "image/jpeg", "image/webp"],
+    outputMime: "image/png",
+    outputExtension: "png",
+    inputKind: "file",
+    runnable: true,
+  },
+  {
+    id: "image-compress",
+    name: "Image compressor",
+    nameAr: "ضغط الصور",
+    category: "image",
+    description:
+      "Re-encode at a chosen quality and edge limit, then report the measured saving against the source bytes.",
+    descriptionAr:
+      "أعد الترميز بجودة وحدّ أبعاد مختارين، ثم اقرأ الوفر المقاس مقابل بايتات المصدر.",
+    accepts: ["image/png", "image/jpeg", "image/webp"],
+    outputMime: "image/jpeg",
+    outputExtension: "jpg",
+    inputKind: "file",
+    runnable: true,
+  },
+  {
+    id: "video-frame-sheet",
+    name: "Frame sheet",
+    nameAr: "لوحة الإطارات",
+    category: "video",
+    description:
+      "Seek the clip at even intervals and compose the decoded frames into a labelled contact sheet.",
+    descriptionAr: "اقفز داخل المقطع على فواصل متساوية وركّب الإطارات المفكوكة في لوحة تواصل موسومة.",
+    accepts: ["video/webm", "video/mp4", "video/ogg"],
     outputMime: "image/png",
     outputExtension: "png",
     inputKind: "file",
@@ -1171,4 +1202,237 @@ export async function extractColorPalette(
     swatches,
     sampled: swatches.reduce((total, swatch) => total + swatch.weight, 0),
   };
+}
+
+/* ------------------------------------------------------------------ */
+/* Image compression                                                   */
+/* ------------------------------------------------------------------ */
+
+export interface CompressionReport {
+  originalBytes: number;
+  outputBytes: number;
+  savedBytes: number;
+  savedPercent: number;
+  /** Output size relative to the source, 1 means identical. */
+  ratio: number;
+}
+
+/** Measured, never estimated: both sides are real byte counts. */
+export function compressionReport(
+  originalBytes: number,
+  outputBytes: number,
+): CompressionReport {
+  const savedBytes = originalBytes - outputBytes;
+  return {
+    originalBytes,
+    outputBytes,
+    savedBytes,
+    savedPercent: originalBytes > 0 ? (savedBytes / originalBytes) * 100 : 0,
+    ratio: originalBytes > 0 ? outputBytes / originalBytes : 1,
+  };
+}
+
+export interface ImageCompressOptions {
+  /** Lossy formats the runtime genuinely writes; PNG stays out of this tool. */
+  format: Extract<ImageFormat, "jpeg" | "webp">;
+  quality: number;
+  /** Long-edge ceiling; 0 keeps the source size. */
+  maxEdge: number;
+  background?: string;
+}
+
+export async function compressImage(
+  source: Blob,
+  options: ImageCompressOptions,
+): Promise<{
+  blob: Blob;
+  width: number;
+  height: number;
+  mimeType: string;
+  report: CompressionReport;
+}> {
+  const image = await loadImageElement(source);
+  const naturalWidth = image.naturalWidth || image.width;
+  const naturalHeight = image.naturalHeight || image.height;
+  const limit = Math.max(0, Math.round(options.maxEdge));
+  const scale =
+    limit > 0 && Math.max(naturalWidth, naturalHeight) > limit
+      ? limit / Math.max(naturalWidth, naturalHeight)
+      : 1;
+  const width = Math.max(2, Math.round(naturalWidth * scale));
+  const height = Math.max(2, Math.round(naturalHeight * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("The 2D canvas context is unavailable.");
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.fillStyle = options.background ?? "#000000";
+  context.fillRect(0, 0, width, height);
+  context.drawImage(image, 0, 0, width, height);
+
+  const mimeType = mimeForFormat(options.format);
+  const blob = await canvasToBlob(canvas, mimeType, clamp(options.quality, 5, 100) / 100);
+  if (!blob.size) throw new Error("The encoder produced no bytes.");
+  return {
+    blob,
+    width,
+    height,
+    mimeType,
+    report: compressionReport(source.size, blob.size),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* Video frame sheet                                                   */
+/* ------------------------------------------------------------------ */
+
+/** Evenly spaced seek targets inside the clip, avoiding the hard edges. */
+export function frameSheetTimestamps(duration: number, count: number): number[] {
+  const frames = clamp(Math.round(count), 1, 24);
+  if (!(duration > 0)) return [0];
+  return Array.from({ length: frames }, (_, index) =>
+    Number((((index + 0.5) / frames) * duration).toFixed(3)),
+  );
+}
+
+export interface FrameSheetLayout {
+  columns: number;
+  rows: number;
+  tileWidth: number;
+  tileHeight: number;
+  width: number;
+  height: number;
+  padding: number;
+  labelHeight: number;
+}
+
+const SHEET_PADDING = 8;
+const SHEET_LABEL = 22;
+
+export function frameSheetLayout(
+  count: number,
+  columns: number,
+  tileWidth: number,
+  aspect: number,
+): FrameSheetLayout {
+  const frames = Math.max(1, Math.round(count));
+  const cols = clamp(Math.round(columns), 1, frames);
+  const rows = Math.ceil(frames / cols);
+  const tile = clamp(Math.round(tileWidth), 64, 640);
+  const height = Math.max(36, Math.round(tile / (aspect > 0 ? aspect : 16 / 9)));
+  return {
+    columns: cols,
+    rows,
+    tileWidth: tile,
+    tileHeight: height,
+    padding: SHEET_PADDING,
+    labelHeight: SHEET_LABEL,
+    width: cols * tile + (cols + 1) * SHEET_PADDING,
+    height: rows * (height + SHEET_LABEL) + (rows + 1) * SHEET_PADDING,
+  };
+}
+
+/**
+ * MediaRecorder WebM carries no duration until Chromium has scanned the
+ * clusters. Seeking past the end publishes it; a clip that still reports
+ * nothing afterwards is refused rather than guessed at.
+ */
+async function resolveVideoDuration(video: HTMLVideoElement): Promise<number> {
+  if (Number.isFinite(video.duration) && video.duration > 0) return video.duration;
+  await new Promise<void>((resolve) => {
+    const finish = () => resolve();
+    video.addEventListener("durationchange", finish, { once: true });
+    try {
+      video.currentTime = 1e101;
+    } catch {
+      finish();
+    }
+    window.setTimeout(finish, 6000);
+  });
+  if (Number.isFinite(video.duration) && video.duration > 0) return video.duration;
+  throw new Error("The clip reports no duration to sample.");
+}
+
+export async function renderFrameSheet(
+  source: Blob,
+  options: { count?: number; columns?: number; tileWidth?: number; background?: string } = {},
+): Promise<{
+  blob: Blob;
+  width: number;
+  height: number;
+  mimeType: string;
+  count: number;
+  duration: number;
+  timestamps: number[];
+}> {
+  const video = document.createElement("video");
+  const url = URL.createObjectURL(source);
+  video.src = url;
+  video.muted = true;
+  video.preload = "auto";
+  try {
+    await new Promise<void>((resolve, reject) => {
+      video.onloadedmetadata = () => resolve();
+      video.onerror = () => reject(new Error("The video could not be decoded."));
+      window.setTimeout(() => reject(new Error("The video metadata timed out.")), 15000);
+    });
+    const duration = await resolveVideoDuration(video);
+    const timestamps = frameSheetTimestamps(duration, options.count ?? 6);
+    const aspect = video.videoWidth / Math.max(1, video.videoHeight);
+    const layout = frameSheetLayout(
+      timestamps.length,
+      options.columns ?? 3,
+      options.tileWidth ?? 320,
+      aspect,
+    );
+
+    const canvas = document.createElement("canvas");
+    canvas.width = layout.width;
+    canvas.height = layout.height;
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("The 2D canvas context is unavailable.");
+    context.fillStyle = options.background ?? "#07070c";
+    context.fillRect(0, 0, canvas.width, canvas.height);
+
+    for (let index = 0; index < timestamps.length; index += 1) {
+      const time = timestamps[index];
+      await new Promise<void>((resolve) => {
+        video.onseeked = () => resolve();
+        video.currentTime = time;
+        window.setTimeout(resolve, 4000);
+      });
+      const column = index % layout.columns;
+      const row = Math.floor(index / layout.columns);
+      const x = layout.padding + column * (layout.tileWidth + layout.padding);
+      const y = layout.padding + row * (layout.tileHeight + layout.labelHeight + layout.padding);
+      context.drawImage(video, x, y, layout.tileWidth, layout.tileHeight);
+      context.fillStyle = "#ffde00";
+      context.font = '600 13px "Inter", "Segoe UI", sans-serif';
+      context.textBaseline = "middle";
+      context.fillText(
+        `${time.toFixed(2)}s`,
+        x + 2,
+        y + layout.tileHeight + layout.labelHeight / 2,
+      );
+    }
+
+    const blob = await canvasToBlob(canvas, "image/png");
+    if (!blob.size) throw new Error("The sheet encoder produced no bytes.");
+    return {
+      blob,
+      width: layout.width,
+      height: layout.height,
+      mimeType: "image/png",
+      count: timestamps.length,
+      duration,
+      timestamps,
+    };
+  } finally {
+    video.removeAttribute("src");
+    video.load();
+    URL.revokeObjectURL(url);
+  }
 }

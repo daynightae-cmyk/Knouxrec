@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { CAPABILITIES } from "../app/capabilities";
 import { Icon } from "../app/icons";
 import { useLibrary } from "../state/LibraryContext";
@@ -6,14 +6,27 @@ import { useSettings } from "../state/SettingsContext";
 import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
 import { downloadBlob, formatBytes } from "../lib/format";
+import {
+  createMesh,
+  meshEnergy,
+  meshReference,
+  meshVertexPosition,
+  meshWarpPixels,
+  resetMesh,
+  resizeMesh,
+  setMeshOffset,
+  type MeshGrid,
+} from "../services/geometryOps";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 import { useHandoffReceiver } from "../ui/handoff";
 
-type GeometryMode = "stretch" | "rotate" | "pinch" | "perspective" | "warp";
+type GeometryMode = "stretch" | "rotate" | "pinch" | "perspective" | "warp" | "mesh";
 
 const MAX_EDGE = 1600;
 const MAX_HISTORY = 6;
 const AGE_GATE_KEY = "knoux-geometry.age-gate.v1";
+/** While a vertex is being dragged the warp is sampled this many pixels apart. */
+const MESH_PREVIEW_EDGE = 340;
 
 const DEFAULTS = {
   stretchX: 100,
@@ -29,6 +42,8 @@ const DEFAULTS = {
   perspBottom: 100,
   warpAmplitude: 0,
   warpFrequency: 3,
+  meshColumns: 4,
+  meshRows: 4,
 };
 
 type GeometryParams = typeof DEFAULTS;
@@ -97,6 +112,17 @@ export default function MorphCoreView() {
   >([]);
   const [saved, setSaved] = useState(false);
   const [originalUrl, setOriginalUrl] = useState<string | null>(null);
+  // Mesh state lives beside the canvas, not inside `params`: a lattice of
+  // normalised displacements is not a slider value, and keeping it separate
+  // means the other five modes never see it.
+  const [mesh, setMesh] = useState<MeshGrid>(() =>
+    createMesh(DEFAULTS.meshColumns, DEFAULTS.meshRows),
+  );
+  const [meshLive, setMeshLive] = useState(false);
+  const [meshActive, setMeshActive] = useState<number | null>(null);
+  const meshDragRef = useRef<number | null>(null);
+  const meshFrameRef = useRef<HTMLDivElement | null>(null);
+  const meshSvgRef = useRef<SVGSVGElement | null>(null);
 
   // The blocked body-aware catalog lives in this section, so the 18+ safeguard
   // that guarded the legacy route is preserved here. The declaration is
@@ -260,6 +286,25 @@ export default function MorphCoreView() {
             sh,
           );
         }
+      } else if (mode === "mesh") {
+        preview.width = width;
+        preview.height = height;
+        setDimensions({ width, height });
+        const surface = base.getContext("2d", { willReadFrequently: true });
+        if (!surface) return;
+        const image = surface.getImageData(0, 0, width, height);
+        // Full quality when the pointer is down, a coarser sample grid while a
+        // vertex is being dragged so the lattice keeps up with the mouse. The
+        // bake, save and export paths always run the full-quality pass.
+        const stride = meshLive
+          ? Math.max(2, Math.round(Math.max(width, height) / MESH_PREVIEW_EDGE))
+          : 1;
+        const warped = meshWarpPixels(
+          { width, height, data: new Uint8ClampedArray(image.data) },
+          mesh,
+          { stride },
+        );
+        context.putImageData(new ImageData(warped.data, warped.width, warped.height), 0, 0);
       } else {
         preview.width = width;
         preview.height = height;
@@ -276,7 +321,7 @@ export default function MorphCoreView() {
       }
       context.restore();
     },
-    [mode, params],
+    [mode, params, mesh, meshLive],
   );
 
   // Live preview with RAF coalescing.
@@ -288,6 +333,53 @@ export default function MorphCoreView() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
     };
   }, [ready, renderPreview]);
+
+  /* ------------------------------------------------------------ mesh */
+  /** Normalised (0…1) coordinates inside the displayed canvas box. */
+  const meshPointFromEvent = useCallback((event: React.PointerEvent) => {
+    const frame = meshFrameRef.current;
+    if (!frame) return null;
+    const rect = frame.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return {
+      u: (event.clientX - rect.left) / rect.width,
+      v: (event.clientY - rect.top) / rect.height,
+    };
+  }, []);
+
+  const dragMeshVertex = useCallback((index: number, point: { u: number; v: number }) => {
+    setMesh((current) => {
+      const reference = meshReference(current, index);
+      return setMeshOffset(current, index, point.u - reference.u, point.v - reference.v);
+    });
+  }, []);
+
+  const nudgeMeshVertex = useCallback((index: number, dx: number, dy: number) => {
+    setMesh((current) => {
+      const offset = current.offsets[index] ?? { dx: 0, dy: 0 };
+      return setMeshOffset(current, index, offset.dx + dx, offset.dy + dy);
+    });
+  }, []);
+
+  // The lattice the user drags is the deformed one: every line is drawn
+  // through the displaced vertices, so the grid and the image agree.
+  const meshLattice = useMemo(() => {
+    if (mode !== "mesh") return null;
+    const position = (row: number, column: number) => {
+      const point = meshVertexPosition(mesh, row * mesh.columns + column);
+      return `${(point.u * 100).toFixed(2)},${(point.v * 100).toFixed(2)}`;
+    };
+    const paths: string[] = [];
+    for (let row = 0; row < mesh.rows; row += 1) {
+      const points = Array.from({ length: mesh.columns }, (_, column) => position(row, column));
+      paths.push(`M ${points.join(" L ")}`);
+    }
+    for (let column = 0; column < mesh.columns; column += 1) {
+      const points = Array.from({ length: mesh.rows }, (_, row) => position(row, column));
+      paths.push(`M ${points.join(" L ")}`);
+    }
+    return paths;
+  }, [mesh, mode]);
 
   const pushHistory = useCallback(async (canvas: HTMLCanvasElement) => {
     const snapshot = await canvasToPng(canvas);
@@ -325,6 +417,10 @@ export default function MorphCoreView() {
       setDimensions({ width: baked.width, height: baked.height });
       // Every parameter is now part of the image, including the flips.
       setParams({ ...DEFAULTS });
+      // The lattice is a live control surface: once the warp is baked, the
+      // points go back to their intersections so the next drag starts clean.
+      setMesh(createMesh(DEFAULTS.meshColumns, DEFAULTS.meshRows));
+      setMeshActive(null);
       await pushHistory(baked);
       setSaved(false);
       setError(null);
@@ -361,6 +457,8 @@ export default function MorphCoreView() {
           historyRef.current = { ...historyRef.current, index };
           setHistoryTick((value) => value + 1);
           setParams({ ...DEFAULTS });
+          setMesh(createMesh(DEFAULTS.meshColumns, DEFAULTS.meshRows));
+          setMeshActive(null);
           // Show the snapshot itself, not the active transform on top of it.
           preview.width = restored.width;
           preview.height = restored.height;
@@ -401,6 +499,8 @@ export default function MorphCoreView() {
     }
     setDimensions({ width: copy.width, height: copy.height });
     setParams({ ...DEFAULTS });
+    setMesh(createMesh(DEFAULTS.meshColumns, DEFAULTS.meshRows));
+    setMeshActive(null);
     await pushHistory(copy);
     setSaved(false);
   }, [pushHistory]);
@@ -442,6 +542,8 @@ export default function MorphCoreView() {
           setDimensions({ width, height });
           setFileName(name);
           setParams(DEFAULTS);
+          setMesh(createMesh(DEFAULTS.meshColumns, DEFAULTS.meshRows));
+          setMeshActive(null);
           setReady(true);
           setSaved(false);
           historyRef.current = { entries: [], index: -1 };
@@ -555,6 +657,32 @@ export default function MorphCoreView() {
         </>
       );
     }
+    if (mode === "mesh") {
+      return (
+        <>
+          {meshDensity(t("geo.meshColumns"), "meshColumns")}
+          {meshDensity(t("geo.meshRows"), "meshRows")}
+          <div className="kx-row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm"
+              data-mesh-action="flatten"
+              onClick={() => {
+                setMesh((current) => resetMesh(current));
+                setMeshActive(null);
+              }}
+              disabled={meshEnergy(mesh) === 0}
+            >
+              {t("geo.meshFlatten")}
+            </button>
+            <span className="kx-mono kx-muted" data-mesh-energy dir="ltr">
+              {t("geo.meshPull")} {meshEnergy(mesh).toFixed(2)}
+            </span>
+          </div>
+          <p className="kx-card-sub">{t("geo.meshHint")}</p>
+        </>
+      );
+    }
     return (
       <>
         {slider(t("geo.amplitude"), "warpAmplitude", -100, 100, "%")}
@@ -562,6 +690,33 @@ export default function MorphCoreView() {
       </>
     );
   })();
+
+  function meshDensity(label: string, key: "meshColumns" | "meshRows") {
+    return (
+      <label className="kx-field" key={key}>
+        <span className="kx-label">
+          {label} <output className="kx-mono">{String(params[key])}</output>
+        </span>
+        <input
+          type="range"
+          min={2}
+          max={9}
+          value={Number(params[key])}
+          data-mesh-density={key}
+          onChange={(event) => {
+            const value = Number(event.target.value);
+            setParams((current) => ({ ...current, [key]: value }));
+            setMesh((current) =>
+              key === "meshColumns"
+                ? resizeMesh(current, value, current.rows)
+                : resizeMesh(current, current.columns, value),
+            );
+            setMeshActive(null);
+          }}
+        />
+      </label>
+    );
+  }
 
   function slider(
     label: string,
@@ -734,7 +889,74 @@ export default function MorphCoreView() {
               </div>
             </div>
             <div className="kx-geo-stage">
-              <canvas ref={previewRef} className="kx-geo-canvas" />
+              <div className="kx-geo-frame" ref={meshFrameRef} dir="ltr">
+                <canvas ref={previewRef} className="kx-geo-canvas" />
+                {mode === "mesh" && (
+                  <svg
+                    ref={meshSvgRef}
+                    className="kx-geo-mesh"
+                    viewBox="0 0 100 100"
+                    preserveAspectRatio="none"
+                    data-mesh-overlay
+                    role="group"
+                    aria-label={t("geo.meshOverlay")}
+                    onPointerMove={(event) => {
+                      if (meshDragRef.current === null) return;
+                      const point = meshPointFromEvent(event);
+                      if (point) dragMeshVertex(meshDragRef.current, point);
+                    }}
+                    onPointerUp={(event) => {
+                      if (meshDragRef.current === null) return;
+                      meshDragRef.current = null;
+                      meshSvgRef.current?.releasePointerCapture?.(event.pointerId);
+                      // Release re-renders the warp at full quality.
+                      setMeshLive(false);
+                    }}
+                    onPointerCancel={() => {
+                      meshDragRef.current = null;
+                      setMeshLive(false);
+                    }}
+                  >
+                    {meshLattice?.map((path, index) => (
+                      <path key={`lattice-${index}`} className="kx-geo-mesh-line" d={path} />
+                    ))}
+                    {mesh.offsets.map((_, index) => {
+                      const point = meshVertexPosition(mesh, index);
+                      return (
+                        <circle
+                          key={`vertex-${index}`}
+                          className={`kx-geo-mesh-vertex${meshActive === index ? " is-active" : ""}`}
+                          data-mesh-vertex={index}
+                          cx={point.u * 100}
+                          cy={point.v * 100}
+                          r={meshActive === index ? 1.8 : 1.2}
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`${t("geo.meshVertex")} ${index + 1}`}
+                          onFocus={() => setMeshActive(index)}
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            meshDragRef.current = index;
+                            setMeshActive(index);
+                            setMeshLive(true);
+                            meshSvgRef.current?.setPointerCapture(event.pointerId);
+                          }}
+                          onKeyDown={(event) => {
+                            const step = event.shiftKey ? 0.05 : 0.01;
+                            if (event.key === "ArrowLeft") nudgeMeshVertex(index, -step, 0);
+                            else if (event.key === "ArrowRight") nudgeMeshVertex(index, step, 0);
+                            else if (event.key === "ArrowUp") nudgeMeshVertex(index, 0, -step);
+                            else if (event.key === "ArrowDown") nudgeMeshVertex(index, 0, step);
+                            else return;
+                            event.preventDefault();
+                          }}
+                        />
+                      );
+                    })}
+                  </svg>
+                )}
+              </div>
               {compare && originalUrl && (
                 <img
                   className="kx-geo-original"
@@ -744,7 +966,12 @@ export default function MorphCoreView() {
               )}
             </div>
             <div className="kx-geo-actions">
-              <button type="button" className="kx-btn kx-btn-primary" onClick={() => void apply()} disabled={busy}>
+              <button
+                type="button"
+                className="kx-btn kx-btn-primary"
+                onClick={() => void apply()}
+                disabled={busy || meshLive}
+              >
                 <Icon name="check" size={15} />
                 {t("geo.apply")}
               </button>
@@ -788,19 +1015,23 @@ export default function MorphCoreView() {
           <aside className="kx-card kx-geo-inspector">
             <div className="kx-card-title">{t("geo.transform")}</div>
             <div className="kx-segmented" style={{ marginTop: 10 }} role="group" aria-label={t("geo.transform")}>
-              {(["stretch", "rotate", "pinch", "perspective", "warp"] as GeometryMode[]).map((entry) => (
-                <button
-                  key={entry}
-                  type="button"
-                  aria-pressed={mode === entry}
-                  onClick={() => {
-                    setMode(entry);
-                    setParams(DEFAULTS);
-                  }}
-                >
-                  {t(`geo.mode.${entry}`)}
-                </button>
-              ))}
+              {(["stretch", "rotate", "pinch", "perspective", "warp", "mesh"] as GeometryMode[]).map(
+                (entry) => (
+                  <button
+                    key={entry}
+                    type="button"
+                    aria-pressed={mode === entry}
+                    onClick={() => {
+                      setMode(entry);
+                      setParams(DEFAULTS);
+                      setMesh(createMesh(DEFAULTS.meshColumns, DEFAULTS.meshRows));
+                      setMeshActive(null);
+                    }}
+                  >
+                    {t(`geo.mode.${entry}`)}
+                  </button>
+                ),
+              )}
             </div>
             <div className="kx-col" style={{ gap: 12, marginTop: 14 }}>
               {sliders}

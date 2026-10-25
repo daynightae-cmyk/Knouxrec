@@ -92,7 +92,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "cmd-window", hub: "command", labelEn: "Record a window or tab", label: "تسجيل نافذة أو تبويب", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "cmd-camera", hub: "command", labelEn: "Record with the webcam", label: "تسجيل بالكاميرا", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "cmd-shot", hub: "command", labelEn: "Capture a screenshot", label: "التقاط صورة للشاشة", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
-  entry({ id: "cmd-audio", hub: "command", labelEn: "Standalone audio recording", label: "تسجيل صوتي مستقل", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "An audio-only sink in the recording engine" }),
+  entry({ id: "cmd-audio", hub: "command", labelEn: "Standalone audio recording", label: "تسجيل صوتي مستقل", mode: "LOCAL", status: "VERIFIED", route: "dashboard" }),
   entry({ id: "cmd-recent", hub: "command", labelEn: "Recent media and storage status", label: "الوسائط الأخيرة وحالة التخزين", mode: "LOCAL", status: "VERIFIED", route: "library" }),
   entry({ id: "cmd-jobs", hub: "command", labelEn: "Running media jobs", label: "مهام الوسائط الجارية", mode: "LOCAL", status: "VERIFIED", route: "live-studio" }),
   entry({ id: "cmd-discover", hub: "command", labelEn: "Find any service", label: "البحث عن أي خدمة", mode: "LOCAL", status: "VERIFIED", route: "discover", keywords: ["search", "palette", "بحث"] }),
@@ -103,8 +103,8 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "rec-pause", hub: "recording", labelEn: "Pause, resume and stop", label: "إيقاف مؤقت واستئناف وإنهاء", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "rec-overlay", hub: "recording", labelEn: "Webcam overlay compositing", label: "دمج طبقة الكاميرا", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "rec-system-audio", hub: "recording", labelEn: "System audio capture", label: "التقاط صوت النظام", mode: "LOCAL", status: "PARTIAL", route: "studio", needs: "Only when the platform offers a system-audio track" }),
-  entry({ id: "rec-mic-only", hub: "recording", labelEn: "Microphone-only recording", label: "تسجيل الميكروفون فقط", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Audio sink in the recording engine" }),
-  entry({ id: "rec-schedule", hub: "recording", labelEn: "Scheduled or delayed recording", label: "التسجيل المجدول أو المؤجل", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A timer over the existing session engine" }),
+  entry({ id: "rec-mic-only", hub: "recording", labelEn: "Microphone-only recording", label: "تسجيل الميكروفون فقط", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
+  entry({ id: "rec-schedule", hub: "recording", labelEn: "Scheduled or delayed recording", label: "التسجيل المجدول أو المؤجل", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "rec-presets", hub: "recording", labelEn: "Resolution and frame-rate presets", label: "ضوابط الدقة ومعدل الإطارات", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
   entry({ id: "rec-trim", hub: "recording", labelEn: "Trim after capture", label: "قص التسجيل بعد الالتقاط", mode: "LOCAL", status: "VERIFIED", route: "library", studio: true }),
 
@@ -116,7 +116,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "shot-history", hub: "screenshots", labelEn: "Undo, redo and before/after", label: "تراجع وإعادة ومقارنة", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-export", hub: "screenshots", labelEn: "Save as new image and export PNG", label: "حفظ كصورة جديدة وتصدير", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-os-region", hub: "screenshots", labelEn: "OS-level window or region picker", label: "منتقي النافذة أو المنطقة من النظام", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Native window enumeration in the desktop bridge" }),
-  entry({ id: "shot-delay", hub: "screenshots", labelEn: "Delayed capture", label: "التقاط مؤجل", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A countdown over the existing capture path" }),
+  entry({ id: "shot-delay", hub: "screenshots", labelEn: "Delayed capture with a live countdown", label: "التقاط مؤجل بعدّاد حي", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
 
   /* ------------------------------------------------------------ library */
   entry({ id: "lib-store", hub: "library", labelEn: "Local IndexedDB storage with real blobs", label: "تخزين محلي مع ملفات حقيقية", mode: "LOCAL", status: "VERIFIED", route: "library" }),
@@ -125,8 +125,9 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "lib-rename", hub: "library", labelEn: "Rename and delete with confirmation", label: "إعادة تسمية وحذف بتأكيد", mode: "LOCAL", status: "VERIFIED", route: "library" }),
   entry({ id: "lib-export", hub: "library", labelEn: "Export the original file", label: "تصدير الملف الأصلي", mode: "LOCAL", status: "VERIFIED", route: "library" }),
   entry({ id: "lib-trim", hub: "library", labelEn: "Trim a recording in place", label: "قص التسجيل", mode: "LOCAL", status: "VERIFIED", route: "library", studio: true }),
-  entry({ id: "lib-collections", hub: "library", labelEn: "Collections and batch export", label: "المجموعات والتصدير الجماعي", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A collection store over the same library" }),
-  entry({ id: "lib-open-editor", hub: "library", labelEn: "Open an item in an editor", label: "فتح عنصر في محرر", mode: "LOCAL", status: "PARTIAL", route: "library", needs: "Cross-links exist for Visual Patch only" }),
+  entry({ id: "lib-collections", hub: "library", labelEn: "Collections with persistent filing and filters", label: "مجموعات مع تصنيف دائم وتصفية", mode: "LOCAL", status: "VERIFIED", route: "library" }),
+  entry({ id: "lib-batch-export", hub: "library", labelEn: "Multi-file export and ZIP archive", label: "تصدير متعدد وأرشيف ZIP", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "lib-open-editor", hub: "library", labelEn: "Open an item in any compatible workspace", label: "فتح عنصر في أي مساحة متوافقة", mode: "LOCAL", status: "VERIFIED", route: "library" }),
 
   /* ----------------------------------------------- cross-hub integration */
   entry({ id: "xh-open-in", hub: "library", labelEn: "Send any stored file to another workspace", label: "إرسال أي ملف محفوظ إلى مساحة عمل أخرى", mode: "LOCAL", status: "VERIFIED", route: "library", keywords: ["handoff", "open in", "تكامل"] }),
@@ -156,10 +157,11 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "tb-text-image", hub: "toolbox", labelEn: "Text to image", label: "النص إلى صورة", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-qr", hub: "toolbox", labelEn: "QR code generator", label: "مولّد رموز QR", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
   entry({ id: "tb-palette", hub: "toolbox", labelEn: "Colour palette extraction", label: "استخراج لوحة الألوان", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
-  entry({ id: "tb-compress", hub: "toolbox", labelEn: "Image compressor", label: "ضغط الصور", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A verified encoder preset with measured output" }),
-  entry({ id: "tb-batch", hub: "toolbox", labelEn: "Batch resize and convert", label: "المعالجة الجماعية", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A job queue over the existing processors" }),
-  entry({ id: "tb-frames", hub: "toolbox", labelEn: "Video frames and contact sheet", label: "إطارات الفيديو والملصق", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A seekable decode pipeline" }),
-  entry({ id: "tb-audio-tools", hub: "toolbox", labelEn: "Audio trim, reverse, normalise, filters", label: "أدوات الصوت", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Verified DSP processors with byte checks" }),
+  entry({ id: "tb-compress", hub: "toolbox", labelEn: "Image compressor with measured saving", label: "ضغط صور بوفر مقاس", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
+  entry({ id: "tb-frame-sheet", hub: "toolbox", labelEn: "Video frame sheet (contact sheet)", label: "لوحة إطارات الفيديو", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
+  entry({ id: "tb-batch", hub: "toolbox", labelEn: "Batch resize, convert, crop and watermark", label: "معالجة جماعية: تحجيم وتحويل وقص وعلامة", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
+  entry({ id: "tb-frames", hub: "toolbox", labelEn: "Single video frame at a timecode", label: "إطار فيديو عند زمن محدد", mode: "LOCAL", status: "VERIFIED", route: "toolbox" }),
+  entry({ id: "tb-audio-tools", hub: "toolbox", labelEn: "Audio trim, reverse, normalise and filters", label: "قص الصوت وعكسه وتسويته ومرشحاته", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
 
   /* ------------------------------------------------------------ batch */
   entry({ id: "bt-resize", hub: "batch", labelEn: "Batch resize", label: "تحجيم جماعي", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
@@ -169,7 +171,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "bt-queue", hub: "batch", labelEn: "Bounded concurrency, per-file progress and cancellation", label: "تزامن محدود وتقدّم لكل ملف وإلغاء", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
   entry({ id: "bt-isolation", hub: "batch", labelEn: "Failure isolation and output verification", label: "عزل الفشل والتحقق من المخرجات", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
   entry({ id: "bt-export", hub: "batch", labelEn: "Multi-file export and save-all to library", label: "تصدير متعدد وحفظ الكل في المكتبة", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
-  entry({ id: "bt-archive", hub: "batch", labelEn: "Batch archive (zip) download", label: "تنزيل أرشيف (zip)", mode: "LOCAL", status: "NOT-IMPLEMENTED", route: "batch", needs: "No packaging library is bundled; files download individually today" }),
+  entry({ id: "bt-archive", hub: "batch", labelEn: "ZIP archive of the finished batch (stored, not deflated)", label: "أرشيف ZIP لمخرجات الدفعة (مخزَّن بلا ضغط)", mode: "LOCAL", status: "VERIFIED", route: "batch" }),
 
   /* ------------------------------------------------------------ audio */
   entry({ id: "au-waveform", hub: "audio", labelEn: "Waveform with drag selection", label: "موجة مع تحديد بالسحب", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
@@ -192,7 +194,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "vp-history", hub: "visual-patch", labelEn: "Undo, redo, reset, before/after", label: "تراجع وإعادة وضبط ومقارنة", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),
   entry({ id: "vp-export", hub: "visual-patch", labelEn: "Verified PNG export to the library", label: "تصدير PNG موثّق للمكتبة", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),
   entry({ id: "vp-families", hub: "visual-patch", labelEn: "All 50 catalogue tool families tested", label: "فحص كل عائلات الأدوات", mode: "LOCAL", status: "PARTIAL", route: "visual-patch", needs: "One tool family is driven end to end; the rest share the engine" }),
-  entry({ id: "vp-mask", hub: "visual-patch", labelEn: "Rectangle, freehand and mask editing", label: "تحرير الأقنعة والتحديد", mode: "LOCAL", status: "PARTIAL", route: "visual-patch", needs: "Freehand selection and mask refinement" }),
+  entry({ id: "vp-mask", hub: "visual-patch", labelEn: "Rectangle, freehand and mask editing", label: "تحرير الأقنعة والتحديد", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),
 
   /* ---------------------------------------------------------- morphcore */
   entry({ id: "mc-stretch", hub: "morphcore", labelEn: "Independent stretch and scale", label: "تمدد وتحجيم مستقل", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
@@ -200,7 +202,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "mc-pinch", hub: "morphcore", labelEn: "Pinch and bulge", label: "انقباض وانتفاخ", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
   entry({ id: "mc-perspective", hub: "morphcore", labelEn: "Trapezoid perspective", label: "منظور شبه منحرف", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
   entry({ id: "mc-warp", hub: "morphcore", labelEn: "Sine wave warp", label: "تمويج جيبي", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
-  entry({ id: "mc-mesh", hub: "morphcore", labelEn: "Mesh warp with draggable points", label: "شبكة انحناء بنقاط قابلة للسحب", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A mesh solver and control-point overlay" }),
+  entry({ id: "mc-mesh", hub: "morphcore", labelEn: "Mesh warp with draggable points", label: "شبكة انحناء بنقاط قابلة للسحب", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
   entry({ id: "mc-body", hub: "morphcore", labelEn: "Body-aware deformation (legacy catalogue)", label: "تشويه واعٍ بالجسم", mode: "MODEL-LOCAL", status: "BLOCKED", route: "morphcore", needs: "Segmentation weights and a native morphology engine" }),
 
   /* ------------------------------------------------------------ elysian */
@@ -210,15 +212,15 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "el-colour", hub: "elysian", labelEn: "Saturation and temperature", label: "التشبع ودرجة الحرارة", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-detail", hub: "elysian", labelEn: "Blur, unsharp mask and pixelate", label: "تمويه وحدّة وتكعيب", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-marks", hub: "elysian", labelEn: "Borders, text and tiled watermarks", label: "إطارات ونص وعلامات مائية", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
-  entry({ id: "el-presets", hub: "elysian", labelEn: "Eight presets as editable layers", label: "ثمانية إعدادات جاهزة قابلة للتحرير", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
+  entry({ id: "el-presets", hub: "elysian", labelEn: "Ten presets as editable layers", label: "عشرة إعدادات جاهزة قابلة للتحرير", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-output", hub: "elysian", labelEn: "PNG, JPEG and WebP output with measured size", label: "خرج PNG وJPEG وWebP بحجم مقاس", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
-  entry({ id: "el-curves", hub: "elysian", labelEn: "Tone curves and histogram", label: "منحنيات اللون والمدرج", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A curve editor over the same pipeline" }),
+  entry({ id: "el-curves", hub: "elysian", labelEn: "Tone curves and histogram", label: "منحنيات اللون والمدرج", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-retouch", hub: "elysian", labelEn: "Neural retouch and background removal", label: "التنعيم العصبي وإزالة الخلفية", mode: "MODEL-LOCAL", status: "BLOCKED", route: "elysian", needs: "Face-parsing and segmentation weights are not installed" }),
   entry({ id: "el-upscale", hub: "elysian", labelEn: "Super resolution", label: "رفع الدقة العصبي", mode: "MODEL-LOCAL", status: "BLOCKED", route: "models", needs: "An upscaler weight file" }),
   entry({ id: "el-generative", hub: "elysian", labelEn: "Generative fill", label: "التعبئة التوليدية", mode: "ONLINE", status: "BLOCKED", route: "elysian", needs: "An online service; this build never uploads images" }),
 
   /* --------------------------------------------------------------- body */
-  entry({ id: "body-manual", hub: "body", labelEn: "Manual geometric editing", label: "التحرير الهندسي اليدوي", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
+  entry({ id: "body-manual", hub: "body", labelEn: "Proportion mirror with placed guides", label: "مرآة نسب بأدلة يدوية", mode: "LOCAL", status: "VERIFIED", route: "body-editor" }),
   entry({ id: "body-segment", hub: "body", labelEn: "Segmentation and pose tools", label: "أدوات التقسيم والوضعية", mode: "MODEL-LOCAL", status: "BLOCKED", route: "body-editor", needs: "Segmentation and pose weights plus a native engine" }),
 
   /* --------------------------------------------------------- offline ai */
@@ -237,7 +239,7 @@ export const SERVICES: ServiceEntry[] = [
 
   /* ----------------------------------------------------------- settings */
   entry({ id: "set-theme", hub: "settings", labelEn: "Theme, language and motion preferences", label: "السمة واللغة والحركة", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
-  entry({ id: "set-hotkeys", hub: "settings", labelEn: "Hotkey configuration", label: "ضبط مفاتيح الاختصار", mode: "LOCAL", status: "PARTIAL", route: "settings", needs: "Fixed shortcuts work; remapping is not implemented" }),
+  entry({ id: "set-hotkeys", hub: "settings", labelEn: "Hotkey configuration", label: "ضبط مفاتيح الاختصار", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
   entry({ id: "set-storage", hub: "settings", labelEn: "Storage location and quota", label: "موقع التخزين والحصة", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
 
   /* -------------------------------------------------------- diagnostics */

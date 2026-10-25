@@ -14,6 +14,10 @@
  *     strip, and undo/redo restore pixel-identical states,
  *   - dragging on the canvas produces a crop at the expected size,
  *   - text and watermark layers rasterise onto the image,
+ *   - the tone-curve workbench edits a real transfer function: measured
+ *     histogram, draggable and typeable control points, per-channel curves,
+ *     auto levels built from the measured range, a straight line that is a
+ *     byte-identical no-op, and keyboard nudging,
  *   - split compare shows the untouched original next to the encoded result,
  *   - the output dock measures real encoded bytes; Save writes a decodable
  *     IndexedDB blob that re-opens identical, and Export downloads bytes that
@@ -168,6 +172,119 @@ async function upload(page, file) {
   const input = await page.waitForSelector('input[type="file"]', { visible: false });
   await input.uploadFile(file);
   await sleep(1400);
+}
+
+/* ---------------------------------------------------- curve helpers */
+
+/** Geometry of the curve plot, in client pixels, for synthetic pointer input. */
+async function curveBox(page) {
+  return page.evaluate(() => {
+    const svg = document.querySelector(".elys-curves-svg");
+    if (!svg) return null;
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width || !rect.height) return null;
+    return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+  });
+}
+
+const levelToClient = (box, input, output) => ({
+  x: box.x + (input / 256) * box.width,
+  y: box.y + (1 - output / 256) * box.height,
+});
+
+/**
+ * Synthetic drags need a settled layout: scrollIntoView can still be animating
+ * when the box is read, and a stale rectangle drops the pointer events on the
+ * panel instead of the handle. Poll until two consecutive reads agree.
+ */
+async function settledCurveBox(page, attempts = 14) {
+  let previous = await curveBox(page);
+  for (let index = 0; index < attempts; index += 1) {
+    await sleep(120);
+    const current = await curveBox(page);
+    if (current && previous && Math.abs(current.y - previous.y) < 0.5 && Math.abs(current.x - previous.x) < 0.5) {
+      return current;
+    }
+    previous = current;
+  }
+  return previous;
+}
+
+/** What actually sits under a client point — the grab must land on a handle. */
+async function targetAt(page, point) {
+  return page.evaluate(
+    ({ x, y }) => {
+      const element = document.elementFromPoint(x, y);
+      if (!element) return null;
+      return `${element.tagName}.${element.getAttribute("class") ?? ""}`;
+    },
+    { x: point.x, y: point.y },
+  );
+}
+
+/** Everything the workbench exposes: handles, knot table, stats and plot. */
+async function curveState(page) {
+  return page.evaluate(() => {
+    const rows = [...document.querySelectorAll(".elys-curves-points li")].map((row) => {
+      const inputs = row.querySelectorAll("input");
+      return { input: Number(inputs[0]?.value), output: Number(inputs[1]?.value) };
+    });
+    const path = document.querySelector(".elys-curves-line")?.getAttribute("d") ?? "";
+    const table = [...path.matchAll(/[ML]\s*(-?\d+(?:\.\d+)?)[\s,]+(-?\d+(?:\.\d+)?)/g)].map((match) => ({
+      x: Number(match[1]),
+      y: Number(match[2]),
+    }));
+    let reversals = 0;
+    for (let index = 1; index < table.length; index += 1) {
+      // y grows downward in SVG space: an output that falls as input rises is
+      // a tone reversal, which the pipeline refuses to produce.
+      if (table[index].y > table[index - 1].y + 0.01) reversals += 1;
+    }
+    return {
+      handles: document.querySelectorAll(".elys-curves-handle").length,
+      rows,
+      stats: [...document.querySelectorAll(".elys-curves-stats dd")].map((node) =>
+        node.textContent?.trim() ?? "",
+      ),
+      readout: document.querySelector("[data-curve-readout]")?.textContent?.trim() ?? "",
+      stroke: document.querySelector(".elys-curves-line")?.getAttribute("stroke") ?? "",
+      histogram: (document.querySelector(".elys-curves-hist")?.getAttribute("d") ?? "").length,
+      channel:
+        document.querySelector(".elys-curves-head .kx-segmented button[aria-pressed='true']")
+          ?.getAttribute("data-curve-channel") ?? null,
+      reversals,
+      rawKeys: document.querySelector("[data-curves-workbench]")?.textContent?.includes("elysian.") ?? true,
+    };
+  });
+}
+
+async function setCurvePoint(page, row, field, value) {
+  const done = await page.evaluate(
+    ({ index, which, next }) => {
+      const input = document.querySelectorAll(
+        `.elys-curves-points li[data-curve-row="${index}"] input`,
+      )[which];
+      if (!input) return false;
+      const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value").set;
+      setter.call(input, String(next));
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      return true;
+    },
+    { index: row, which: field, next: value },
+  );
+  if (!done) throw new Error(`Curve point row not found: ${row}`);
+  await sleep(340);
+}
+
+async function curveAction(page, action) {
+  const done = await page.evaluate((needle) => {
+    const button = document.querySelector(`[data-curve-action="${needle}"]`);
+    if (!button) return false;
+    button.click();
+    return true;
+  }, action);
+  if (!done) throw new Error(`Curve action not found: ${action}`);
+  await sleep(340);
 }
 
 /** Width and height from a JPEG SOF marker, without any image library. */
@@ -698,6 +815,166 @@ try {
     { source: loaded.sha256.slice(0, 16), cleared: cleared?.sha256.slice(0, 16) },
   );
 
+  /* ----------------------------------------------------- tone curves */
+  await clickText(page, "Light", ".elys-categories button");
+  await sleep(300);
+  await clickByAttribute(page, ".elys-card", "data-effect-id", "curves");
+  await page.waitForSelector("[data-curves-workbench]", { timeout: 10000 });
+  await sleep(900);
+  const curved = await canvasHash(page);
+  check(
+    "curves: the curve layer renders through the shared pipeline",
+    Boolean(curved && curved.sha256 !== loaded.sha256),
+    { source: loaded.sha256.slice(0, 12), curve: curved?.sha256.slice(0, 12) },
+  );
+
+  const opened = await curveState(page);
+  check(
+    "curves: the workbench exposes a draggable handle per control point",
+    opened.handles === 5 && opened.rows.length === 5,
+    { handles: opened.handles, rows: opened.rows.length },
+  );
+  check(
+    "curves: the plot is backed by a measured histogram",
+    opened.histogram > 500 && /^\d+$/.test(opened.stats[0]),
+    { histogramPoints: opened.histogram, stats: opened.stats },
+  );
+  check("curves: the rendered transfer table never reverses tone", opened.reversals === 0, opened.reversals);
+  check("curves: no translation key leaks into the workbench", opened.rawKeys === false, opened.rawKeys);
+
+  await page.evaluate(() => {
+    document.querySelector(".elys-curves-svg")?.scrollIntoView({ block: "center", inline: "center" });
+  });
+  const box = await settledCurveBox(page);
+  if (!box || box.y < 0 || box.y + box.height > 1050) {
+    throw new Error(`The curve plot is not inside the viewport: ${JSON.stringify(box)}`);
+  }
+  const beforeDrag = await canvasHash(page);
+  const grabPoint = levelToClient(box, 64, 52);
+  const dropPoint = levelToClient(box, 64, 112);
+  const grabTarget = await targetAt(page, grabPoint);
+  check(
+    "curves: the grab point lands on the shadow mid-tone handle",
+    /elys-curves-handle/.test(grabTarget ?? ""),
+    { grabTarget, grabPoint },
+  );
+  await page.mouse.move(grabPoint.x, grabPoint.y);
+  await page.mouse.down();
+  await page.mouse.move(dropPoint.x, dropPoint.y, { steps: 8 });
+  await page.mouse.up();
+  await sleep(800);
+  const dragged = await canvasHash(page);
+  const afterDrag = await curveState(page);
+  check(
+    "curves: dragging a handle rewrites the control point",
+    Boolean(dragged && dragged.sha256 !== beforeDrag.sha256) && afterDrag.rows[1]?.input === 64,
+    { row: afterDrag.rows[1], before: beforeDrag?.sha256.slice(0, 12), after: dragged?.sha256.slice(0, 12) },
+  );
+  check(
+    "curves: the dragged mid-tone lands where the pointer released",
+    Math.abs((afterDrag.rows[1]?.output ?? 0) - 112) <= 4,
+    { row: afterDrag.rows[1], wanted: 112 },
+  );
+
+  await page.evaluate(() => document.querySelector('[data-curve-channel="r"]')?.click());
+  await sleep(900);
+  const redState = await curveState(page);
+  const redPixels = await canvasHash(page);
+  check(
+    "curves: the channel control scopes the curve to one channel",
+    redState.channel === "r" &&
+      redState.stroke === "#ff6b61" &&
+      Boolean(redPixels && redPixels.sha256 !== dragged.sha256),
+    { channel: redState.channel, stroke: redState.stroke },
+  );
+
+  await curveAction(page, "add");
+  const withExtra = await curveState(page);
+  check(
+    "curves: add point inserts a knot into the table",
+    withExtra.handles === 6 && withExtra.rows.length === 6,
+    { handles: withExtra.handles, rows: withExtra.rows.length },
+  );
+
+  const anchorGuard = await page.evaluate(() => {
+    const first = document.querySelector('[data-curve-row="0"] .elys-curves-remove');
+    const last = document.querySelector(
+      `[data-curve-row="${document.querySelectorAll(".elys-curves-points li").length - 1}"] .elys-curves-remove`,
+    );
+    return { first: first ? first.disabled : null, last: last ? last.disabled : null };
+  });
+  check(
+    "curves: the shadow and highlight anchors cannot be deleted",
+    anchorGuard.first === true && anchorGuard.last === true,
+    anchorGuard,
+  );
+
+  await page.evaluate(() => document.querySelector('[data-curve-row="2"] .elys-curves-remove')?.click());
+  await sleep(600);
+  const afterRemove = await curveState(page);
+  check("curves: a control point can be removed", afterRemove.rows.length === 5, afterRemove.rows.length);
+
+  const beforeType = await canvasHash(page);
+  await setCurvePoint(page, 1, 1, 90);
+  const typedState = await curveState(page);
+  const typedPixels = await canvasHash(page);
+  check(
+    "curves: a typed level reaches the pipeline",
+    typedState.rows[1]?.output === 90 &&
+      Boolean(typedPixels && typedPixels.sha256 !== beforeType.sha256),
+    { row: typedState.rows[1] },
+  );
+  check(
+    "curves: the readout reports the real transfer value, not the handle",
+    new RegExp(`^${typedState.rows[1]?.input} → 90`).test(typedState.readout),
+    { readout: typedState.readout, row: typedState.rows[1] },
+  );
+
+  await curveAction(page, "auto");
+  await sleep(700);
+  const autoState = await curveState(page);
+  const autoPixels = await canvasHash(page);
+  check(
+    "curves: auto levels rebuilds the table from the measured range",
+    autoState.rows.length === 3 &&
+      autoState.rows[0]?.output === 0 &&
+      autoState.rows[2]?.output === 255 &&
+      Boolean(autoPixels && autoPixels.sha256 !== typedPixels.sha256),
+    { rows: autoState.rows },
+  );
+
+  await page.evaluate(() => document.querySelector('[data-curve-shape="linear"]')?.click());
+  await sleep(800);
+  const straight = await canvasHash(page);
+  check(
+    "curves: a straight line is a true no-op against the source pixels",
+    Boolean(straight && straight.sha256 === loaded.sha256),
+    { source: loaded.sha256.slice(0, 16), straight: straight?.sha256.slice(0, 16) },
+  );
+
+  await page.evaluate(() => document.querySelector('[data-curve-shape="contrast"]')?.click());
+  await sleep(700);
+  const beforeKeys = await canvasHash(page);
+  // SVGElement.focus() has to be called in the page: Puppeteer's focus helper
+  // only accepts HTML elements.
+  const focused = await page.evaluate(() => {
+    const handle = document.querySelector('.elys-curves-handle[data-curve-point="1"]');
+    if (!handle) return false;
+    handle.focus();
+    return document.activeElement === handle;
+  });
+  check("curves: a control point handle takes keyboard focus", focused === true, focused);
+  for (let index = 0; index < 10; index += 1) await page.keyboard.press("ArrowUp");
+  await sleep(800);
+  const keyed = await canvasHash(page);
+  const keyedState = await curveState(page);
+  check(
+    "curves: arrow keys nudge the focused handle",
+    Boolean(keyed && keyed.sha256 !== beforeKeys.sha256) && keyedState.rows[1]?.output >= 58,
+    { row: keyedState.rows[1] },
+  );
+  await shot(page, "07-tone-curves");
+
   /* --------------------------------------------------------- Arabic */
   await page.evaluate(() => {
     const button = [...document.querySelectorAll(".kx-topbar button")].find(
@@ -712,11 +989,23 @@ try {
     overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
     cards: document.querySelectorAll(".elys-card").length,
     canvas: Boolean(document.querySelector(".elys-canvas")),
+    curves: Boolean(document.querySelector("[data-curves-workbench]")),
+    plotLtr: document.querySelector(".elys-curves-plot")?.getAttribute("dir") ?? null,
+    rawKeys: document.querySelector("[data-curves-workbench]")?.textContent?.includes("elysian.") ?? true,
   }));
   check("arabic: the studio renders in RTL", rtl.dir === "rtl" && rtl.lang === "ar", rtl);
-  check("arabic: the browser and canvas survive the switch", rtl.cards > 0 && rtl.canvas, rtl);
+  check(
+    "arabic: the browser, canvas and curve table survive the switch",
+    rtl.cards > 0 && rtl.canvas && rtl.curves,
+    rtl,
+  );
+  check(
+    "arabic: the curve plot stays left-to-right and fully translated",
+    rtl.plotLtr === "ltr" && rtl.rawKeys === false,
+    rtl,
+  );
   check("arabic: no horizontal overflow in the three-column grid", rtl.overflow <= 0, rtl.overflow);
-  await shot(page, "06-arabic-rtl");
+  await shot(page, "08-arabic-rtl");
 
   check("elysian: no uncaught page errors", report.pageErrors.length === 0, report.pageErrors);
   check(

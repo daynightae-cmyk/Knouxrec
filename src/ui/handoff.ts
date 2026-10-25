@@ -11,6 +11,7 @@ export const RECEIVERS: Record<LibraryKind, Array<{ hub: RouteLabel; route: Rout
     { hub: "morphcore", route: "morphcore" },
     { hub: "toolbox", route: "toolbox" },
     { hub: "visual-patch", route: "visual-patch" },
+    { hub: "body", route: "body-editor" },
   ],
   audio: [{ hub: "audio-studio", route: "audio-studio" }],
   video: [
@@ -30,6 +31,7 @@ export const HUB_LABEL_KEYS: Record<RouteLabel, string> = {
   "visual-patch": "hub.visualPatch",
   templates: "hub.templates",
   recording: "hub.recording",
+  body: "hub.body",
 };
 
 /**

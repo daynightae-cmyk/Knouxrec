@@ -1,6 +1,6 @@
 # KNOuX REC — complete service catalog
 
-Date: 2026-10-24 · Branch `feat/sovereign-2026-10-24` · Baseline `425dc23`
+Date: 2026-10-25 · Branch `feat/services-2026-10-25` · Baseline `1f8ca2d`
 
 This is the product inventory behind every hub. It records what genuinely
 exists, what is a real processor away, and what needs weights, native engines
@@ -12,13 +12,13 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 
 | Registry | File | What it drives |
 | --- | --- | --- |
-| Route capabilities | `src/app/capabilities.ts` | 16 routes, honest state, evidence strings, sidebar indicators |
+| Route capabilities | `src/app/capabilities.ts` | 18 routes, honest state, evidence strings, sidebar indicators |
 | Media tools | `src/services/mediaTools.ts` + `mediaJobs.ts` | Real local processors with validation, cancellation, verification |
 | AI catalog | `src/data/aiCatalog.ts` | 38 canonical tasks (15 deterministic, 23 model-gated) |
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
-| Service registry | `src/data/serviceRegistry.ts` | 121 entries across 17 hubs with execution mode, honest status, destination route and missing dependency; drives the Discover section and is audited by `serviceRegistry.test.ts` |
+| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 17 hubs with execution mode, honest status, destination route and missing dependency — 104 VERIFIED, 5 PARTIAL, 3 NOT-IMPLEMENTED, 11 BLOCKED; drives the Discover section and is audited by `serviceRegistry.test.ts` |
 | Workflow chains | `src/services/workflowChains.ts` | Four named chains that sequence the existing processors; no chain owns pixel or encoder math of its own |
 
 ## HUB 01 — Dashboard / Command Center
@@ -28,9 +28,9 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Start screen recording | LOCAL | VERIFIED | Studio + hotkeys + TopBar |
 | Start window/camera recording | LOCAL | VERIFIED | Real pickers; camera via getUserMedia |
 | Capture screenshot | LOCAL | VERIFIED | Canvas capture, PNG/JPEG/WebP |
-| Audio recording | LOCAL | PARTIAL | Microphone path exists inside recordings; standalone audio recorder is NOT-IMPLEMENTED |
+| Audio recording | LOCAL | VERIFIED | Standalone microphone take from the dashboard quick action (Voice memo) — real getDisplayMedia-free `getUserMedia`, live dBFS meter, saved as an `audio/*` library item; 35 checks in `scripts/audio-recording-smoke.mjs` |
 | Recent media, storage, jobs, model readiness | LOCAL | VERIFIED | Real IndexedDB/registry data |
-| Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (121 entries) by English label, Arabic label, hub, mode and blocker |
+| Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (123 entries) by English label, Arabic label, hub, mode and blocker |
 | One-click workflows | LOCAL | VERIFIED — four chains on the Dashboard, 30 checks in `scripts/workflow-smoke.mjs` |
 
 ## HUB 02 — Recording Studio
@@ -40,8 +40,8 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Full display / window / tab recording | LOCAL | VERIFIED | getDisplayMedia picker, MediaRecorder, pause/resume/stop |
 | Webcam recording + overlay | LOCAL | VERIFIED | getUserMedia + overlay compositing |
 | System audio | LOCAL | PARTIAL | Captured when the platform offers a system-audio track |
-| Microphone-only recording | LOCAL | NOT-IMPLEMENTED | Reuses the recording engine once an audio sink is added |
-| Scheduled / delayed start | LOCAL | NOT-IMPLEMENTED | Timer + same session engine |
+| Microphone-only recording | LOCAL | VERIFIED — a fourth capture mode in the studio: no display surface is requested, the container is probed with `isTypeSupported` (Opus in WebM), and the level comes from an AnalyserNode on the encoded stream. 11 unit tests pin the engine contract; the browser smoke drags the real pipeline through pause/resume, save and playback |
+| Scheduled / delayed start | LOCAL | VERIFIED — 3/5/10/30-second countdown over the same session engine, visible with its remaining seconds and a real cancel. Page-scoped on purpose: nothing is persisted, so a reload can never begin recording on its own |
 | Resolution/fps presets | LOCAL | VERIFIED | Persisted settings reach the session |
 | Trim after capture | LOCAL | VERIFIED | `trimMedia` re-encode + new library item |
 
@@ -58,7 +58,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Save as new image + export PNG | LOCAL | VERIFIED | Library blob + downloaded bytes decode at the edited size |
 | Fresh capture opens the editor | LOCAL | VERIFIED | Auto-open once the library row exists |
 | Window / region capture at OS level | LOCAL | PARTIAL | Full display capture + editor crop; OS region picker NOT-IMPLEMENTED |
-| Delayed capture | LOCAL | NOT-IMPLEMENTED | Timer + same capture path |
+| Delayed capture with a live countdown and cancel | LOCAL | VERIFIED — the capture fires only when the count reaches zero |
 | Watermark | LOCAL | NOT-IMPLEMENTED | Text tool covers ad-hoc labels; no dedicated watermark preset |
 
 ## HUB 04 — Media Library
@@ -94,28 +94,35 @@ text image, QR, palette (99 checks).
 | Image pixelate | LOCAL | Implemented + smoke-verified |
 | Colour parameters (waveform / text / QR modules + background) | LOCAL | Implemented + smoke-verified (a QR colour change alters the encoded pixels) |
 
-Toolbox now exposes 11 tools and the suite covers 128 checks.
+Toolbox now exposes 13 tools and the suite covers 148 checks.
 
-Still open (real, no model): compress, sharpen, watermark, batch resize/convert,
-video frames/contact sheet/trim/mute/extract audio, audio trim/reverse/normalize/
-channel conversion/frequency filter/spectrogram, HEX/RGB/HSL utilities, gradient
-creator, filename cleaning. Each requires a verified processor; none are
-advertised before they exist.
+| New local utilities (this milestone) | Mode | Status |
+| --- | --- | --- |
+| Image compressor: chosen lossy format, quality and long-edge limit, with the saving measured against the source bytes | LOCAL | VERIFIED |
+| Video frame sheet: evenly spaced seeks composed into a labelled contact sheet, including clips whose container reports no duration until scanned | LOCAL | VERIFIED |
+
+Still open in this hub (real, no model): sharpen and watermark presets, video
+trim/mute/extract-audio, HEX/RGB/HSL utilities, gradient creator and filename
+cleaning. Batch resize/convert/crop/watermark and audio trim/reverse/normalise/
+filters are now wired to their own hubs (Batch Processing and Audio Studio) and
+recorded as verified there, not duplicated here. Audio trim/reverse/normalise/filters live in Audio Studio, and batch
+resize/convert/crop/watermark live in Batch Processing; both are verified there.
 
 ## HUB 07 — Visual Patch Lab
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Open image, paint region, apply 50 catalog tools, undo/redo, reset | LOCAL | VERIFIED (21 checks; one tool family driven) |
+| Open image, paint region, apply 50 catalog tools, undo/redo, reset | LOCAL | VERIFIED (28 checks; one tool family driven) |
 | Before/after, CSP-safe PNG export → library | LOCAL | VERIFIED (fixed this session) |
-| Zoom/pan, rectangle/freehand selection, mask editing, local color/exposure | LOCAL | PARTIAL / NOT-IMPLEMENTED |
+| Selection and mask: freehand stroke, dragged rectangle, visible overlay in image coordinates, erase by clicking a region, grow/shrink about the centroid, per-region list with removal, clear | LOCAL | VERIFIED — `src/services/maskOps.ts` (10 unit tests: rectangle normalisation, polygon hit test, segment distance, scaling) drives the overlay and the tool payload from one geometry |
+| Zoom/pan, local colour/exposure per region | LOCAL | NOT-IMPLEMENTED |
 | Per-algorithm family coverage | LOCAL | PARTIAL — needs dedicated tests |
 
 ## HUB 08 — MorphCore
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Geometry studio: open image, live preview, apply, undo/redo, reset, compare, save, export | LOCAL | VERIFIED (51 checks in `scripts/morphcore-smoke.mjs`) |
+| Geometry studio: open image, live preview, apply, undo/redo, reset, compare, save, export | LOCAL | VERIFIED (67 checks in `scripts/morphcore-smoke.mjs`) |
 | Independent horizontal/vertical stretch with predicted source-coordinate mapping | LOCAL | VERIFIED |
 | Free rotation to any angle with horizontal/vertical mirror | LOCAL | VERIFIED |
 | Pinch / bulge with radius and centre control | LOCAL | VERIFIED (only pixels inside the declared radius change) |
@@ -124,33 +131,39 @@ advertised before they exist.
 | 18+ age gate kept from the legacy route, session-scoped, nothing stored permanently | LOCAL | VERIFIED |
 | Preserved body-aware catalog (50 tools) shown separately with no run control | UNAVAILABLE | BLOCKED (no native morphology engine, no segmentation weights) |
 | Body-aware deformation, masking driven by anatomy | MODEL-LOCAL | BLOCKED (segmentation weights absent) |
-| Mesh warp with draggable control points | LOCAL | NOT-IMPLEMENTED (planned; the current transforms are parametric, not mesh-driven) |
+| Mesh warp with draggable control points (lattice 2×2 to 6×6, keyboard nudge, density change keeps the border pull, flatten restores the source bytes) | LOCAL | VERIFIED — `src/services/geometryOps.ts` inverts a bilinear displacement field over raw RGBA bytes; 11 unit tests plus a real pointer drag in the browser smoke. Sampling clamps at the frame, so a pull beyond the edge stretches border pixels instead of inventing detail |
 
 ## HUB 09 — Elysian Canvas
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Non-destructive layer stack: add, select, reorder, remove, history replay, undo/redo, clear | LOCAL | VERIFIED (51 browser checks + 26 packaged checks) |
+| Non-destructive layer stack: add, select, reorder, remove, history replay, undo/redo, clear | LOCAL | VERIFIED (70 browser checks + 26 packaged checks) |
 | Effect browser with per-card previews rendered from the working image | LOCAL | VERIFIED (unique genuine thumbnails) |
 | Crop (drag selection on the canvas), resize, rotate to any angle, horizontal/vertical flip | LOCAL | VERIFIED |
-| Exposure, brightness, contrast, gamma, vignette | LOCAL | VERIFIED (29 numeric unit tests on the pipeline) |
+| Exposure, brightness, contrast, gamma, vignette | LOCAL | VERIFIED (43 numeric unit tests on the pipeline) |
 | Saturation, temperature | LOCAL | VERIFIED |
+| Tone curves: monotone 256-entry transfer tables per channel, draggable and typeable control points, keyboard nudging, preset shapes, auto levels from the measured range | LOCAL | VERIFIED (curve table maths unit-tested; browser drag, type, channel, auto and no-op paths asserted) |
+| Histogram of the pixels entering a layer: per-channel and Rec.601 luma bins, mean, shadow/highlight clip fractions, measured tonal range | LOCAL | VERIFIED (transparent pixels excluded; large images sampled with a bounded stride) |
 | Blur, unsharp sharpen, pixelate | LOCAL | VERIFIED |
 | Border, text, tiled watermark (real glyph rasterisation) | LOCAL | VERIFIED |
-| Eight presets composed from the same operations, editable as layers | LOCAL | VERIFIED (Noir measured as genuinely desaturated) |
+| Ten presets composed from the same operations, editable as layers | LOCAL | VERIFIED (Noir measured as genuinely desaturated; two presets are built from real curve layers) |
 | Split compare, hold-to-peek original, zoom and pan stage | LOCAL | VERIFIED |
 | Output dock: PNG/JPEG/WebP, quality, export scale, measured byte size | LOCAL | VERIFIED |
 | Save to IndexedDB library with independent decode and pixel-identical reopen | LOCAL | VERIFIED |
 | Neural retouch, background removal, super resolution, style transfer, auto composition, generative fill | MODEL-LOCAL / ONLINE | BLOCKED — listed with the missing artefact, no preview, no control |
-| Curves/histogram, layer masks, brush-local edits | LOCAL | NOT-IMPLEMENTED |
+| Layer masks, brush-local edits, healing | LOCAL | NOT-IMPLEMENTED — needs a paint surface and a mask channel in the pipeline |
 
-## HUB 10 — Body Editor
+## HUB 10 — Body Editor / proportion mirror
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Manual geometric editing | LOCAL | IMPLEMENTED in the MorphCore geometry studio, not in this hub |
-| Segmentation / pose / body-aware tools | MODEL-LOCAL | BLOCKED (weights absent) |
-| Age gate + privacy | LOCAL | Safeguard preserved; no processing occurs in blocked state |
+| Proportion mirror: five draggable height guides (crown, chin, shoulder, waist, hip) and two edge guides, measured in pixels and in head lengths | LOCAL | VERIFIED — `src/services/proportions.ts` (7 unit tests) plus a real drag and keyboard nudge in `scripts/proportions-smoke.mjs` (20 checks) |
+| Canon placement (chin at 1 head, shoulder at 1.5, waist at 3 from the crown, crown→hip = 4 heads) | LOCAL | VERIFIED — derived from the crown and hip the user chose; stated as a placement aid, not a verdict |
+| Measurement report on the page and on the clipboard (best-effort, bounded so the button always answers) | LOCAL | VERIFIED — the report is always rendered, so a refused clipboard loses nothing |
+| Save the measured source into the library with provenance | LOCAL | VERIFIED |
+| Segmentation / pose / body-aware tools | MODEL-LOCAL | BLOCKED (weights absent) — listed on the screen with the missing artefact and no run control |
+| Age gate + privacy | LOCAL | Session-scoped declaration; the image never leaves the device |
+| Manual geometric editing | LOCAL | Lives in the MorphCore studio; this hub measures, it does not reshape |
 
 ## HUB 11 — Offline AI
 
@@ -183,7 +196,8 @@ advertised before they exist.
 | Service | Mode | Status |
 | --- | --- | --- |
 | Theme, language, reduce motion, recorder defaults, screenshot format/quality | LOCAL | VERIFIED (persist + apply) |
-| Export defaults, performance, shortcuts, provider credentials | LOCAL | PARTIAL / NOT-IMPLEMENTED |
+| Keyboard shortcuts | LOCAL | VERIFIED — four actions (start/stop, pause, screenshot, voice memo) rebound live with a key-capture field, canonical modifier order, Escape to abandon, duplicates refused with the owner's name, reset to defaults, persisted; 12 unit tests + 17 browser checks in `scripts/hotkeys-smoke.mjs` |
+| Export defaults, performance, provider credentials | LOCAL | PARTIAL / NOT-IMPLEMENTED |
 | No fake toggles | — | Every shipped switch reaches its engine |
 
 ## HUB 15 — Diagnostics

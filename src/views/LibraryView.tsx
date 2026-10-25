@@ -28,7 +28,7 @@ export default function LibraryView({
 }: {
   onNavigate: (route: RouteId) => void;
 }) {
-  const { items, urlFor, rename, toggleFavorite, remove, reload, ready, error } =
+  const { items, urlFor, rename, toggleFavorite, setCollection, remove, reload, ready, error } =
     useLibrary();
   const send = useHandoffSender("library");
   const { settings } = useSettings();
@@ -43,8 +43,25 @@ export default function LibraryView({
   const [renameItem, setRenameItem] = useState<LibraryItem | null>(null);
   const [deleteItem, setDeleteItem] = useState<LibraryItem | null>(null);
   const [trimItem, setTrimItem] = useState<LibraryItem | null>(null);
+  const [collectionFilter, setCollectionFilter] = useState<string>("all");
+  const [extraCollections, setExtraCollections] = useState<string[]>([]);
+  const [newCollection, setNewCollection] = useState<string | null>(null);
 
-  const filtered = useFilteredItems(items, kind, query, sort).filter(
+  const collections = Array.from(
+    new Set([
+      ...items.map((item) => item.collection).filter((value): value is string => Boolean(value)),
+      ...extraCollections,
+    ]),
+  ).sort((a, b) => a.localeCompare(b));
+
+  const filtered = useFilteredItems(items, kind, query, sort)
+    .filter((item) =>
+      collectionFilter === "all"
+        ? true
+        : collectionFilter === "unfiled"
+          ? !item.collection
+          : item.collection === collectionFilter,
+    ).filter(
     (item) => !favoritesOnly || item.favorite,
   );
   const totalBytes = items.reduce((sum, item) => sum + item.size, 0);
@@ -197,6 +214,85 @@ export default function LibraryView({
           }
         />
       ) : (
+        <>
+        <div className="kx-row kx-collection-bar" role="group" aria-label={t("library.collections")}>
+          <span className="kx-muted kx-mono" style={{ fontSize: "0.68rem" }}>
+            {t("library.collections")}
+          </span>
+          <button
+            type="button"
+            className="kx-chip"
+            aria-pressed={collectionFilter === "all"}
+            onClick={() => setCollectionFilter("all")}
+          >
+            {t("library.allCollections")}
+          </button>
+          <button
+            type="button"
+            className="kx-chip"
+            aria-pressed={collectionFilter === "unfiled"}
+            onClick={() => setCollectionFilter("unfiled")}
+          >
+            {t("library.noCollection")}
+          </button>
+          {collections.map((name) => (
+            <button
+              key={name}
+              type="button"
+              className="kx-chip"
+              data-collection={name}
+              aria-pressed={collectionFilter === name}
+              onClick={() => setCollectionFilter(name)}
+            >
+              {name}
+            </button>
+          ))}
+          {newCollection === null ? (
+            <button
+              type="button"
+              className="kx-chip"
+              data-action="new-collection"
+              onClick={() => setNewCollection("")}
+            >
+              + {t("library.newCollection")}
+            </button>
+          ) : (
+            <span className="kx-row" style={{ gap: 6 }}>
+              <input
+                className="kx-input"
+                style={{ height: 28, minWidth: 140 }}
+                value={newCollection}
+                autoFocus
+                placeholder={t("library.collectionPlaceholder")}
+                aria-label={t("library.newCollection")}
+                onChange={(event) => setNewCollection(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" && newCollection.trim()) {
+                    // Only register the name. Filtering to it immediately would
+                    // hide every card — and this bar — while the collection is
+                    // still empty, which reads as if the click did nothing.
+                    setExtraCollections((current) => [...new Set([...current, newCollection.trim()])]);
+                    setNewCollection(null);
+                  }
+                  if (event.key === "Escape") setNewCollection(null);
+                }}
+              />
+              <button
+                type="button"
+                className="kx-btn kx-btn-sm"
+                onClick={() => {
+                  const value = newCollection.trim();
+                  if (!value) return;
+                  setExtraCollections((current) => [...new Set([...current, value])]);
+                  setNewCollection(null);
+                }}
+              >
+                {t("library.createCollection")}
+              </button>
+            </span>
+          )}
+        </div>
+
         <div className="kx-media-grid">
           {filtered.map((item) => (
             <article className="kx-media-card" key={item.id}>
@@ -269,6 +365,20 @@ export default function LibraryView({
                   </button>
                   <select
                     className="kx-btn kx-btn-sm kx-open-in"
+                    data-collection-for={item.id}
+                    aria-label={t("library.collection")}
+                    value={item.collection ?? ""}
+                    onChange={(event) => void setCollection(item.id, event.target.value)}
+                  >
+                    <option value="">{t("library.noCollection")}</option>
+                    {collections.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    className="kx-btn kx-btn-sm kx-open-in"
                     data-open-in={item.id}
                     aria-label={t("openIn")}
                     value=""
@@ -318,6 +428,7 @@ export default function LibraryView({
             </article>
           ))}
         </div>
+        </>
       )}
 
       <PreviewDialog

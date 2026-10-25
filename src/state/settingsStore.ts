@@ -1,4 +1,5 @@
 import type { AppSettings } from "./types";
+import { DEFAULT_HOTKEYS, sanitiseHotkeys } from "../services/hotkeys";
 
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: "dark",
@@ -13,9 +14,11 @@ export const DEFAULT_SETTINGS: AppSettings = {
     webcamPosition: "bottomRight",
     webcamSize: "medium",
     namingPattern: "KNOUX-REC-[DATE]_[TIME]",
+    audioDeviceId: null,
   },
   screenshotFormat: "png",
   screenshotQuality: 0.95,
+  hotkeys: { ...DEFAULT_HOTKEYS },
 };
 
 const STORAGE_KEY = "knoux-rec.settings.v1";
@@ -43,6 +46,9 @@ export function loadSettings(): AppSettings {
       merged.recorder.quality = 1080;
     }
     if (![30, 60].includes(merged.recorder.fps)) merged.recorder.fps = 30;
+    // A hand-edited or older settings file cannot leave a shortcut unusable or
+    // shared between two actions.
+    merged.hotkeys = sanitiseHotkeys((parsed as { hotkeys?: unknown }).hotkeys);
     return merged;
   } catch {
     return DEFAULT_SETTINGS;

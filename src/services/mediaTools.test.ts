@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
+  compressionReport,
+  frameSheetLayout,
+  frameSheetTimestamps,
+} from "./mediaTools";
+import {
   MEDIA_TOOLS,
   buildWaveformPeaks,
   computeResizedDimensions,
@@ -13,9 +18,9 @@ import {
 
 describe("media tool registry", () => {
   it("describes every toolbox tool exactly once", () => {
-    expect(MEDIA_TOOLS).toHaveLength(11);
+    expect(MEDIA_TOOLS).toHaveLength(13);
     const ids = MEDIA_TOOLS.map((tool) => tool.id);
-    expect(new Set(ids).size).toBe(11);
+    expect(new Set(ids).size).toBe(13);
   });
 
   it("gives every tool a runnable processor, a name and an output type", () => {
@@ -209,5 +214,57 @@ describe("waveform peaks", () => {
   it("keeps the absolute maximum", () => {
     const { peak } = buildWaveformPeaks([0.1, -0.9, 0.2], 1);
     expect(peak).toBeCloseTo(0.9, 5);
+  });
+});
+
+describe("image compression accounting", () => {
+  it("reports the measured saving from both byte counts", () => {
+    const report = compressionReport(200_000, 50_000);
+    expect(report.savedBytes).toBe(150_000);
+    expect(report.savedPercent).toBeCloseTo(75, 5);
+    expect(report.ratio).toBeCloseTo(0.25, 5);
+  });
+
+  it("reports an increase honestly when the output is larger", () => {
+    const report = compressionReport(10_000, 12_500);
+    expect(report.savedBytes).toBe(-2_500);
+    expect(report.savedPercent).toBeCloseTo(-25, 5);
+  });
+
+  it("does not divide by zero on an empty source", () => {
+    const report = compressionReport(0, 0);
+    expect(report.savedPercent).toBe(0);
+    expect(report.ratio).toBe(1);
+  });
+});
+
+describe("frame sheet geometry", () => {
+  it("spaces the sampled timestamps evenly inside the clip", () => {
+    const stamps = frameSheetTimestamps(10, 4);
+    expect(stamps).toEqual([1.25, 3.75, 6.25, 8.75]);
+    expect(Math.min(...stamps)).toBeGreaterThan(0);
+    expect(Math.max(...stamps)).toBeLessThan(10);
+  });
+
+  it("never asks for a zero or absurd number of frames", () => {
+    expect(frameSheetTimestamps(5, 0).length).toBe(1);
+    expect(frameSheetTimestamps(5, 999).length).toBe(24);
+    expect(frameSheetTimestamps(0, 5)).toEqual([0]);
+  });
+
+  it("lays out the grid with padding and a label strip per tile", () => {
+    const layout = frameSheetLayout(6, 3, 320, 16 / 9);
+    expect(layout.columns).toBe(3);
+    expect(layout.rows).toBe(2);
+    expect(layout.tileWidth).toBe(320);
+    expect(layout.tileHeight).toBe(180);
+    expect(layout.width).toBe(3 * 320 + 4 * 8);
+    expect(layout.height).toBe(2 * (180 + 22) + 3 * 8);
+  });
+
+  it("clamps the column count to the frame count", () => {
+    const layout = frameSheetLayout(2, 6, 320, 1);
+    expect(layout.columns).toBe(2);
+    expect(layout.rows).toBe(1);
   });
 });

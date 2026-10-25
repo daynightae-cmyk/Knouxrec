@@ -1,17 +1,24 @@
 import { describe, expect, it, vi } from "vitest";
 import {
   applyOps,
+  autoCurvePoints,
   averagePixels,
   blurPixels,
   borderPixels,
   brightnessPixels,
+  buildCurveLut,
   clonePixels,
   contrastPixels,
   cropPixels,
+  curvePixels,
+  evaluateCurve,
   exposurePixels,
   flipPixels,
   gammaPixels,
+  histogramPixels,
+  IDENTITY_CURVE,
   meanDifference,
+  normaliseCurvePoints,
   pixelatePixels,
   resizePixels,
   rotatePixels,
@@ -19,6 +26,9 @@ import {
   sharpenPixels,
   temperaturePixels,
   vignettePixels,
+  type CurvePoint,
+  type Histogram,
+  type Op,
   type Pixels,
   type Rasterizer,
 } from "./imageOps";
@@ -331,5 +341,233 @@ describe("pipeline", () => {
     const copy = clonePixels(source);
     copy.data[0] = 9;
     expect(source.data[0]).not.toBe(9);
+  });
+});
+
+/** Grey ramp confined to a narrow band — the classic low-contrast input. */
+function band(width = 24, height = 8, from = 100, to = 150): Pixels {
+  const data = new Uint8ClampedArray(width * height * 4);
+  const span = to - from;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const value = from + ((x + y * width) % (span + 1));
+      const at = (y * width + x) * 4;
+      data[at] = value;
+      data[at + 1] = value;
+      data[at + 2] = value;
+      data[at + 3] = 255;
+    }
+  }
+  return { width, height, data };
+}
+
+describe("tone curves", () => {
+  it("keeps an identity curve pixel-perfect", () => {
+    const source = checker(8, 6);
+    const out = curvePixels(source, "rgb", IDENTITY_CURVE);
+    expect(meanDifference(source, out)).toBe(0);
+  });
+
+  it("sorts, de-duplicates and clamps control points", () => {
+    const knots = normaliseCurvePoints([
+      { input: 300, output: -20 },
+      { input: 128, output: 200 },
+      { input: 128, output: 90 },
+      { input: 0, output: 12 },
+    ]);
+    expect(knots.map((knot) => knot.input)).toEqual([0, 128, 255]);
+    expect(knots[0]).toEqual({ input: 0, output: 12 });
+    // Out-of-range levels clamp and the later duplicate wins.
+    expect(knots[1]).toEqual({ input: 128, output: 90 });
+    expect(knots[2]).toEqual({ input: 255, output: 0 });
+  });
+
+  it("produces a non-decreasing table even from a reversed handle", () => {
+    const lut = buildCurveLut([
+      { input: 0, output: 0 },
+      { input: 64, output: 200 },
+      { input: 128, output: 40 },
+      { input: 255, output: 255 },
+    ]);
+    for (let level = 1; level < 256; level += 1) {
+      expect(lut[level] >= lut[level - 1]).toBe(true);
+    }
+    expect(lut[0]).toBe(0);
+    expect(lut[255]).toBe(255);
+  });
+
+  it("holds the tone flat outside the control range", () => {
+    const lut = buildCurveLut([
+      { input: 40, output: 80 },
+      { input: 200, output: 210 },
+    ]);
+    // Levels below the lowest knot cannot invent shadow detail.
+    expect(lut[0]).toBe(80);
+    expect(lut[39]).toBe(80);
+    expect(lut[255]).toBe(210);
+    expect(lut[201]).toBe(210);
+    // The editor's readout and the pipeline share one table.
+    expect(
+      evaluateCurve(
+        [
+          { input: 40, output: 80 },
+          { input: 200, output: 210 },
+        ],
+        120,
+      ),
+    ).toBe(lut[120]);
+  });
+
+  it("lifts a black point onto every channel at once", () => {
+    const source = flat(0, 4, 4);
+    const out = curvePixels(source, "rgb", [
+      { input: 0, output: 48 },
+      { input: 255, output: 255 },
+    ]);
+    expect(pixelAt(out, 0, 0).slice(0, 3)).toEqual([48, 48, 48]);
+  });
+
+  it("edits only the selected channel and never the alpha", () => {
+    const source = checker(8, 6);
+    const out = curvePixels(source, "b", [
+      { input: 0, output: 60 },
+      { input: 255, output: 255 },
+    ]);
+    for (let i = 0; i < out.data.length; i += 4) {
+      expect(out.data[i]).toBe(source.data[i]);
+      expect(out.data[i + 1]).toBe(source.data[i + 1]);
+      expect(out.data[i + 3]).toBe(source.data[i + 3]);
+    }
+    expect(meanDifference(source, out)).toBeGreaterThan(0);
+  });
+
+  it("runs the curve through the shared pipeline like any other layer", () => {
+    const source = checker(8, 6);
+    const points: CurvePoint[] = [
+      { input: 0, output: 0 },
+      { input: 128, output: 150 },
+      { input: 255, output: 255 },
+    ];
+    const throughPipeline = applyOps(source, [{ kind: "curves", channel: "rgb", points }]);
+    const direct = curvePixels(source, "rgb", points);
+    expect(Array.from(throughPipeline.data)).toEqual(Array.from(direct.data));
+  });
+
+  it("measures the tonal distribution of real pixels", () => {
+    const source = checker(8, 6);
+    const histogram = histogramPixels(source);
+    expect(histogram.samples).toBe(48);
+    expect(histogram.stride).toBe(1);
+    expect(histogram.luma.reduce((total, count) => total + count, 0)).toBe(48);
+    // One row per luminance step, six dark and six bright, with a real gap
+    // between the two halves of the edge.
+    const occupied = histogram.luma
+      .map((count, level) => (count > 0 ? level : -1))
+      .filter((level) => level >= 0);
+    expect(occupied).toHaveLength(12);
+    expect(occupied.filter((level) => level < 128)).toHaveLength(6);
+    expect(occupied.filter((level) => level >= 128)).toHaveLength(6);
+    expect(occupied[5]).toBeLessThan(30);
+    expect(occupied[6]).toBeGreaterThan(190);
+    expect(histogram.lowInput).toBe(occupied[0]);
+    expect(histogram.highInput).toBe(occupied[11]);
+    expect(histogram.shadows).toBe(0);
+    expect(histogram.highlights).toBe(0);
+    expect(histogram.mean).toBeGreaterThan(100);
+    expect(histogram.mean).toBeLessThan(160);
+  });
+
+  it("ignores fully transparent pixels", () => {
+    const source = flat(200, 4, 4);
+    for (let i = 3; i < source.data.length; i += 8) source.data[i] = 0;
+    const histogram = histogramPixels(source);
+    expect(histogram.samples).toBe(8);
+    expect(histogram.luma[0]).toBe(0);
+  });
+
+  it("auto levels stretches a narrow band across the full scale", () => {
+    const source = band();
+    const before = histogramPixels(source);
+    expect(before.lowInput).toBeGreaterThanOrEqual(100);
+    expect(before.highInput).toBeLessThanOrEqual(150);
+
+    const points = autoCurvePoints(before, 0.004);
+    const lut = buildCurveLut(points);
+    expect(lut[before.lowInput]).toBe(0);
+    expect(lut[before.highInput]).toBe(255);
+
+    const after = histogramPixels(curvePixels(source, "rgb", points));
+    expect(after.lowInput).toBe(0);
+    expect(after.highInput).toBe(255);
+    expect(after.highlights).toBeGreaterThan(before.highlights);
+  });
+
+  it("falls back to a straight line when there is nothing to measure", () => {
+    const empty: Histogram = {
+      r: new Array(256).fill(0),
+      g: new Array(256).fill(0),
+      b: new Array(256).fill(0),
+      luma: new Array(256).fill(0),
+      samples: 0,
+      stride: 1,
+      max: 0,
+      mean: 0,
+      shadows: 0,
+      highlights: 0,
+      lowInput: 0,
+      highInput: 255,
+    };
+    expect(autoCurvePoints(empty)).toEqual([
+      { input: 0, output: 0 },
+      { input: 255, output: 255 },
+    ]);
+  });
+
+  it("samples large images with a bounded stride", () => {
+    const source = flat(120, 100, 100);
+    const histogram = histogramPixels(source);
+    expect(histogram.stride).toBe(Math.ceil(10_000 / 200_000));
+    expect(histogram.samples).toBeLessThanOrEqual(10_000);
+    expect(histogram.luma[120]).toBe(histogram.samples);
+  });
+});
+
+describe("pipeline purity", () => {
+  it("never writes a composite step back into the caller's base pixels", () => {
+    const source = checker(6, 4);
+    const before = Array.from(source.data);
+    const stomper: Rasterizer = (target) => {
+      target.data.fill(7);
+    };
+    applyOps(source, [
+      {
+        kind: "text",
+        text: "KNOUX",
+        x: 50,
+        y: 50,
+        size: 12,
+        color: "#ffffff",
+        opacity: 100,
+        weight: "600",
+        shadow: false,
+      },
+    ], stomper);
+    expect(Array.from(source.data)).toEqual(before);
+
+    applyOps(source, [
+      { kind: "watermark", text: "KNOUX", size: 10, opacity: 20, angle: 0, step: 30, color: "#ffffff" },
+    ], stomper);
+    expect(Array.from(source.data)).toEqual(before);
+  });
+
+  it("produces the same bytes when the same chain runs twice", () => {
+    const source = band(16, 8, 60, 190);
+    const ops: Op[] = [
+      { kind: "curves", channel: "rgb", points: [{ input: 0, output: 10 }, { input: 255, output: 240 }] },
+      { kind: "saturation", amount: 30 },
+    ];
+    const first = applyOps(source, ops);
+    const second = applyOps(source, ops);
+    expect(Array.from(first.data)).toEqual(Array.from(second.data));
   });
 });
