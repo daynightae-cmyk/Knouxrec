@@ -28,7 +28,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Start screen recording | LOCAL | VERIFIED | Studio + hotkeys + TopBar |
 | Start window/camera recording | LOCAL | VERIFIED | Real pickers; camera via getUserMedia |
 | Capture screenshot | LOCAL | VERIFIED | Canvas capture, PNG/JPEG/WebP |
-| Audio recording | LOCAL | PARTIAL | Microphone path exists inside recordings; standalone audio recorder is NOT-IMPLEMENTED |
+| Audio recording | LOCAL | VERIFIED | Standalone microphone take from the dashboard quick action (Voice memo) — real getDisplayMedia-free `getUserMedia`, live dBFS meter, saved as an `audio/*` library item; 29 checks in `scripts/audio-recording-smoke.mjs` |
 | Recent media, storage, jobs, model readiness | LOCAL | VERIFIED | Real IndexedDB/registry data |
 | Global search | LOCAL | VERIFIED — the Discover section searches the canonical registry (123 entries) by English label, Arabic label, hub, mode and blocker |
 | One-click workflows | LOCAL | VERIFIED — four chains on the Dashboard, 30 checks in `scripts/workflow-smoke.mjs` |
@@ -40,7 +40,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Full display / window / tab recording | LOCAL | VERIFIED | getDisplayMedia picker, MediaRecorder, pause/resume/stop |
 | Webcam recording + overlay | LOCAL | VERIFIED | getUserMedia + overlay compositing |
 | System audio | LOCAL | PARTIAL | Captured when the platform offers a system-audio track |
-| Microphone-only recording | LOCAL | NOT-IMPLEMENTED | Reuses the recording engine once an audio sink is added |
+| Microphone-only recording | LOCAL | VERIFIED — a fourth capture mode in the studio: no display surface is requested, the container is probed with `isTypeSupported` (Opus in WebM), and the level comes from an AnalyserNode on the encoded stream. 11 unit tests pin the engine contract; the browser smoke drags the real pipeline through pause/resume, save and playback |
 | Scheduled / delayed start | LOCAL | NOT-IMPLEMENTED | Timer + same session engine |
 | Resolution/fps presets | LOCAL | VERIFIED | Persisted settings reach the session |
 | Trim after capture | LOCAL | VERIFIED | `trimMedia` re-encode + new library item |

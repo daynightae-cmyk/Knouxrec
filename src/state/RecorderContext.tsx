@@ -25,6 +25,22 @@ import {
   formatBytes,
   formatDuration,
 } from "../lib/format";
+import { translate } from "../i18n/translate";
+
+/** Every capture mode speaks about itself in the user's language. */
+const MODE_KEYS: Record<CaptureMode, string> = {
+  screen: "rec.mode.screen",
+  window: "rec.mode.window",
+  webcam: "rec.mode.webcam",
+  audio: "rec.mode.audio",
+};
+
+const STARTED_KEYS: Record<CaptureMode, string> = {
+  screen: "rec.startedScreen",
+  window: "rec.startedWindow",
+  webcam: "rec.startedWebcam",
+  audio: "rec.startedAudio",
+};
 
 export interface RecorderContextValue extends RecorderSnapshot {
   support: CaptureSupport;
@@ -36,6 +52,8 @@ export interface RecorderContextValue extends RecorderSnapshot {
   toggle: (mode?: CaptureMode) => Promise<void>;
   takeScreenshot: () => Promise<void>;
   clearError: () => void;
+  /** Live input peak, 0…1, for a microphone-only session. Zero otherwise. */
+  readLevel: () => number;
 }
 
 const RecorderContext = createContext<RecorderContextValue | null>(null);
@@ -48,6 +66,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
 
   const [status, setStatus] = useState<RecorderStatus>("idle");
   const [elapsed, setElapsed] = useState(0);
+  const [mode, setMode] = useState<CaptureMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [lastCapture, setLastCapture] = useState<RecorderSnapshot["lastCapture"]>(null);
@@ -57,6 +76,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   const jobRef = useRef<StudioJobHandle | null>(null);
   const timerRef = useRef<number | null>(null);
   const statusRef = useRef<RecorderStatus>("idle");
+  const modeRef = useRef<CaptureMode | null>(null);
   const settingsRef = useRef(settings);
 
   settingsRef.current = settings;
@@ -80,6 +100,11 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
     [clearTimer],
   );
 
+  const modeLabel = useCallback(
+    (value: CaptureMode) => translate(settingsRef.current.language, MODE_KEYS[value]),
+    [],
+  );
+
   const start = useCallback(
     async (mode: CaptureMode = "screen") => {
       if (
@@ -101,21 +126,25 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
           width: quality === 720 ? 1280 : quality === 1080 ? 1920 : quality === 1440 ? 2560 : 3840,
           height: quality === 720 ? 720 : quality === 1080 ? 1080 : quality === 1440 ? 1440 : 2160,
           fps: settingsRef.current.recorder.fps,
-          systemAudio: settingsRef.current.recorder.systemAudio,
-          microphone: settingsRef.current.recorder.microphone,
-          webcamOverlay: settingsRef.current.recorder.webcamOverlay,
+          systemAudio: mode === "audio" ? false : settingsRef.current.recorder.systemAudio,
+          microphone: mode === "audio" ? true : settingsRef.current.recorder.microphone,
+          webcamOverlay: mode === "audio" ? false : settingsRef.current.recorder.webcamOverlay,
           webcamPosition: settingsRef.current.recorder.webcamPosition,
           webcamSize: settingsRef.current.recorder.webcamSize,
+          audioDeviceId: settingsRef.current.recorder.audioDeviceId ?? null,
         });
         const preview = session.previewStream();
         setPreviewStream(preview);
+        setMode(mode);
+        modeRef.current = mode;
         setStatus("recording");
         startTimer(session);
 
         // The workspace record starts only after an authorized stream exists.
+        const label = modeLabel(mode);
         const job = beginJob({
           kind: "recording",
-          title: mode === "webcam" ? "Camera recording" : "Screen recording",
+          title: label,
           route: "studio",
           progress: null,
         });
@@ -131,13 +160,15 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
 
         push(
           "success",
-          mode === "webcam" ? "Camera recording started" : "Screen recording started",
-          "Pause or stop from the studio controls, or use the hotkeys.",
+          translate(settingsRef.current.language, STARTED_KEYS[mode] ?? "rec.startedScreen"),
+          translate(settingsRef.current.language, "rec.startedBody"),
         );
       } catch (cause) {
         session.cancel();
         sessionRef.current = null;
         setPreviewStream(null);
+        setMode(null);
+        modeRef.current = null;
         setStatus("error");
         const message =
           cause instanceof Error ? cause.message : "Recording could not be started.";
@@ -145,7 +176,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
         push("error", "Recording could not start", message);
       }
     },
-    [beginJob, push, startTimer],
+    [beginJob, modeLabel, push, startTimer],
   );
 
   const pause = useCallback(() => {
@@ -186,9 +217,10 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
         settingsRef.current.recorder.namingPattern,
         extension,
       );
+      const audioSession = modeRef.current === "audio";
       const item = await addToLibrary({
         name,
-        kind: "video",
+        kind: audioSession ? "audio" : "video",
         mimeType: result.mimeType,
         blob: result.blob,
         duration: result.durationMs / 1000,
@@ -199,6 +231,8 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       });
 
       setElapsed(0);
+      setMode(null);
+      modeRef.current = null;
       setStatus("idle");
       setLastCapture({
         id: item.id,
@@ -236,6 +270,8 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
     } catch (cause) {
       sessionRef.current = null;
       setPreviewStream(null);
+      setMode(null);
+      modeRef.current = null;
       setStatus("error");
       const message =
         cause instanceof Error ? cause.message : "The recording could not be saved.";
@@ -319,10 +355,13 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
     };
   }, [clearTimer]);
 
+  const readLevel = useCallback(() => sessionRef.current?.level() ?? 0, []);
+
   const value = useMemo(
     () => ({
       status,
       elapsed,
+      mode,
       error,
       lastCapture,
       support,
@@ -334,10 +373,12 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       toggle,
       takeScreenshot,
       clearError,
+      readLevel,
     }),
     [
       status,
       elapsed,
+      mode,
       error,
       lastCapture,
       support,
@@ -349,6 +390,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       toggle,
       takeScreenshot,
       clearError,
+      readLevel,
     ],
   );
 

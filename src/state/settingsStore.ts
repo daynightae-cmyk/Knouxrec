@@ -13,6 +13,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
     webcamPosition: "bottomRight",
     webcamSize: "medium",
     namingPattern: "KNOUX-REC-[DATE]_[TIME]",
+    audioDeviceId: null,
   },
   screenshotFormat: "png",
   screenshotQuality: 0.95,

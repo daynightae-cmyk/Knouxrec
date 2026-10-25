@@ -9,6 +9,7 @@ import { Icon, type IconName } from "../app/icons";
 import BrandMark from "../app/BrandMark";
 import { EmptyState, PreviewDialog, StatCard, StateBadge, Thumbnail } from "./ui";
 import WorkflowChains from "./WorkflowChains";
+import { LevelMeter } from "../ui/LevelMeter";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
 import type { LibraryItem } from "../state/types";
@@ -135,6 +136,10 @@ export default function Dashboard({
   }, [items]);
 
   const rendering = recorder.status === "recording" || recorder.status === "paused";
+  const audioLive =
+    (recorder.status === "recording" || recorder.status === "paused") &&
+    recorder.mode === "audio";
+  const busy = recorder.status === "requesting" || recorder.status === "stopping";
   const now = Date.now();
   const finishedJobs = jobs
     .filter((job) => job.stage === "done" || job.stage === "cancelled" || job.stage === "error")
@@ -188,6 +193,23 @@ export default function Dashboard({
               <Icon name="camera" size={18} />
               {t("captureScreenshot")}
             </button>
+            {/* A standalone microphone take: no display surface, no camera,
+                just the voice memo going straight into the library. */}
+            <button
+              type="button"
+              className="kx-btn kx-btn-lg"
+              data-dashboard-audio={audioLive ? "stop" : "start"}
+              onClick={() => {
+                if (audioLive) void recorder.stop();
+                else void recorder.start("audio");
+              }}
+              disabled={busy || (recorder.status !== "idle" && !audioLive)}
+            >
+              <Icon name={audioLive ? "stop" : "audio"} size={18} />
+              {audioLive
+                ? `${t("dashboard.stopAudio")} · ${formatDuration(recorder.elapsed)}`
+                : t("dashboard.startAudio")}
+            </button>
           </div>
           <div className="kx-row kx-muted" style={{ fontSize: "0.74rem" }}>
             <Icon name="shield" size={14} />
@@ -197,7 +219,25 @@ export default function Dashboard({
 
         <div className="kx-hero-side">
           <div className="kx-preview" data-state={recorder.status === "recording" ? "live" : undefined}>
-            {recorder.previewStream ? (
+            {audioLive ? (
+              <div className="kx-preview-audio" data-audio-session>
+                <BrandMark size={56} />
+                <LevelMeter
+                  readLevel={recorder.readLevel}
+                  active={recorder.status === "recording"}
+                  labels={{
+                    aria: t("studio.meterAria"),
+                    peak: t("studio.meterPeak"),
+                    average: t("studio.meterAverage"),
+                    loudest: t("studio.meterLoudest"),
+                    clip: t("studio.meterClip"),
+                    silent: t("studio.meterSilent"),
+                    value: (dB: string, average: string) =>
+                      t("studio.meterValue").replace("{dB}", dB).replace("{avg}", average),
+                  }}
+                />
+              </div>
+            ) : recorder.previewStream ? (
               <>
                 <LivePreview stream={recorder.previewStream} />
                 <div className="kx-preview-overlay">

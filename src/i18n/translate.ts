@@ -232,6 +232,8 @@ const STRINGS: Dictionary = {
     en: "Return to live recorder",
     ar: "العودة إلى المسجل الحي",
   },
+  "dashboard.startAudio": { en: "Voice memo", ar: "تسجيل صوتي" },
+  "dashboard.stopAudio": { en: "Stop memo", ar: "إيقاف التسجيل" },
   "dashboard.blobsReadBack": {
     en: "Saved blobs are read back from IndexedDB — no placeholder thumbnails.",
     ar: "تُقرأ الملفات المحفوظة من IndexedDB — بلا صور بديلة.",
@@ -914,6 +916,60 @@ const STRINGS: Dictionary = {
   },
   "studio.elapsed": { en: "Elapsed", ar: "المدة" },
   "studio.output": { en: "Output", ar: "المخرجات" },
+
+  "rec.mode.screen": { en: "Screen recording", ar: "تسجيل الشاشة" },
+  "rec.mode.window": { en: "Window recording", ar: "تسجيل نافذة" },
+  "rec.mode.webcam": { en: "Camera recording", ar: "تسجيل الكاميرا" },
+  "rec.mode.audio": { en: "Microphone recording", ar: "تسجيل الميكروفون" },
+  "rec.startedScreen": { en: "Screen recording started", ar: "بدأ تسجيل الشاشة" },
+  "rec.startedWindow": { en: "Window recording started", ar: "بدأ تسجيل النافذة" },
+  "rec.startedWebcam": { en: "Camera recording started", ar: "بدأ تسجيل الكاميرا" },
+  "rec.startedAudio": { en: "Microphone recording started", ar: "بدأ تسجيل الميكروفون" },
+  "rec.startedBody": {
+    en: "Pause or stop from the studio controls, or use the hotkeys.",
+    ar: "أوقف مؤقتًا أو أنهِ من أدوات الاستوديو أو بمفاتيح الاختصار.",
+  },
+
+  "studio.audioChip": { en: "Microphone only", ar: "ميكروفون فقط" },
+  "studio.audioTitle": { en: "Audio-only session", ar: "جلسة صوت فقط" },
+  "studio.audioNote": {
+    en: "No display surface and no camera are requested: only the microphone is captured and encoded to Opus in WebM.",
+    ar: "لا تُطلب أي مساحة عرض ولا كاميرا: يُلتقط الميكروفون فقط ويُرمَّز Opus داخل WebM.",
+  },
+  "studio.audioValue": { en: "Opus/WebM", ar: "أوبوس في ويب-إم" },
+  "studio.audioHint": {
+    en: "One audio track · 128 kbit/s · saved straight to the library",
+    ar: "مسار صوت واحد · 128 كيلابت/ثانية · يُحفظ مباشرة في المكتبة",
+  },
+  "studio.audioSource": {
+    en: "microphone input · no display surface",
+    ar: "دخل الميكروفون · بلا مساحة عرض",
+  },
+  "studio.meterAria": { en: "Microphone input level", ar: "مستوى دخل الميكروفون" },
+  "studio.meterPeak": { en: "Peak", ar: "القمة" },
+  "studio.meterAverage": { en: "Average", ar: "المتوسط" },
+  "studio.meterLoudest": { en: "Loudest", ar: "الأعلى" },
+  "studio.meterClip": { en: "Clipping", ar: "قصّ" },
+  "studio.meterSilent": { en: "No signal", ar: "لا توجد إشارة" },
+  "studio.meterValue": {
+    en: "Peak {dB} dBFS, average {avg} dBFS",
+    ar: "القمة {dB} ديسيبل، المتوسط {avg} ديسيبل",
+  },
+  "studio.microphone": { en: "Microphone", ar: "الميكروفون" },
+  "studio.defaultMicrophone": { en: "System default", ar: "الافتراضي للنظام" },
+  "studio.unnamedDevice": { en: "Unnamed input", ar: "مدخل بلا اسم" },
+  "studio.noDevices": {
+    en: "No input device was listed. Grant microphone access once and the names appear here.",
+    ar: "لم يُدرج أي مدخل صوت. امنح إذن الميكروفون مرة واحدة فتظهر الأسماء هنا.",
+  },
+  "studio.deviceChosen": {
+    en: "That device is used for the next take.",
+    ar: "يُستخدم هذا الجهاز في التسجيل التالي.",
+  },
+  "studio.deviceNamesHint": {
+    en: "Device names are hidden until the microphone has been allowed; the default is used otherwise.",
+    ar: "تبقى أسماء الأجهزة مخفية حتى يُسمح للميكروفون، وبخلاف ذلك يُستخدم الافتراضي.",
+  },
   "studio.timerPaused": { en: "Timer paused", ar: "المؤقت متوقف مؤقتًا" },
   "studio.liveFromClock": {
     en: "Live from session clock",

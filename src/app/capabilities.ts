@@ -94,10 +94,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "studio",
     state: "VERIFIED",
     summary:
-      "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output.",
+      "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output, including a microphone-only session that never asks for a display surface and meters the live input in dBFS.",
     requirements: ["Screen capture permission", "MediaRecorder support"],
     evidence:
-      "RecordingSession records real timestamps from the active media stream; output is written to IndexedDB.",
+      "RecordingSession branches on the capture mode: the display path composes screen, microphone and webcam tracks, while the audio path opens the microphone alone, encodes the container the runtime actually supports (probed with isTypeSupported, never assumed) and measures its level from an AnalyserNode on the same stream. scripts/audio-recording-smoke.mjs drives the real pipeline in Chromium with a fake capture device (29/29): no video surface exists for an audio take, the meter holds the loudest moment of the signal, pause holds the clock, the saved blob decodes back to non-silent audio with a real duration, the dashboard voice memo records a second take, and the Arabic build matches. src/services/audioRecording.test.ts pins the engine contract with 11 unit tests, including that a missing audio container is refused before the microphone is opened.",
   },
   screenshots: {
     id: "screenshots",

@@ -10,6 +10,11 @@ export interface RecorderSettings {
   webcamPosition: "topLeft" | "topRight" | "bottomLeft" | "bottomRight";
   webcamSize: "small" | "medium" | "large";
   namingPattern: string;
+  /**
+   * Device id of the microphone used for audio-only sessions. Null means the
+   * system default, which is what the browser picks without being told.
+   */
+  audioDeviceId?: string | null;
 }
 
 export interface AppSettings {
@@ -80,6 +85,8 @@ export interface RecorderSnapshot {
   status: RecorderStatus;
   elapsed: number;
   error: string | null;
+  /** What the live session is capturing, so views can speak precisely about it. */
+  mode?: "screen" | "window" | "webcam" | "audio" | null;
   lastCapture: {
     id: string;
     name: string;

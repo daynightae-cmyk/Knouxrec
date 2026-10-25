@@ -1,7 +1,7 @@
 import type { RecorderSettings } from "../state/types";
 import { patchWebmDuration } from "./webm";
 
-export type CaptureMode = "screen" | "window" | "webcam";
+export type CaptureMode = "screen" | "window" | "webcam" | "audio";
 
 export interface CaptureSupport {
   display: boolean;
@@ -22,6 +22,11 @@ export interface CaptureRequest {
   webcamOverlay: boolean;
   webcamPosition: RecorderSettings["webcamPosition"];
   webcamSize: RecorderSettings["webcamSize"];
+  /** Optional microphone selection for an audio-only session. */
+  audioDeviceId?: string | null;
+  echoCancellation?: boolean;
+  noiseSuppression?: boolean;
+  autoGainControl?: boolean;
 }
 
 export interface CaptureResult {
@@ -43,6 +48,10 @@ interface ActiveCapture {
   mimeType: string;
   width: number;
   height: number;
+  /** An audio-only session has no frame, so nothing may ask it for one. */
+  audioOnly: boolean;
+  analyser: AnalyserNode | null;
+  levelBuffer: Float32Array | null;
 }
 
 const MIME_CANDIDATES = [
@@ -51,6 +60,17 @@ const MIME_CANDIDATES = [
   "video/webm",
   "video/mp4;codecs=avc1.42E01E,mp4a.40.2",
   "video/mp4",
+];
+
+/**
+ * Audio-only containers, probed before use. Opus in WebM is what Chromium
+ * actually encodes here; the list is walked in order and nothing is promised
+ * that `isTypeSupported` has not confirmed.
+ */
+const AUDIO_MIME_CANDIDATES = [
+  "audio/webm;codecs=opus",
+  "audio/webm",
+  "audio/mp4",
 ];
 
 export function detectCaptureSupport(): CaptureSupport {
@@ -84,6 +104,12 @@ export function pickMimeType(): string | null {
   return MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
 }
 
+/** The container the runtime can really encode for a microphone-only session. */
+export function pickAudioMimeType(): string {
+  if (typeof MediaRecorder === "undefined") return "";
+  return AUDIO_MIME_CANDIDATES.find((type) => MediaRecorder.isTypeSupported(type)) ?? "";
+}
+
 function stopStream(stream: MediaStream | null | undefined): void {
   stream?.getTracks().forEach((track) => {
     try {
@@ -92,6 +118,21 @@ function stopStream(stream: MediaStream | null | undefined): void {
       /* noop */
     }
   });
+}
+
+/**
+ * Close an audio graph if there is one that can be closed. A session that
+ * failed halfway through building its meter can hold a half-initialised
+ * context, and cleanup must never be the thing that throws while a microphone
+ * is still open.
+ */
+function closeAudioContext(context: AudioContext | null): void | Promise<void> {
+  if (!context || typeof context.close !== "function") return;
+  try {
+    return context.close().catch(() => undefined);
+  } catch {
+    /* noop */
+  }
 }
 
 async function mixAudioStreams(
@@ -152,11 +193,141 @@ export class RecordingSession {
 
   previewStream(): MediaStream | null {
     if (!this.active) return null;
-    return new MediaStream(this.active.stream.getVideoTracks());
+    const tracks = this.active.stream.getVideoTracks();
+    // An audio-only session has no frame to show; the studio draws a level
+    // meter for it instead of an empty video surface.
+    if (tracks.length === 0) return null;
+    return new MediaStream(tracks);
+  }
+
+  /**
+   * Peak input level of the live microphone, 0…1, measured from the very same
+   * stream that is being encoded. Zero when nothing is recording or the meter
+   * could not be built.
+   */
+  level(): number {
+    const active = this.active;
+    if (!active?.analyser || !active.levelBuffer) return 0;
+    try {
+      active.analyser.getFloatTimeDomainData(active.levelBuffer);
+    } catch {
+      return 0;
+    }
+    let peak = 0;
+    for (let index = 0; index < active.levelBuffer.length; index += 1) {
+      const value = Math.abs(active.levelBuffer[index]);
+      if (value > peak) peak = value;
+    }
+    return Math.min(1, peak);
+  }
+
+  /**
+   * Microphone-only session: no display surface, no compositor, no frame.
+   * The container is whatever the runtime admits to encoding, probed rather
+   * than assumed.
+   */
+  private async startAudio(
+    request: CaptureRequest,
+  ): Promise<{ width: number; height: number }> {
+    if (typeof MediaRecorder === "undefined") {
+      throw new Error("MediaRecorder is not available in this runtime.");
+    }
+    if (!navigator.mediaDevices?.getUserMedia) {
+      throw new Error("Microphone capture is unavailable in this runtime.");
+    }
+    const mimeType = pickAudioMimeType();
+    if (!mimeType) {
+      throw new Error("This runtime cannot encode an audio-only recording.");
+    }
+
+    let stream: MediaStream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: request.echoCancellation ?? true,
+          noiseSuppression: request.noiseSuppression ?? true,
+          autoGainControl: request.autoGainControl ?? true,
+          ...(request.audioDeviceId ? { deviceId: { exact: request.audioDeviceId } } : {}),
+        },
+        video: false,
+      });
+    } catch (error) {
+      throw new Error(
+        `Microphone permission was denied or unavailable: ${
+          error instanceof Error ? error.message : "unknown error"
+        }`,
+      );
+    }
+
+    if (stream.getAudioTracks().length === 0) {
+      stopStream(stream);
+      throw new Error("The microphone returned no audio track.");
+    }
+
+    let context: AudioContext | null = null;
+    let analyser: AnalyserNode | null = null;
+    let levelBuffer: Float32Array | null = null;
+    try {
+      context = new AudioContext();
+      analyser = context.createAnalyser();
+      analyser.fftSize = 1024;
+      analyser.smoothingTimeConstant = 0;
+      // An analyser is only pulled when something downstream consumes it, so
+      // the graph ends in a muted gain node: the page never hears the
+      // microphone, but the measurement runs.
+      const sink = context.createGain();
+      sink.gain.value = 0;
+      context.createMediaStreamSource(stream).connect(analyser);
+      analyser.connect(sink);
+      sink.connect(context.destination);
+      levelBuffer = new Float32Array(analyser.fftSize);
+      await context.resume().catch(() => undefined);
+    } catch {
+      // Metering is a nicety: a recording must not fail because the analyser
+      // could not be built.
+      analyser = null;
+      levelBuffer = null;
+    }
+
+    try {
+      const recorder = new MediaRecorder(stream, {
+        mimeType,
+        audioBitsPerSecond: 128_000,
+      });
+      const chunks: Blob[] = [];
+      recorder.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) chunks.push(event.data);
+      };
+      this.active = {
+        recorder,
+        chunks,
+        stream,
+        ownedStreams: [stream],
+        audioContext: context,
+        canvasTimer: null,
+        mimeType,
+        width: 0,
+        height: 0,
+        audioOnly: true,
+        analyser,
+        levelBuffer,
+      };
+      this.startedAt = performance.now();
+      this.pausedTotal = 0;
+      this.pausedAt = 0;
+      recorder.start(1000);
+      return { width: 0, height: 0 };
+    } catch (error) {
+      stopStream(stream);
+      await closeAudioContext(context);
+      throw error;
+    }
   }
 
   async start(request: CaptureRequest): Promise<{ width: number; height: number }> {
     if (this.active) throw new Error("A recording is already in progress.");
+
+    if (request.mode === "audio") return this.startAudio(request);
 
     const mimeType = pickMimeType();
     if (!mimeType || typeof MediaRecorder === "undefined") {
@@ -326,6 +497,9 @@ export class RecordingSession {
         mimeType,
         width,
         height,
+        audioOnly: false,
+        analyser: null,
+        levelBuffer: null,
       };
       this.startedAt = performance.now();
       this.pausedTotal = 0;
@@ -338,7 +512,7 @@ export class RecordingSession {
       // cancel() cannot clean up. Release every acquired stream here instead.
       this.active = null;
       ownedStreams.forEach(stopStream);
-      await audioContext?.close().catch(() => undefined);
+      await closeAudioContext(audioContext);
       throw error;
     }
   }
@@ -415,7 +589,7 @@ export class RecordingSession {
       if (active.canvasTimer !== null) window.clearInterval(active.canvasTimer);
       active.ownedStreams.forEach(stopStream);
       stopStream(active.stream);
-      await active.audioContext?.close().catch(() => undefined);
+      await closeAudioContext(active.audioContext);
       this.active = null;
     }
 
@@ -423,15 +597,20 @@ export class RecordingSession {
       throw new Error("The recorder produced an empty file. Nothing was saved.");
     }
 
-    const patched = await patchWebmDuration(blob, durationMs);
-    const thumbnail = await createThumbnailFromBlob(patched);
+    const audioOnly = active.audioOnly;
+    let patched = blob;
+    if (!audioOnly) {
+      patched = await patchWebmDuration(blob, durationMs);
+    }
     return {
       blob: patched,
       mimeType: patched.type || active.mimeType,
       durationMs,
       width: active.width,
       height: active.height,
-      thumbnail,
+      // An audio file has no frame to offer; inventing one would be a colour
+      // swatch dressed up as a preview.
+      thumbnail: audioOnly ? null : await createThumbnailFromBlob(patched),
     };
   }
 
@@ -446,7 +625,7 @@ export class RecordingSession {
     if (active.canvasTimer !== null) window.clearInterval(active.canvasTimer);
     active.ownedStreams.forEach(stopStream);
     stopStream(active.stream);
-    active.audioContext?.close().catch(() => undefined);
+    closeAudioContext(active.audioContext);
     this.active = null;
   }
 }
