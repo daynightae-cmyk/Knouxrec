@@ -823,7 +823,12 @@ async function trimMediaOnce(
     throw new Error("This runtime cannot re-encode media in the browser.");
   }
 
+  // The compositor surface is created inside the try block; cleanup has to be
+  // able to release it from outside.
+  let surfaceCanvas: HTMLCanvasElement | null = null;
   const cleanup = () => {
+    surfaceCanvas?.remove();
+    surfaceCanvas = null;
     media.pause();
     media.removeAttribute("src");
     media.load();
@@ -853,6 +858,14 @@ async function trimMediaOnce(
       const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
       canvas.width = Math.max(2, Math.round(video.videoWidth * scale));
       canvas.height = Math.max(2, Math.round(video.videoHeight * scale));
+      // Attached but invisible, like the decoder above it. A detached canvas
+      // can be drawn without the compositor ever sampling it, which shows up
+      // as "frames painted, zero chunks" in the encoder — the same failure the
+      // video element had before it was attached.
+      canvas.style.cssText =
+        "position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:0;pointer-events:none";
+      document.body.appendChild(canvas);
+      surfaceCanvas = canvas;
       context = canvas.getContext("2d", { willReadFrequently: false });
       if (!context) throw new Error("The 2D canvas context is unavailable.");
       // A fixed rate is the configuration Chromium reliably feeds to
