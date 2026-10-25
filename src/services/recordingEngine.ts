@@ -564,15 +564,24 @@ export async function trimMedia(
   onProgress?: (fraction: number) => void,
 ): Promise<Blob> {
   const requested = Math.max(0.1, end - start);
-  const first = await trimMediaOnce(source, start, end, onProgress);
-  if (first.size > 0) {
-    const measured = await measureMediaDuration(first);
-    // A session that started before the first frame was painted produces a
-    // clip materially shorter than the range asked for. That is retried rather
-    // than relabelled with the requested duration.
-    if (measured === null || measured >= requested * 0.8) return first;
+  let lastError: Error | null = null;
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    try {
+      const clip = await trimMediaOnce(source, start, end, onProgress);
+      const measured = await measureMediaDuration(clip);
+      // A session that started before the first frame was painted produces a
+      // clip materially shorter than the range asked for. That is retried
+      // rather than relabelled with the requested duration.
+      if (measured === null || measured >= requested * 0.8) return clip;
+      lastError = new Error(
+        `The trim produced a ${measured.toFixed(2)} s clip for a ${requested.toFixed(2)} s range.`,
+      );
+    } catch (cause) {
+      lastError = cause instanceof Error ? cause : new Error(String(cause));
+      if (attempt === 2) throw lastError;
+    }
   }
-  return trimMediaOnce(source, start, end, onProgress);
+  throw lastError ?? new Error("The trim produced no media.");
 }
 
 /** Real playable duration of a produced file, or null when it reports none. */
@@ -701,6 +710,7 @@ async function trimMediaOnce(
 
     let raf = 0;
     let stopped = false;
+    let painted = 0;
     const stopCapture = () => {
       if (stopped) return;
       stopped = true;
@@ -720,11 +730,13 @@ async function trimMediaOnce(
         if (media.currentTime >= end || media.ended) {
           // One last frame at the boundary, then stop exactly here.
           context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          painted += 1;
           report();
           stopCapture();
           return;
         }
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        painted += 1;
         report();
         raf = window.requestAnimationFrame(paint);
       };
@@ -758,7 +770,15 @@ async function trimMediaOnce(
     });
 
     const blob = await result;
-    return blob.size ? patchWebmDuration(blob, duration * 1000) : blob;
+    if (!blob.size) {
+      // Both halves are named because they fail for different reasons: a paint
+      // count of zero means the decoder never presented a frame, a zero chunk
+      // count with a live paint count means the capture session was starved.
+      throw new Error(
+        `The trim captured no media (${painted} frames painted, ${chunks.length} chunks).`,
+      );
+    }
+    return patchWebmDuration(blob, duration * 1000);
   } finally {
     cleanup();
   }
