@@ -104,6 +104,45 @@ try {
   await page.waitForSelector(".kx-app", { timeout: 30000 });
   await sleep(600);
 
+  // 1a. A delayed capture counts down in real seconds and can be cancelled
+  //     before any pixels are taken.
+  await page.evaluate(() => {
+    document.querySelector('[data-delay="3"]')?.click();
+  });
+  await sleep(200);
+  await page.evaluate(() => {
+    const button = [...document.querySelectorAll("button")].find(
+      (element) => element.textContent?.trim() === "Capture screen",
+    );
+    button?.click();
+  });
+  await sleep(400);
+  const counting = await page.evaluate(() => ({
+    visible: Boolean(document.querySelector(".kx-shot-countdown")),
+    number: Number(document.querySelector(".kx-shot-countdown-number")?.textContent ?? "0"),
+    editor: Boolean(document.querySelector(".kx-shot-canvas")),
+  }));
+  check(
+    "the delay counts down before any capture happens",
+    counting.visible && counting.number >= 2 && !counting.editor,
+    counting,
+  );
+  await page.evaluate(() => {
+    document.querySelector('[data-action="cancel-countdown"]')?.click();
+  });
+  await sleep(300);
+  const cancelledDelay = await page.evaluate(() => ({
+    visible: Boolean(document.querySelector(".kx-shot-countdown")),
+    editor: Boolean(document.querySelector(".kx-shot-canvas")),
+  }));
+  check(
+    "cancelling the countdown captures nothing",
+    !cancelledDelay.visible && !cancelledDelay.editor,
+    cancelledDelay,
+  );
+  await page.evaluate(() => document.querySelector('[data-delay="0"]')?.click());
+  await sleep(200);
+
   // 1. Real capture through the display stream.
   const clicked = await page.evaluate(() => {
     const button = [...document.querySelectorAll("button")].find(

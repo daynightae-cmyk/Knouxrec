@@ -906,6 +906,13 @@ const STRINGS: Dictionary = {
     en: "Encoded size on this device",
     ar: "الحجم المُرمَّز على هذا الجهاز",
   },
+  "screenshots.delay": { en: "Capture delay", ar: "تأخير الالتقاط" },
+  "screenshots.noDelay": { en: "Off", ar: "بلا تأخير" },
+  "screenshots.countdownHint": {
+    en: "Arrange the screen; the capture fires when the count reaches zero.",
+    ar: "رتّب الشاشة؛ يقع الالتقاط عند وصول العدّ إلى الصفر.",
+  },
+  "screenshots.cancelCountdown": { en: "Cancel", ar: "إلغاء" },
   "screenshots.emptyHint": {
     en: "Press Capture screen and accept the OS picker. The frame is drawn from the live display stream, not a placeholder.",
     ar: "اضغط «التقاط الشاشة» واقبل منتقي النظام. الإطار مأخوذ من تدفق العرض الحي، وليس صورة بديلة.",

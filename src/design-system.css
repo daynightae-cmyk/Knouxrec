@@ -4009,6 +4009,51 @@ html[data-theme="light"] .kx-audio-element {
   }
 }
 
+/* ---------- delayed capture ---------- */
+
+.kx-shot-delay {
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 0 0 12px;
+}
+
+.kx-shot-delay .kx-chip[aria-pressed="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+  color: var(--kx-text);
+}
+
+.kx-shot-countdown {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  background: rgba(5, 5, 10, 0.72);
+  backdrop-filter: blur(3px);
+}
+
+.kx-shot-countdown-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 28px 36px;
+  border-radius: var(--kx-radius-lg);
+  border: 1px solid var(--kx-accent-line);
+  background: var(--kx-elev-1);
+  box-shadow: var(--kx-shadow-3);
+  text-align: center;
+}
+
+.kx-shot-countdown-number {
+  font-family: var(--kx-font-display);
+  font-size: 4.2rem;
+  line-height: 1;
+  color: var(--kx-accent);
+}
+
 /* ---------- library collections ---------- */
 
 .kx-collection-bar {

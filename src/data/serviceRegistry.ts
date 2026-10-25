@@ -116,7 +116,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "shot-history", hub: "screenshots", labelEn: "Undo, redo and before/after", label: "تراجع وإعادة ومقارنة", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-export", hub: "screenshots", labelEn: "Save as new image and export PNG", label: "حفظ كصورة جديدة وتصدير", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-os-region", hub: "screenshots", labelEn: "OS-level window or region picker", label: "منتقي النافذة أو المنطقة من النظام", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Native window enumeration in the desktop bridge" }),
-  entry({ id: "shot-delay", hub: "screenshots", labelEn: "Delayed capture", label: "التقاط مؤجل", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A countdown over the existing capture path" }),
+  entry({ id: "shot-delay", hub: "screenshots", labelEn: "Delayed capture with a live countdown", label: "التقاط مؤجل بعدّاد حي", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
 
   /* ------------------------------------------------------------ library */
   entry({ id: "lib-store", hub: "library", labelEn: "Local IndexedDB storage with real blobs", label: "تخزين محلي مع ملفات حقيقية", mode: "LOCAL", status: "VERIFIED", route: "library" }),

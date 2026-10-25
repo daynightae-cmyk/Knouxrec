@@ -58,7 +58,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Save as new image + export PNG | LOCAL | VERIFIED | Library blob + downloaded bytes decode at the edited size |
 | Fresh capture opens the editor | LOCAL | VERIFIED | Auto-open once the library row exists |
 | Window / region capture at OS level | LOCAL | PARTIAL | Full display capture + editor crop; OS region picker NOT-IMPLEMENTED |
-| Delayed capture | LOCAL | NOT-IMPLEMENTED | Timer + same capture path |
+| Delayed capture with a live countdown and cancel | LOCAL | VERIFIED — the capture fires only when the count reaches zero |
 | Watermark | LOCAL | NOT-IMPLEMENTED | Text tool covers ad-hoc labels; no dedicated watermark preset |
 
 ## HUB 04 — Media Library

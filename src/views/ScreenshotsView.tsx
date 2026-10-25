@@ -22,7 +22,41 @@ export default function ScreenshotsView() {
   const t = (key: string) => translate(settings.language, key);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
   const [editing, setEditing] = useState<LibraryItem | null>(null);
+  const [delay, setDelay] = useState(0);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const timerRef = useRef<number | null>(null);
   const openedCaptureRef = useRef<string | null>(null);
+
+  const clearCountdown = () => {
+    if (timerRef.current !== null) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setCountdown(null);
+  };
+
+  // A delay is real wall-clock time: the overlay counts it down and either the
+  // countdown reaches zero or the user cancels before any pixels are captured.
+  const startCapture = () => {
+    if (delay === 0) {
+      void recorder.takeScreenshot();
+      return;
+    }
+    clearCountdown();
+    let remaining = delay;
+    setCountdown(remaining);
+    timerRef.current = window.setInterval(() => {
+      remaining -= 1;
+      if (remaining <= 0) {
+        clearCountdown();
+        void recorder.takeScreenshot();
+      } else {
+        setCountdown(remaining);
+      }
+    }, 1000);
+  };
+
+  useEffect(() => () => clearCountdown(), []);
 
   // A fresh capture opens straight into the editor once its library row exists.
   const lastCaptureId = recorder.lastCapture?.id ?? null;
@@ -47,14 +81,45 @@ export default function ScreenshotsView() {
           <button
             type="button"
             className="kx-btn kx-btn-primary"
-            onClick={() => void recorder.takeScreenshot()}
-            disabled={!recorder.support.display && !recorder.previewStream}
+            onClick={startCapture}
+            disabled={!recorder.support.display && !recorder.previewStream || countdown !== null}
           >
             <Icon name="camera" size={17} />
             {t("captureScreen")}
           </button>
         }
       />
+
+      <div className="kx-row kx-shot-delay" role="group" aria-label={t("screenshots.delay")}>
+        <span className="kx-muted kx-mono" style={{ fontSize: "0.68rem" }}>
+          {t("screenshots.delay")}
+        </span>
+        {[0, 3, 5, 10].map((seconds) => (
+          <button
+            key={seconds}
+            type="button"
+            className="kx-chip"
+            data-delay={seconds}
+            aria-pressed={delay === seconds}
+            onClick={() => setDelay(seconds)}
+            disabled={countdown !== null}
+          >
+            {seconds === 0 ? t("screenshots.noDelay") : `${seconds}s`}
+          </button>
+        ))}
+      </div>
+
+      {countdown !== null && (
+        <div className="kx-shot-countdown" role="status" data-countdown={countdown}>
+          <div className="kx-shot-countdown-card">
+            <span className="kx-shot-countdown-number">{countdown}</span>
+            <p className="kx-card-sub">{t("screenshots.countdownHint")}</p>
+            <button type="button" className="kx-btn" data-action="cancel-countdown" onClick={clearCountdown}>
+              {t("screenshots.cancelCountdown")}
+            </button>
+          </div>
+        </div>
+      )}
 
       {!recorder.support.display && !recorder.previewStream && (
         <div className="kx-notice" data-tone="warn">
@@ -120,7 +185,7 @@ export default function ScreenshotsView() {
             <button
               type="button"
               className="kx-btn kx-btn-primary"
-              onClick={() => void recorder.takeScreenshot()}
+              onClick={startCapture}
               disabled={!recorder.support.display && !recorder.previewStream}
             >
               <Icon name="camera" size={16} />
