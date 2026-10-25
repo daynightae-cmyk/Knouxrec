@@ -284,7 +284,7 @@ try {
   const framesBefore = await page.evaluate(
     () => Number(document.querySelector("[data-level-frames]")?.getAttribute("data-level-frames") ?? 0),
   );
-  await sleep(900);
+  await sleep(1600);
   const framesAfter = await page.evaluate(
     () => Number(document.querySelector("[data-level-frames]")?.getAttribute("data-level-frames") ?? 0),
   );
@@ -424,12 +424,29 @@ try {
   );
   await sleep(1200);
   await clickByText(page, ".kx-btn", "Stop");
-  await waitFor(page, () => !document.querySelector("[data-audio-session]"), 30000);
+  // The session disappears from the preview before the take has finished being
+  // written to the library; the next action needs the recorder idle again.
+  const settled = await waitFor(
+    page,
+    () => {
+      const button = document.querySelector("[data-schedule-start]");
+      return (
+        !document.querySelector("[data-audio-session]") &&
+        Boolean(button) &&
+        !button.disabled
+      );
+    },
+    30000,
+  );
+  check("schedule: the studio returns to idle after the take is archived", settled);
 
   // Cancelling has to leave nothing behind: no countdown and no session.
   await page.evaluate(() => document.querySelector("[data-schedule-start]")?.click());
-  await sleep(500);
-  const armed = await page.evaluate(() => Boolean(document.querySelector("[data-schedule-countdown]")));
+  const armed = await waitFor(
+    page,
+    () => Boolean(document.querySelector("[data-schedule-countdown]")),
+    8000,
+  );
   await page.evaluate(() => document.querySelector("[data-schedule-cancel]")?.click());
   await sleep(4200);
   const cancelled = await page.evaluate(() => ({
@@ -458,6 +475,15 @@ try {
   const dashboardLive = await waitFor(page, () =>
     Boolean(document.querySelector("[data-audio-session]")),
   );
+  // Under load the meter samples a handful of times per second, so the readings
+  // are awaited rather than assumed to be ready the instant the session mounts.
+  const dashboardSampled = await waitFor(page, () => {
+    const frames = Number(
+      document.querySelector("[data-level-frames]")?.getAttribute("data-level-frames") ?? 0,
+    );
+    const max = document.querySelector("[data-level-max]");
+    return frames > 3 && Boolean(max && !/∞/.test(max.textContent ?? ""));
+  }, 20000);
   const dashboardMeter = await page.evaluate(() => ({
     max: document.querySelector("[data-level-max]")?.textContent?.trim() ?? "",
     frames: Number(document.querySelector("[data-level-frames]")?.getAttribute("data-level-frames") ?? 0),
@@ -466,7 +492,7 @@ try {
   check("dashboard: the take records from the command centre", dashboardLive, dashboardMeter);
   check(
     "dashboard: the action turns into a stop with the running clock",
-    /Stop|إيقاف/i.test(dashboardMeter.stopLabel) && dashboardMeter.frames > 3,
+    /Stop|إيقاف/i.test(dashboardMeter.stopLabel) && dashboardSampled,
     dashboardMeter,
   );
   await sleep(1800);
