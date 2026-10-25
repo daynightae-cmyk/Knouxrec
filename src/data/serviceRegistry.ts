@@ -239,7 +239,7 @@ export const SERVICES: ServiceEntry[] = [
 
   /* ----------------------------------------------------------- settings */
   entry({ id: "set-theme", hub: "settings", labelEn: "Theme, language and motion preferences", label: "السمة واللغة والحركة", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
-  entry({ id: "set-hotkeys", hub: "settings", labelEn: "Hotkey configuration", label: "ضبط مفاتيح الاختصار", mode: "LOCAL", status: "PARTIAL", route: "settings", needs: "Fixed shortcuts work; remapping is not implemented" }),
+  entry({ id: "set-hotkeys", hub: "settings", labelEn: "Hotkey configuration", label: "ضبط مفاتيح الاختصار", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
   entry({ id: "set-storage", hub: "settings", labelEn: "Storage location and quota", label: "موقع التخزين والحصة", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
 
   /* -------------------------------------------------------- diagnostics */

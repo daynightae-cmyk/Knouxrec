@@ -1,3 +1,5 @@
+import type { HotkeyMap } from "../services/hotkeys";
+
 export type Language = "en" | "ar";
 export type ThemeMode = "dark" | "light";
 
@@ -24,6 +26,8 @@ export interface AppSettings {
   recorder: RecorderSettings;
   screenshotFormat: "png" | "jpeg" | "webp";
   screenshotQuality: number;
+  /** Global shortcut bindings; an empty string means no shortcut. */
+  hotkeys: HotkeyMap;
 }
 
 export type LibraryKind = "video" | "image" | "audio";

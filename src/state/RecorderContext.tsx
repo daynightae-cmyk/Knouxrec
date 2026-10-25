@@ -62,6 +62,9 @@ export interface RecorderContextValue extends RecorderSnapshot {
   schedule: { at: number; mode: CaptureMode; remaining: number } | null;
   scheduleStart: (seconds: number, mode?: CaptureMode) => void;
   cancelSchedule: () => void;
+  /** The capture source picked last; the toggle shortcut starts that one. */
+  preferredMode: CaptureMode;
+  setPreferredMode: (mode: CaptureMode) => void;
 }
 
 const RecorderContext = createContext<RecorderContextValue | null>(null);
@@ -80,6 +83,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   const [lastCapture, setLastCapture] = useState<RecorderSnapshot["lastCapture"]>(null);
   const [support] = useState<CaptureSupport>(() => detectCaptureSupport());
   const [schedule, setSchedule] = useState<RecorderContextValue["schedule"]>(null);
+  const [preferredMode, setPreferredMode] = useState<CaptureMode>("screen");
 
   const sessionRef = useRef<RecordingSession | null>(null);
   const jobRef = useRef<StudioJobHandle | null>(null);
@@ -147,6 +151,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
         const preview = session.previewStream();
         setPreviewStream(preview);
         setMode(mode);
+        setPreferredMode(mode);
         modeRef.current = mode;
         setStatus("recording");
         startTimer(session);
@@ -428,6 +433,8 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       schedule,
       scheduleStart,
       cancelSchedule,
+      preferredMode,
+      setPreferredMode,
     }),
     [
       status,
@@ -448,6 +455,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       schedule,
       scheduleStart,
       cancelSchedule,
+      preferredMode,
     ],
   );
 

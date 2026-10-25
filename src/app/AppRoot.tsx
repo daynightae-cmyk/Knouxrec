@@ -11,6 +11,7 @@ import { translate } from "../i18n/translate";
 import { useLibrary } from "../state/LibraryContext";
 import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
+import { matchesCombo } from "../services/hotkeys";
 import Sidebar from "./Sidebar";
 import TopBar from "./TopBar";
 import ToastViewport from "./ToastViewport";
@@ -227,7 +228,6 @@ export default function AppRoot() {
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
-      if (!(event.ctrlKey || event.metaKey) || !event.shiftKey) return;
       const target = event.target as HTMLElement | null;
       if (
         target &&
@@ -238,22 +238,29 @@ export default function AppRoot() {
       ) {
         return;
       }
-      const key = event.key.toLowerCase();
-      if (key === "r") {
+      const bindings = settings.hotkeys;
+      if (matchesCombo(event, bindings.toggle)) {
         event.preventDefault();
-        void recorder.toggle("screen");
-      } else if (key === "p") {
+        void recorder.toggle(recorder.preferredMode);
+      } else if (matchesCombo(event, bindings.pause)) {
         event.preventDefault();
         if (recorder.status === "recording") recorder.pause();
         else if (recorder.status === "paused") recorder.resume();
-      } else if (key === "s") {
+      } else if (matchesCombo(event, bindings.screenshot)) {
         event.preventDefault();
         void recorder.takeScreenshot();
+      } else if (matchesCombo(event, bindings.audio)) {
+        event.preventDefault();
+        if (recorder.status === "recording" || recorder.status === "paused") {
+          if (recorder.mode === "audio") void recorder.stop();
+        } else {
+          void recorder.start("audio");
+        }
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [recorder]);
+  }, [recorder, settings.hotkeys]);
 
   const steps: SplashStep[] = [
     {

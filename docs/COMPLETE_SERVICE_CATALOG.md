@@ -191,7 +191,8 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 | Service | Mode | Status |
 | --- | --- | --- |
 | Theme, language, reduce motion, recorder defaults, screenshot format/quality | LOCAL | VERIFIED (persist + apply) |
-| Export defaults, performance, shortcuts, provider credentials | LOCAL | PARTIAL / NOT-IMPLEMENTED |
+| Keyboard shortcuts | LOCAL | VERIFIED — four actions (start/stop, pause, screenshot, voice memo) rebound live with a key-capture field, canonical modifier order, Escape to abandon, duplicates refused with the owner's name, reset to defaults, persisted; 12 unit tests + 17 browser checks in `scripts/hotkeys-smoke.mjs` |
+| Export defaults, performance, provider credentials | LOCAL | PARTIAL / NOT-IMPLEMENTED |
 | No fake toggles | — | Every shipped switch reaches its engine |
 
 ## HUB 15 — Diagnostics

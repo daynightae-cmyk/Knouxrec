@@ -251,9 +251,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "system",
     labelKey: "settings",
     state: "VERIFIED",
-    summary: "Persisted appearance, language and recording defaults.",
+    summary:
+      "Persisted appearance, language and recording defaults, plus keyboard shortcuts that the user can rebind, with conflicts refused before they are stored.",
     requirements: [],
-    evidence: "Settings persist in localStorage and are applied to the document root.",
+    evidence:
+      "Settings persist in localStorage and are applied to the document root. src/services/hotkeys.ts canonicalises combinations, refuses a shortcut without a modifier, refuses a duplicate and repairs a hand-edited settings file (12 unit tests); the settings screen records a combination live and Escape leaves it alone; scripts/hotkeys-smoke.mjs drives the real window listener (17/17) — a rebound Ctrl+Alt+K starts and stops a microphone take and archives it, the screenshot binding still lands a file, the binding survives a reload, and the Arabic card stays translated.",
   },
   diagnostics: {
     id: "diagnostics",

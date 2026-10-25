@@ -10,6 +10,7 @@ import { EmptyState, PreviewDialog, SectionHeader } from "./ui";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 import type { CaptureMode } from "../services/recordingEngine";
 import { LevelMeter } from "../ui/LevelMeter";
+import { comboParts, HOTKEY_ACTIONS } from "../services/hotkeys";
 import type { LibraryItem } from "../state/types";
 
 function StreamPreview({ stream }: { stream: MediaStream }) {
@@ -46,7 +47,7 @@ export default function StudioView({
   const { settings, updateRecorder } = useSettings();
   const { items, urlFor } = useLibrary();
   const t = (key: string) => translate(settings.language, key);
-  const [mode, setMode] = useState<CaptureMode>("screen");
+  const [mode, setMode] = useState<CaptureMode>(recorder.preferredMode);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
   const [devices, setDevices] = useState<Array<{ deviceId: string; label: string }>>([]);
   const [delay, setDelay] = useState(5);
@@ -228,7 +229,14 @@ export default function StudioView({
           <div className="kx-notice" data-tone="info">
             <Icon name="info" size={16} />
             <div>
-              <strong>{t("hotkeys")}:</strong> {t("hotkeyHint")}
+              <strong>{t("hotkeys")}:</strong>{" "}
+              <span dir="ltr" className="kx-mono" data-hotkey-hint>
+                {HOTKEY_ACTIONS.map(({ action }) =>
+                  comboParts(settings.hotkeys[action] ?? "").join("+"),
+                )
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
             </div>
           </div>
         </div>
@@ -262,7 +270,12 @@ export default function StudioView({
                     type="button"
                     aria-pressed={mode === option}
                     data-capture-mode={option}
-                    onClick={() => setMode(option)}
+                    onClick={() => {
+                      setMode(option);
+                      // The toggle shortcut starts whatever source was chosen
+                      // last, so choosing one here is also a preference.
+                      recorder.setPreferredMode(option);
+                    }}
                     disabled={active || busy}
                   >
                     {option === "screen"

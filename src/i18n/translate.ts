@@ -1165,6 +1165,54 @@ const STRINGS: Dictionary = {
   },
   "settings.format": { en: "Format", ar: "الصيغة" },
   "settings.localData": { en: "Local data", ar: "البيانات المحلية" },
+
+  "settings.shortcuts": { en: "Keyboard shortcuts", ar: "اختصارات لوحة المفاتيح" },
+  "settings.shortcutsNote": {
+    en: "Every shortcut is yours to change. A combination always includes Ctrl, Alt or Shift so typing never triggers it, and two actions can never share one.",
+    ar: "كل اختصار قابل للتغيير. يتضمن كل اختصار Ctrl أو Alt أو Shift حتى لا ينطلق أثناء الكتابة، ولا يمكن أن يتشارك اختصاران في مفتاح واحد.",
+  },
+  "settings.hotkey.toggle": { en: "Start or stop recording", ar: "بدء التسجيل أو إيقافه" },
+  "settings.hotkey.toggleHint": {
+    en: "Uses the currently selected capture source.",
+    ar: "يستخدم مصدر الالتقاط المحدد حاليًا.",
+  },
+  "settings.hotkey.pause": { en: "Pause or resume", ar: "إيقاف مؤقت أو استئناف" },
+  "settings.hotkey.pauseHint": {
+    en: "Only acts while a session is live.",
+    ar: "يعمل فقط أثناء وجود جلسة قائمة.",
+  },
+  "settings.hotkey.screenshot": { en: "Capture a screenshot", ar: "التقاط صورة للشاشة" },
+  "settings.hotkey.screenshotHint": {
+    en: "Uses the screenshot format set below.",
+    ar: "يستخدم صيغة اللقطة المحددة أدناه.",
+  },
+  "settings.hotkey.audio": { en: "Start or stop a voice memo", ar: "بدء تسجيل صوتي أو إيقافه" },
+  "settings.hotkey.audioHint": {
+    en: "Microphone only, no display surface.",
+    ar: "الميكروفون فقط، بلا مساحة عرض.",
+  },
+  "settings.hotkeyChange": { en: "Change", ar: "تغيير" },
+  "settings.hotkeyCancel": { en: "Cancel", ar: "إلغاء" },
+  "settings.hotkeyPress": { en: "Press the keys…", ar: "اضغط المفاتيح…" },
+  "settings.hotkeyNone": { en: "No shortcut", ar: "بلا اختصار" },
+  "settings.hotkeySaved": { en: "Shortcut updated", ar: "حُدِّث الاختصار" },
+  "settings.hotkeySavedBody": {
+    en: "{combo} is now bound. It applies immediately, without a restart.",
+    ar: "{combo} أصبح مربوطًا الآن، ويُطبَّق فورًا دون إعادة تشغيل.",
+  },
+  "settings.hotkeyConflict": {
+    en: "{combo} already belongs to {action}. Choose another combination.",
+    ar: "{combo} مستخدم بالفعل لدى {action}. اختر تركيبة أخرى.",
+  },
+  "settings.hotkeyReset": { en: "Reset shortcuts", ar: "إعادة المفاتيح الافتراضية" },
+  "settings.hotkeyResetBody": {
+    en: "Every shortcut is back to its default.",
+    ar: "أُعيدت كل الاختصارات إلى وضعها الافتراضي.",
+  },
+  "settings.hotkeyEscape": {
+    en: "Press Escape while recording a shortcut to leave it unchanged.",
+    ar: "اضغط Escape أثناء تسجيل الاختصار لتركه دون تغيير.",
+  },
   "settings.mediaSize": { en: "Media size", ar: "حجم الوسائط" },
   "settings.videoTime": { en: "Video time", ar: "زمن الفيديو" },
   "settings.settingsKey": { en: "Settings key", ar: "مفتاح الإعدادات" },
