@@ -49,6 +49,7 @@ export default function StudioView({
   const [mode, setMode] = useState<CaptureMode>("screen");
   const [preview, setPreview] = useState<LibraryItem | null>(null);
   const [devices, setDevices] = useState<Array<{ deviceId: string; label: string }>>([]);
+  const [delay, setDelay] = useState(5);
 
   const active = recorder.status === "recording" || recorder.status === "paused";
   const busy = recorder.status === "requesting" || recorder.status === "stopping";
@@ -306,6 +307,68 @@ export default function StudioView({
                 </div>
               )}
             </div>
+
+            <div className="kx-field" data-schedule-control>
+              <span className="kx-label">{t("studio.delayLabel")}</span>
+              <div className="kx-row" style={{ gap: 6, flexWrap: "wrap" }}>
+                {[3, 5, 10, 30].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className="kx-btn kx-btn-sm"
+                    aria-pressed={delay === value}
+                    data-delay={value}
+                    disabled={active || busy || Boolean(recorder.schedule)}
+                    onClick={() => setDelay(value)}
+                  >
+                    {value}s
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  className="kx-btn kx-btn-sm kx-btn-primary"
+                  data-schedule-start
+                  onClick={() => recorder.scheduleStart(delay, mode)}
+                  disabled={
+                    active ||
+                    busy ||
+                    Boolean(recorder.schedule) ||
+                    !recorder.support.mediaRecorder
+                  }
+                >
+                  <Icon name="clock" size={13} />
+                  {t("studio.scheduleStart")}
+                </button>
+              </div>
+              <span className="kx-card-sub">{t("studio.delayHint")}</span>
+            </div>
+
+            {recorder.schedule && (
+              <div
+                className="kx-notice"
+                data-tone="info"
+                data-schedule-countdown
+                data-remaining={recorder.schedule.remaining}
+              >
+                <Icon name="clock" size={16} />
+                <div style={{ flex: 1 }}>
+                  <strong>
+                    {t("studio.scheduleIn")} {recorder.schedule.remaining}s
+                  </strong>{" "}
+                  <span className="kx-muted">
+                    {t(`rec.mode.${recorder.schedule.mode}`)}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="kx-btn kx-btn-sm"
+                  data-schedule-cancel
+                  onClick={recorder.cancelSchedule}
+                >
+                  {t("studio.scheduleCancel")}
+                </button>
+              </div>
+            )}
 
             <div className="kx-grid kx-grid-2">
               <div className="kx-field">

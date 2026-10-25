@@ -970,6 +970,19 @@ const STRINGS: Dictionary = {
     en: "Device names are hidden until the microphone has been allowed; the default is used otherwise.",
     ar: "تبقى أسماء الأجهزة مخفية حتى يُسمح للميكروفون، وبخلاف ذلك يُستخدم الافتراضي.",
   },
+  "studio.delayLabel": { en: "Start delay", ar: "تأجيل البدء" },
+  "studio.scheduleStart": { en: "Schedule", ar: "جدولة البدء" },
+  "studio.delayHint": {
+    en: "The countdown starts the selected source on its own. It lives in this page only, and cancelling leaves nothing running.",
+    ar: "يبدأ العدّاد المصدر المحدد تلقائيًا. العدّاد محصور في هذه الصفحة، والإلغاء لا يترك شيئًا يعمل.",
+  },
+  "studio.scheduleIn": { en: "Recording starts in", ar: "يبدأ التسجيل بعد" },
+  "studio.scheduleCancel": { en: "Cancel", ar: "إلغاء" },
+  "rec.scheduleBusy": { en: "A session is already running", ar: "هناك جلسة قيد التشغيل" },
+  "rec.scheduleBusyBody": {
+    en: "Stop the current recording before scheduling another one.",
+    ar: "أوقف التسجيل الحالي قبل جدولة تسجيل آخر.",
+  },
   "studio.timerPaused": { en: "Timer paused", ar: "المؤقت متوقف مؤقتًا" },
   "studio.liveFromClock": {
     en: "Live from session clock",

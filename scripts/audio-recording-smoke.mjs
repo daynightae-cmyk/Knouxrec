@@ -367,6 +367,81 @@ try {
   );
   report.storage = { stored, playable, signal };
 
+  /* ------------------------------------------------------- scheduling */
+  await page.evaluate(() => {
+    document.querySelector('[data-capture-mode="audio"]')?.click();
+  });
+  await sleep(300);
+  const delayButtons = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-delay]")].map((node) => node.getAttribute("data-delay")),
+  );
+  check("schedule: the studio offers short start delays", delayButtons.length === 4, delayButtons);
+
+  await page.evaluate(() => document.querySelector('[data-delay="3"]')?.click());
+  await page.evaluate(() => document.querySelector("[data-schedule-start]")?.click());
+  await sleep(600);
+  const scheduled = await page.evaluate(() => {
+    const node = document.querySelector("[data-schedule-countdown]");
+    return {
+      shown: Boolean(node),
+      remaining: Number(node?.getAttribute("data-remaining") ?? -1),
+      session: Boolean(document.querySelector("[data-audio-session]")),
+    };
+  });
+  check(
+    "schedule: a countdown is armed and nothing records yet",
+    scheduled.shown && scheduled.remaining > 0 && scheduled.session === false,
+    scheduled,
+  );
+
+  await sleep(1200);
+  const counting = await page.evaluate(() => {
+    const node = document.querySelector("[data-schedule-countdown]");
+    return {
+      remaining: Number(node?.getAttribute("data-remaining") ?? -1),
+      session: Boolean(document.querySelector("[data-audio-session]")),
+    };
+  });
+  check(
+    "schedule: the countdown decreases and still holds the session back",
+    counting.remaining < scheduled.remaining && counting.session === false,
+    { scheduled: scheduled.remaining, counting },
+  );
+
+  const fired = await waitFor(
+    page,
+    () => Boolean(document.querySelector("[data-audio-session]")),
+    15000,
+  );
+  const firedState = await page.evaluate(() => ({
+    session: Boolean(document.querySelector("[data-audio-session]")),
+    countdown: Boolean(document.querySelector("[data-schedule-countdown]")),
+  }));
+  check(
+    "schedule: the timer starts the source on its own and clears itself",
+    fired && firedState.session && firedState.countdown === false,
+    firedState,
+  );
+  await sleep(1200);
+  await clickByText(page, ".kx-btn", "Stop");
+  await waitFor(page, () => !document.querySelector("[data-audio-session]"), 30000);
+
+  // Cancelling has to leave nothing behind: no countdown and no session.
+  await page.evaluate(() => document.querySelector("[data-schedule-start]")?.click());
+  await sleep(500);
+  const armed = await page.evaluate(() => Boolean(document.querySelector("[data-schedule-countdown]")));
+  await page.evaluate(() => document.querySelector("[data-schedule-cancel]")?.click());
+  await sleep(4200);
+  const cancelled = await page.evaluate(() => ({
+    countdown: Boolean(document.querySelector("[data-schedule-countdown]")),
+    session: Boolean(document.querySelector("[data-audio-session]")),
+  }));
+  check(
+    "schedule: cancelling the countdown really prevents the recording",
+    armed && !cancelled.countdown && !cancelled.session,
+    { armed, cancelled },
+  );
+
   /* ------------------------------------------------- dashboard action */
   await page.goto(`${BASE}#/dashboard`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(

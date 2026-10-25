@@ -41,7 +41,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Webcam recording + overlay | LOCAL | VERIFIED | getUserMedia + overlay compositing |
 | System audio | LOCAL | PARTIAL | Captured when the platform offers a system-audio track |
 | Microphone-only recording | LOCAL | VERIFIED — a fourth capture mode in the studio: no display surface is requested, the container is probed with `isTypeSupported` (Opus in WebM), and the level comes from an AnalyserNode on the encoded stream. 11 unit tests pin the engine contract; the browser smoke drags the real pipeline through pause/resume, save and playback |
-| Scheduled / delayed start | LOCAL | NOT-IMPLEMENTED | Timer + same session engine |
+| Scheduled / delayed start | LOCAL | VERIFIED — 3/5/10/30-second countdown over the same session engine, visible with its remaining seconds and a real cancel. Page-scoped on purpose: nothing is persisted, so a reload can never begin recording on its own |
 | Resolution/fps presets | LOCAL | VERIFIED | Persisted settings reach the session |
 | Trim after capture | LOCAL | VERIFIED | `trimMedia` re-encode + new library item |
 

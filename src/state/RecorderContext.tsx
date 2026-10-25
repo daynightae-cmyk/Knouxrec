@@ -54,6 +54,14 @@ export interface RecorderContextValue extends RecorderSnapshot {
   clearError: () => void;
   /** Live input peak, 0…1, for a microphone-only session. Zero otherwise. */
   readLevel: () => number;
+  /**
+   * A countdown that will start a session on its own. It lives only for this
+   * page: nothing is written to storage, so a reload can never begin recording
+   * behind the user's back.
+   */
+  schedule: { at: number; mode: CaptureMode; remaining: number } | null;
+  scheduleStart: (seconds: number, mode?: CaptureMode) => void;
+  cancelSchedule: () => void;
 }
 
 const RecorderContext = createContext<RecorderContextValue | null>(null);
@@ -71,10 +79,13 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   const [previewStream, setPreviewStream] = useState<MediaStream | null>(null);
   const [lastCapture, setLastCapture] = useState<RecorderSnapshot["lastCapture"]>(null);
   const [support] = useState<CaptureSupport>(() => detectCaptureSupport());
+  const [schedule, setSchedule] = useState<RecorderContextValue["schedule"]>(null);
 
   const sessionRef = useRef<RecordingSession | null>(null);
   const jobRef = useRef<StudioJobHandle | null>(null);
   const timerRef = useRef<number | null>(null);
+  const scheduleTimerRef = useRef<number | null>(null);
+  const scheduleTickRef = useRef<number | null>(null);
   const statusRef = useRef<RecorderStatus>("idle");
   const modeRef = useRef<CaptureMode | null>(null);
   const settingsRef = useRef(settings);
@@ -177,6 +188,44 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       }
     },
     [beginJob, modeLabel, push, startTimer],
+  );
+
+  const cancelSchedule = useCallback(() => {
+    if (scheduleTimerRef.current) {
+      window.clearTimeout(scheduleTimerRef.current);
+      scheduleTimerRef.current = null;
+    }
+    if (scheduleTickRef.current) {
+      window.clearInterval(scheduleTickRef.current);
+      scheduleTickRef.current = null;
+    }
+    setSchedule(null);
+  }, []);
+
+  const scheduleStart = useCallback(
+    (seconds: number, nextMode: CaptureMode = "screen") => {
+      if (statusRef.current !== "idle") {
+        push(
+          "error",
+          translate(settingsRef.current.language, "rec.scheduleBusy"),
+          translate(settingsRef.current.language, "rec.scheduleBusyBody"),
+        );
+        return;
+      }
+      const delay = Math.max(1, Math.min(3600, Math.round(seconds)));
+      const at = Date.now() + delay * 1000;
+      cancelSchedule();
+      setSchedule({ at, mode: nextMode, remaining: delay });
+      scheduleTickRef.current = window.setInterval(() => {
+        const remaining = Math.max(0, Math.ceil((at - Date.now()) / 1000));
+        setSchedule((current) => (current ? { ...current, remaining } : current));
+      }, 250);
+      scheduleTimerRef.current = window.setTimeout(() => {
+        cancelSchedule();
+        void start(nextMode);
+      }, delay * 1000);
+    },
+    [cancelSchedule, push, start],
   );
 
   const pause = useCallback(() => {
@@ -351,6 +400,8 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     return () => {
       clearTimer();
+      if (scheduleTimerRef.current) window.clearTimeout(scheduleTimerRef.current);
+      if (scheduleTickRef.current) window.clearInterval(scheduleTickRef.current);
       sessionRef.current?.cancel();
     };
   }, [clearTimer]);
@@ -374,6 +425,9 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       takeScreenshot,
       clearError,
       readLevel,
+      schedule,
+      scheduleStart,
+      cancelSchedule,
     }),
     [
       status,
@@ -391,6 +445,9 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       takeScreenshot,
       clearError,
       readLevel,
+      schedule,
+      scheduleStart,
+      cancelSchedule,
     ],
   );
 

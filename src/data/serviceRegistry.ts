@@ -104,7 +104,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "rec-overlay", hub: "recording", labelEn: "Webcam overlay compositing", label: "دمج طبقة الكاميرا", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "rec-system-audio", hub: "recording", labelEn: "System audio capture", label: "التقاط صوت النظام", mode: "LOCAL", status: "PARTIAL", route: "studio", needs: "Only when the platform offers a system-audio track" }),
   entry({ id: "rec-mic-only", hub: "recording", labelEn: "Microphone-only recording", label: "تسجيل الميكروفون فقط", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
-  entry({ id: "rec-schedule", hub: "recording", labelEn: "Scheduled or delayed recording", label: "التسجيل المجدول أو المؤجل", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "A timer over the existing session engine" }),
+  entry({ id: "rec-schedule", hub: "recording", labelEn: "Scheduled or delayed recording", label: "التسجيل المجدول أو المؤجل", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "rec-presets", hub: "recording", labelEn: "Resolution and frame-rate presets", label: "ضوابط الدقة ومعدل الإطارات", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
   entry({ id: "rec-trim", hub: "recording", labelEn: "Trim after capture", label: "قص التسجيل بعد الالتقاط", mode: "LOCAL", status: "VERIFIED", route: "library", studio: true }),
 
