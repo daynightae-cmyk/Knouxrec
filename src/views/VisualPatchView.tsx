@@ -6,6 +6,13 @@ import { useLibrary } from "../state/LibraryContext";
 import { useSettings } from "../state/SettingsContext";
 import { useToast } from "../state/ToastContext";
 import { downloadBlob, formatBytes } from "../lib/format";
+import {
+  findRegionAt,
+  pathLength,
+  rectFromPoints,
+  rectRegionPoints,
+  scaleRegion,
+} from "../services/maskOps";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 
 /**
@@ -37,6 +44,8 @@ interface EditRegionShape {
   intensity: number;
   brushSize: number;
   feather: number;
+  /** A painted stroke or a dragged rectangle; the mask treats them differently. */
+  kind?: "stroke" | "rect";
 }
 
 interface LabService {
@@ -118,6 +127,11 @@ export default function VisualPatchView() {
   const [regions, setRegions] = useState<EditRegionShape[]>([]);
   const [painting, setPainting] = useState(false);
   const [showOriginal, setShowOriginal] = useState(false);
+  const [selectionMode, setSelectionMode] = useState<"freehand" | "rect" | "erase">("freehand");
+  const [rectDraft, setRectDraft] = useState<{
+    start: { x: number; y: number };
+    current: { x: number; y: number };
+  } | null>(null);
 
   const serviceRef = useRef<LabService | null>(null);
   const displayRef = useRef<HTMLCanvasElement | null>(null);
@@ -210,6 +224,105 @@ export default function VisualPatchView() {
   useEffect(() => {
     paintService();
   }, [paintService]);
+
+  /**
+   * Draw the mask itself. The overlay canvas used to be an invisible input
+   * surface: the user painted blind and only learned where they had painted
+   * after applying a tool. Strokes and rectangles are now drawn in the same
+   * coordinates the tool receives.
+   */
+  useEffect(() => {
+    const paint = paintRef.current;
+    const display = displayRef.current;
+    if (!paint || !display) return;
+    if (paint.width !== display.width || paint.height !== display.height) {
+      paint.width = display.width;
+      paint.height = display.height;
+    }
+    const context = paint.getContext("2d");
+    if (!context) return;
+    context.clearRect(0, 0, paint.width, paint.height);
+    if (showOriginal) return;
+
+    for (const region of regions) {
+      context.save();
+      if (region.kind === "rect" && region.points.length >= 4) {
+        const rect = rectFromPoints(region.points[0], region.points[2]);
+        context.fillStyle = "rgba(255, 222, 0, 0.18)";
+        context.strokeStyle = "rgba(255, 222, 0, 0.92)";
+        context.lineWidth = Math.max(1, paint.width / 800);
+        context.setLineDash([7, 5]);
+        context.fillRect(rect.x, rect.y, rect.width, rect.height);
+        context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+      } else if (region.points.length > 0) {
+        context.strokeStyle = "rgba(255, 222, 0, 0.5)";
+        context.lineWidth = Math.max(2, region.brushSize);
+        context.lineCap = "round";
+        context.lineJoin = "round";
+        context.beginPath();
+        region.points.forEach((point, index) => {
+          if (index === 0) context.moveTo(point.x, point.y);
+          else context.lineTo(point.x, point.y);
+        });
+        if (region.points.length === 1) {
+          context.lineTo(region.points[0].x + 0.01, region.points[0].y);
+        }
+        context.stroke();
+      }
+      context.restore();
+    }
+
+    if (rectDraft) {
+      const rect = rectFromPoints(rectDraft.start, rectDraft.current);
+      context.save();
+      context.setLineDash([4, 3]);
+      context.strokeStyle = "#ffffff";
+      context.lineWidth = 1;
+      context.strokeRect(rect.x, rect.y, rect.width, rect.height);
+      context.restore();
+    }
+  }, [regions, rectDraft, sessionId, showOriginal]);
+
+  const commitRect = useCallback(() => {
+    if (!rectDraft) return;
+    const rect = rectFromPoints(rectDraft.start, rectDraft.current);
+    setRectDraft(null);
+    setPainting(false);
+    if (rect.width < 4 || rect.height < 4) return;
+    setRegions((current) => [
+      ...current,
+      {
+        id: `region-${Date.now()}`,
+        points: rectRegionPoints(rect),
+        intensity,
+        brushSize,
+        feather,
+        kind: "rect",
+      },
+    ]);
+  }, [brushSize, feather, intensity, rectDraft]);
+
+  const eraseRegionAt = useCallback(
+    (point: { x: number; y: number }) => {
+      const hit = findRegionAt(regions, point.x, point.y);
+      if (!hit) return;
+      setRegions((current) => current.filter((region) => region.id !== hit));
+      setStatus(t("visualPatch.maskErased"));
+    },
+    [regions, t],
+  );
+
+  const refineMask = useCallback(
+    (factor: number) => {
+      setRegions((current) =>
+        current.map((region) => ({
+          ...region,
+          points: scaleRegion(region.points, factor),
+        })),
+      );
+    },
+    [],
+  );
 
   const loadFile = useCallback(
     async (blob: Blob, name: string) => {
@@ -446,6 +559,32 @@ export default function VisualPatchView() {
 
         {/* ---------------- canvas ---------------- */}
         <section className="kx-tool-stage">
+          <div className="kx-row-between" style={{ marginBottom: 8, gap: 8, flexWrap: "wrap" }}>
+            <div className="kx-segmented" role="group" aria-label={t("visualPatch.selection")} data-mask-modes>
+              {(["freehand", "rect", "erase"] as const).map((entry) => (
+                <button
+                  key={entry}
+                  type="button"
+                  aria-pressed={selectionMode === entry}
+                  data-mask-mode={entry}
+                  onClick={() => {
+                    setSelectionMode(entry);
+                    setRectDraft(null);
+                  }}
+                  disabled={!sessionId}
+                >
+                  {t(`visualPatch.mode.${entry}`)}
+                </button>
+              ))}
+            </div>
+            <span className="kx-mono kx-muted" data-mask-stats dir="ltr">
+              {t("visualPatch.maskRegions")} {regions.length} ·{" "}
+              {Math.round(
+                regions.reduce((total, region) => total + pathLength(region.points), 0),
+              )}{" "}
+              px
+            </span>
+          </div>
           <div className="kx-preview" style={{ position: "relative" }}>
             {sessionId ? (
               <>
@@ -463,11 +602,20 @@ export default function VisualPatchView() {
                     opacity: showOriginal ? 0 : 1,
                     transition: "opacity 160ms ease",
                   }}
+                  data-mask-surface
                   onPointerDown={(event) => {
                     const point = pointerPosition(event);
                     if (!point) return;
                     event.currentTarget.setPointerCapture(event.pointerId);
+                    if (selectionMode === "erase") {
+                      eraseRegionAt(point);
+                      return;
+                    }
                     setPainting(true);
+                    if (selectionMode === "rect") {
+                      setRectDraft({ start: point, current: point });
+                      return;
+                    }
                     setRegions((current) => [
                       ...current,
                       {
@@ -476,6 +624,7 @@ export default function VisualPatchView() {
                         intensity,
                         brushSize,
                         feather,
+                        kind: "stroke",
                       },
                     ]);
                   }}
@@ -483,6 +632,12 @@ export default function VisualPatchView() {
                     if (!painting) return;
                     const point = pointerPosition(event);
                     if (!point) return;
+                    if (selectionMode === "rect") {
+                      setRectDraft((current) =>
+                        current ? { ...current, current: point } : current,
+                      );
+                      return;
+                    }
                     setRegions((current) => {
                       if (current.length === 0) return current;
                       const next = [...current];
@@ -491,7 +646,14 @@ export default function VisualPatchView() {
                       return next;
                     });
                   }}
-                  onPointerUp={() => setPainting(false)}
+                  onPointerUp={() => {
+                    if (selectionMode === "rect") commitRect();
+                    else setPainting(false);
+                  }}
+                  onPointerCancel={() => {
+                    setRectDraft(null);
+                    setPainting(false);
+                  }}
                 />
               </>
             ) : (
@@ -603,6 +765,71 @@ export default function VisualPatchView() {
                 disabled={!selected}
               />
             </label>
+          </div>
+
+          <div className="kx-divider" />
+
+          <div className="kx-card-title" data-mask-panel>
+            <span>{t("visualPatch.maskTitle")}</span>
+            <span className="kx-badge" data-state="PARTIAL">{regions.length}</span>
+          </div>
+          {regions.length === 0 ? (
+            <p className="kx-card-sub" style={{ marginTop: 8 }}>
+              {t("visualPatch.maskEmpty")}
+            </p>
+          ) : (
+            <ul className="kx-mask-list">
+              {regions.map((region) => (
+                <li key={region.id} data-mask-region={region.id}>
+                  <span className="kx-mask-kind">
+                    {t(`visualPatch.kind.${region.kind ?? "stroke"}`)}
+                  </span>
+                  <span className="kx-mono kx-muted" dir="ltr">
+                    {Math.round(pathLength(region.points))} px
+                  </span>
+                  <button
+                    type="button"
+                    className="kx-btn kx-btn-sm"
+                    data-mask-remove={region.id}
+                    aria-label={`${t("visualPatch.maskRemove")} ${region.id}`}
+                    onClick={() =>
+                      setRegions((current) => current.filter((entry) => entry.id !== region.id))
+                    }
+                  >
+                    <Icon name="trash" size={12} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="kx-row" style={{ gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm"
+              data-mask-refine="grow"
+              onClick={() => refineMask(1.12)}
+              disabled={regions.length === 0}
+            >
+              {t("visualPatch.maskGrow")}
+            </button>
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm"
+              data-mask-refine="shrink"
+              onClick={() => refineMask(0.88)}
+              disabled={regions.length === 0}
+            >
+              {t("visualPatch.maskShrink")}
+            </button>
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm"
+              data-mask-clear
+              onClick={() => setRegions([])}
+              disabled={regions.length === 0}
+            >
+              {t("visualPatch.maskClear")}
+            </button>
           </div>
 
           <div className="kx-divider" />

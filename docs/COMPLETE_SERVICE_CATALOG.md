@@ -112,9 +112,10 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Open image, paint region, apply 50 catalog tools, undo/redo, reset | LOCAL | VERIFIED (21 checks; one tool family driven) |
+| Open image, paint region, apply 50 catalog tools, undo/redo, reset | LOCAL | VERIFIED (28 checks; one tool family driven) |
 | Before/after, CSP-safe PNG export → library | LOCAL | VERIFIED (fixed this session) |
-| Zoom/pan, rectangle/freehand selection, mask editing, local color/exposure | LOCAL | PARTIAL / NOT-IMPLEMENTED |
+| Selection and mask: freehand stroke, dragged rectangle, visible overlay in image coordinates, erase by clicking a region, grow/shrink about the centroid, per-region list with removal, clear | LOCAL | VERIFIED — `src/services/maskOps.ts` (10 unit tests: rectangle normalisation, polygon hit test, segment distance, scaling) drives the overlay and the tool payload from one geometry |
+| Zoom/pan, local colour/exposure per region | LOCAL | NOT-IMPLEMENTED |
 | Per-algorithm family coverage | LOCAL | PARTIAL — needs dedicated tests |
 
 ## HUB 08 — MorphCore

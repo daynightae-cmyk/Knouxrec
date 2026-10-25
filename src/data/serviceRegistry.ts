@@ -194,7 +194,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "vp-history", hub: "visual-patch", labelEn: "Undo, redo, reset, before/after", label: "تراجع وإعادة وضبط ومقارنة", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),
   entry({ id: "vp-export", hub: "visual-patch", labelEn: "Verified PNG export to the library", label: "تصدير PNG موثّق للمكتبة", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),
   entry({ id: "vp-families", hub: "visual-patch", labelEn: "All 50 catalogue tool families tested", label: "فحص كل عائلات الأدوات", mode: "LOCAL", status: "PARTIAL", route: "visual-patch", needs: "One tool family is driven end to end; the rest share the engine" }),
-  entry({ id: "vp-mask", hub: "visual-patch", labelEn: "Rectangle, freehand and mask editing", label: "تحرير الأقنعة والتحديد", mode: "LOCAL", status: "PARTIAL", route: "visual-patch", needs: "Freehand selection and mask refinement" }),
+  entry({ id: "vp-mask", hub: "visual-patch", labelEn: "Rectangle, freehand and mask editing", label: "تحرير الأقنعة والتحديد", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),
 
   /* ---------------------------------------------------------- morphcore */
   entry({ id: "mc-stretch", hub: "morphcore", labelEn: "Independent stretch and scale", label: "تمدد وتحجيم مستقل", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),

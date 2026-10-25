@@ -262,6 +262,118 @@ try {
   );
   await shot(page, "02-visual-patch-applied");
 
+  /* ---------------- mask: visible, rectangular, erasable ---------------- */
+  const maskOverlay = await page.evaluate(() => {
+    const canvas = document.querySelector("[data-mask-surface]");
+    if (!canvas) return null;
+    const data = canvas
+      .getContext("2d", { willReadFrequently: true })
+      .getImageData(0, 0, canvas.width, canvas.height).data;
+    let painted = 0;
+    for (let index = 3; index < data.length; index += 4) if (data[index] > 8) painted += 1;
+    return { painted, width: canvas.width, height: canvas.height };
+  });
+  check(
+    "mask: the painted selection is visible on the overlay",
+    Boolean(maskOverlay && maskOverlay.painted > 40),
+    maskOverlay,
+  );
+
+  const maskModes = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-mask-mode]")].map((node) =>
+      node.getAttribute("data-mask-mode"),
+    ),
+  );
+  check(
+    "mask: freehand, rectangle and erase are all offered",
+    maskModes.join(",") === "freehand,rect,erase",
+    maskModes,
+  );
+
+  await page.evaluate(() => document.querySelector('[data-mask-mode="rect"]')?.click());
+  const maskBox = await page.evaluate(() => {
+    const canvas = document.querySelector("[data-mask-surface]");
+    const rect = canvas.getBoundingClientRect();
+    return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
+  });
+  await page.mouse.move(maskBox.x + maskBox.width * 0.6, maskBox.y + maskBox.height * 0.55);
+  await page.mouse.down();
+  await page.mouse.move(maskBox.x + maskBox.width * 0.85, maskBox.y + maskBox.height * 0.8, {
+    steps: 8,
+  });
+  await page.mouse.up();
+  await new Promise((r) => setTimeout(r, 500));
+  const afterRect = await page.evaluate(() => ({
+    regions: document.querySelectorAll("[data-mask-region]").length,
+    kinds: [...document.querySelectorAll(".kx-mask-kind")].map((node) => node.textContent?.trim()),
+    stats: document.querySelector("[data-mask-stats]")?.textContent?.trim() ?? "",
+  }));
+  check(
+    "mask: dragging a rectangle adds a rectangular region",
+    afterRect.regions === 2 && afterRect.kinds.includes("Rectangle"),
+    afterRect,
+  );
+
+  const rectPixels = await page.evaluate(() => {
+    const canvas = document.querySelector("[data-mask-surface]");
+    const data = canvas
+      .getContext("2d", { willReadFrequently: true })
+      .getImageData(0, 0, canvas.width, canvas.height).data;
+    let painted = 0;
+    for (let index = 3; index < data.length; index += 4) if (data[index] > 8) painted += 1;
+    return painted;
+  });
+  check(
+    "mask: the rectangle is drawn into the overlay",
+    rectPixels > (maskOverlay?.painted ?? 0),
+    { before: maskOverlay?.painted, after: rectPixels },
+  );
+
+  await page.evaluate(() => document.querySelector('[data-mask-refine="grow"]')?.click());
+  await new Promise((r) => setTimeout(r, 400));
+  const grownStats = await page.evaluate(
+    () => document.querySelector("[data-mask-stats]")?.textContent?.trim() ?? "",
+  );
+  check(
+    "mask: growing the mask changes its measured extent",
+    grownStats !== afterRect.stats,
+    { before: afterRect.stats, after: grownStats },
+  );
+
+  await page.evaluate(() => document.querySelector('[data-mask-mode="erase"]')?.click());
+  await page.mouse.click(maskBox.x + maskBox.width * 0.75, maskBox.y + maskBox.height * 0.7);
+  await new Promise((r) => setTimeout(r, 500));
+  const erased = await page.evaluate(() => ({
+    regions: document.querySelectorAll("[data-mask-region]").length,
+    status: document.querySelector(".kx-chip")?.textContent?.trim() ?? "",
+  }));
+  check(
+    "mask: erase removes the region under the pointer",
+    erased.regions === 1,
+    erased,
+  );
+
+  await page.evaluate(() => document.querySelector("[data-mask-clear]")?.click());
+  await new Promise((r) => setTimeout(r, 400));
+  const cleared = await page.evaluate(() => ({
+    regions: document.querySelectorAll("[data-mask-region]").length,
+    painted: (() => {
+      const canvas = document.querySelector("[data-mask-surface]");
+      const data = canvas
+        .getContext("2d", { willReadFrequently: true })
+        .getImageData(0, 0, canvas.width, canvas.height).data;
+      let count = 0;
+      for (let index = 3; index < data.length; index += 4) if (data[index] > 8) count += 1;
+      return count;
+    })(),
+  }));
+  check(
+    "mask: clearing empties both the list and the overlay",
+    cleared.regions === 0 && cleared.painted === 0,
+    cleared,
+  );
+  await shot(page, "04-visual-patch-mask");
+
   /* ---------------- undo ---------------- */
   const undoEnabled = await page.evaluate(() => {
     const button = [...document.querySelectorAll(".kx-btn")].find(

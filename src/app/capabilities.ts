@@ -151,10 +151,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "visualPatch",
     state: "PARTIAL",
     summary:
-      "Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export.",
+      "Region based image editor with the fifty preserved tools and their real canvas processors: paint a freehand stroke or drag a rectangle, see the mask over the picture, erase or grow it, apply the tool, compare, undo and export.",
     requirements: ["An image to edit"],
     evidence:
-      "scripts/visual-patch-smoke.mjs now verifies the full pipeline (21/21): paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven.",
+      "src/services/maskOps.ts holds the selection geometry as pure functions (rectangle normalisation, polygon hit testing, segment distance, grow/shrink about a centroid) with 10 unit tests. scripts/visual-patch-smoke.mjs verifies the full pipeline (28/28): the painted mask is visible on the overlay, freehand/rectangle/erase all exist, a dragged rectangle becomes a rectangular region, growing changes the measured extent, erase removes the region under the pointer, clearing empties list and overlay, then paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven.",
   },
   morphcore: {
     id: "morphcore",
