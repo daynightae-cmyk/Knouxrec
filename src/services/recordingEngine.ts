@@ -744,9 +744,14 @@ export async function trimMedia(
 ): Promise<Blob> {
   const requested = Math.max(0.1, end - start);
   let lastError: Error | null = null;
+  // The second attempt is not the same attempt twice. A capture session that
+  // starves while driven by animation frames is retried with a timer-paced
+  // painter and a short pre-roll, which is the condition it starved under.
   for (let attempt = 1; attempt <= 2; attempt += 1) {
     try {
-      const clip = await trimMediaOnce(source, start, end, onProgress);
+      const clip = await trimMediaOnce(source, start, end, onProgress, {
+        timerPaced: attempt > 1,
+      });
       const measured = await measureMediaDuration(clip);
       // A session that started before the first frame was painted produces a
       // clip materially shorter than the range asked for. That is retried
@@ -757,7 +762,6 @@ export async function trimMedia(
       );
     } catch (cause) {
       lastError = cause instanceof Error ? cause : new Error(String(cause));
-      if (attempt === 2) throw lastError;
     }
   }
   throw lastError ?? new Error("The trim produced no media.");
@@ -792,6 +796,7 @@ async function trimMediaOnce(
   start: number,
   end: number,
   onProgress: ((fraction: number) => void) | undefined,
+  options: { timerPaced?: boolean } = {},
 ): Promise<Blob> {
   if (!(end > start)) throw new Error("The trim range is empty.");
   const isAudioSource = source.type.startsWith("audio");
@@ -897,16 +902,24 @@ async function trimMediaOnce(
     });
 
     recorder.start(250);
+    // A pre-roll on the retry: the compositor needs a painted frame before it
+    // starts sampling, and starting playback in the same task can mean the
+    // first sample never happens.
+    if (options.timerPaced) {
+      await new Promise((resolve) => window.setTimeout(resolve, 250));
+    }
     await media.play();
     onProgress?.(0);
 
     let raf = 0;
+    let timer = 0;
     let stopped = false;
     let painted = 0;
     const stopCapture = () => {
       if (stopped) return;
       stopped = true;
       if (raf) window.cancelAnimationFrame(raf);
+      if (timer) window.clearInterval(timer);
       media.pause();
       if (recorder.state !== "inactive") recorder.stop();
     };
@@ -917,22 +930,34 @@ async function trimMediaOnce(
     };
 
     if (canvas && context) {
-      const paint = () => {
-        if (stopped) return;
-        if (media.currentTime >= end || media.ended) {
-          // One last frame at the boundary, then stop exactly here.
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          painted += 1;
-          report();
-          stopCapture();
-          return;
-        }
+      const drawFrame = () => {
         context.drawImage(video, 0, 0, canvas.width, canvas.height);
         painted += 1;
         report();
+      };
+      const paint = () => {
+        if (stopped) return;
+        drawFrame();
+        if (media.currentTime >= end || media.ended) {
+          // The boundary frame has just been drawn; stop exactly here.
+          stopCapture();
+          return;
+        }
         raf = window.requestAnimationFrame(paint);
       };
-      paint();
+      if (options.timerPaced) {
+        // Twenty frames a second driven by a timer, not by animation frames:
+        // a starved page still paints, so the sampler always has a fresh
+        // surface to read.
+        const tick = () => {
+          if (stopped) return;
+          drawFrame();
+          if (media.currentTime >= end || media.ended) stopCapture();
+        };
+        timer = window.setInterval(tick, 50);
+      } else {
+        paint();
+      }
     } else {
       const tick = window.setInterval(report, 150);
       media.addEventListener("ended", () => {
@@ -966,8 +991,13 @@ async function trimMediaOnce(
       // Both halves are named because they fail for different reasons: a paint
       // count of zero means the decoder never presented a frame, a zero chunk
       // count with a live paint count means the capture session was starved.
+      const tracks = stream.getVideoTracks();
+      const track = tracks[0];
       throw new Error(
-        `The trim captured no media (${painted} frames painted, ${chunks.length} chunks).`,
+        `The trim captured no media (${painted} frames painted, ${chunks.length} chunks, ` +
+          `recorder ${recorder.state}, ${tracks.length} track(s) ` +
+          `${track ? track.readyState : "none"}, ` +
+          `media ${video.readyState} at ${video.currentTime.toFixed(2)}s).`,
       );
     }
     return patchWebmDuration(blob, duration * 1000);
