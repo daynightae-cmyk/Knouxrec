@@ -27,13 +27,13 @@ import LibraryView from "../views/LibraryView";
 import SettingsView from "../views/SettingsView";
 import DiagnosticsView from "../views/DiagnosticsView";
 import ModelsView from "../views/ModelsView";
-import UnavailableView from "../views/UnavailableView";
 import ToolboxView from "../views/ToolboxView";
 import AiWorkspaceView from "../views/AiWorkspaceView";
 import TemplatesView from "../views/TemplatesView";
 import VisualPatchView from "../views/VisualPatchView";
 import LiveStudioView from "../views/LiveStudioView";
 import MorphCoreView from "../views/MorphCoreView";
+import BodyProportionsView from "../views/BodyProportionsView";
 import AudioStudioView from "../views/AudioStudioView";
 import BatchView from "../views/BatchView";
 
@@ -333,7 +333,7 @@ export default function AppRoot() {
       case "batch":
         return <BatchView onNavigate={navigate} />;
       case "body-editor":
-        return <UnavailableView route={route} />;
+        return <BodyProportionsView />;
       case "toolbox":
         return <ToolboxView onNavigate={navigate} />;
       case "offline-ai":

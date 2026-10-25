@@ -55,7 +55,8 @@ export type RouteLabel =
   | "screenshots"
   | "visual-patch"
   | "templates"
-  | "recording";
+  | "recording"
+  | "body";
 
 export interface LibraryItem {
   id: string;

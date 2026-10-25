@@ -153,13 +153,17 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 | Neural retouch, background removal, super resolution, style transfer, auto composition, generative fill | MODEL-LOCAL / ONLINE | BLOCKED — listed with the missing artefact, no preview, no control |
 | Layer masks, brush-local edits, healing | LOCAL | NOT-IMPLEMENTED — needs a paint surface and a mask channel in the pipeline |
 
-## HUB 10 — Body Editor
+## HUB 10 — Body Editor / proportion mirror
 
 | Service | Mode | Status |
 | --- | --- | --- |
-| Manual geometric editing | LOCAL | IMPLEMENTED in the MorphCore geometry studio, not in this hub |
-| Segmentation / pose / body-aware tools | MODEL-LOCAL | BLOCKED (weights absent) |
-| Age gate + privacy | LOCAL | Safeguard preserved; no processing occurs in blocked state |
+| Proportion mirror: five draggable height guides (crown, chin, shoulder, waist, hip) and two edge guides, measured in pixels and in head lengths | LOCAL | VERIFIED — `src/services/proportions.ts` (7 unit tests) plus a real drag and keyboard nudge in `scripts/proportions-smoke.mjs` (20 checks) |
+| Canon placement (chin at 1 head, shoulder at 1.5, waist at 3 from the crown, crown→hip = 4 heads) | LOCAL | VERIFIED — derived from the crown and hip the user chose; stated as a placement aid, not a verdict |
+| Measurement report on the page and on the clipboard (best-effort, bounded so the button always answers) | LOCAL | VERIFIED — the report is always rendered, so a refused clipboard loses nothing |
+| Save the measured source into the library with provenance | LOCAL | VERIFIED |
+| Segmentation / pose / body-aware tools | MODEL-LOCAL | BLOCKED (weights absent) — listed on the screen with the missing artefact and no run control |
+| Age gate + privacy | LOCAL | Session-scoped declaration; the image never leaves the device |
+| Manual geometric editing | LOCAL | Lives in the MorphCore studio; this hub measures, it does not reshape |
 
 ## HUB 11 — Offline AI
 

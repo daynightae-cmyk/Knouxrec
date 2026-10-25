@@ -206,11 +206,16 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "body-editor",
     group: "create",
     labelKey: "bodyEditor",
-    state: "MISSING_MODEL",
+    state: "PARTIAL",
     summary:
-      "Age-gated body editor UI preserved. It depends on segmentation models whose weight files are not distributed.",
-    requirements: ["Age verification", "Segmentation weights", "Inference runtime"],
-    evidence: "public/models/*/model.json manifests exist, weights.bin files do not.",
+      "Age-gated proportion mirror: place five height guides and two edge guides on your own photograph and read the spans between them in pixels and in head lengths, with the artist's canon available as a placement aid. No body recognition, no reshaping, and the body-aware services stay listed as blocked.",
+    requirements: [
+      "Age verification",
+      "An image to measure",
+      "Segmentation weights for the blocked tools",
+    ],
+    evidence:
+      "src/services/proportions.ts holds the measurement maths as pure functions (span, head length, heads tall, width per head, canon placement, clamping) with 7 unit tests. scripts/proportions-smoke.mjs drives the screen in Chromium (20/20): a child year is refused, an adult declaration opens the mirror, a 400x800 photograph stages at its own size, seven guides measure 384 px and exactly four heads by default, dragging the hip guide re-measures the span, arrow keys nudge a focused guide, canon placement lands chin/shoulder/waist on whole and half heads, the on-page report carries every number, the two body-aware services are listed as blocked with no control, saving archives the source with provenance, and Arabic renders translated. Weight files for the blocked services still do not exist.",
     adult: true,
   },
   "offline-ai": {

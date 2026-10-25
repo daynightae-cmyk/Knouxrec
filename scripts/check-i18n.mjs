@@ -40,6 +40,7 @@ const VIEW_FILES = [
   "src/views/WorkflowChains.tsx",
   "src/views/DiscoverView.tsx",
   "src/views/AudioStudioView.tsx",
+  "src/views/BodyProportionsView.tsx",
 ];
 
 // Shared workspace surfaces render user-visible text too, so they are held to

@@ -220,7 +220,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "el-generative", hub: "elysian", labelEn: "Generative fill", label: "التعبئة التوليدية", mode: "ONLINE", status: "BLOCKED", route: "elysian", needs: "An online service; this build never uploads images" }),
 
   /* --------------------------------------------------------------- body */
-  entry({ id: "body-manual", hub: "body", labelEn: "Manual geometric editing", label: "التحرير الهندسي اليدوي", mode: "LOCAL", status: "VERIFIED", route: "morphcore" }),
+  entry({ id: "body-manual", hub: "body", labelEn: "Proportion mirror with placed guides", label: "مرآة نسب بأدلة يدوية", mode: "LOCAL", status: "VERIFIED", route: "body-editor" }),
   entry({ id: "body-segment", hub: "body", labelEn: "Segmentation and pose tools", label: "أدوات التقسيم والوضعية", mode: "MODEL-LOCAL", status: "BLOCKED", route: "body-editor", needs: "Segmentation and pose weights plus a native engine" }),
 
   /* --------------------------------------------------------- offline ai */

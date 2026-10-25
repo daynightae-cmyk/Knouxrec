@@ -28,5 +28,10 @@
     }
   },
   "files": ["index.tsx"],
-  "include": ["types/**/*.d.ts", "src/**/*.test.ts", "src/test/**/*.ts"]
+  "include": [
+    "types/**/*.d.ts",
+    "src/**/*.test.ts",
+    "src/test/**/*.ts",
+    "src/data/offlineAICatalog.ts"
+  ]
 }
