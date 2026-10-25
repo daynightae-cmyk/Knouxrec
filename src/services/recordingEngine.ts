@@ -270,7 +270,11 @@ export class RecordingSession {
     try {
       context = new AudioContext();
       analyser = context.createAnalyser();
-      analyser.fftSize = 1024;
+      // 16384 frames is ~340 ms at 48 kHz. A small window would only be
+      // honest if the page read it every few milliseconds; a starved page
+      // reads ten times a second, and a 21 ms window silently loses every
+      // transient that falls between two reads.
+      analyser.fftSize = 16384;
       analyser.smoothingTimeConstant = 0;
       // An analyser is only pulled when something downstream consumes it, so
       // the graph ends in a muted gain node: the page never hears the
