@@ -3,26 +3,19 @@
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/readme/hero-dark.svg" />
   <source media="(prefers-color-scheme: light)" srcset="docs/readme/hero-light.svg" />
-  <img src="docs/readme/hero-dark.svg" alt="KNOUX REC: Capture. Create. Stay in control. A local-first creative desktop workspace. Conceptual brand illustration, not a product screenshot." width="100%" />
+  <img src="docs/readme/hero-dark.svg" alt="KNOUX REC: Capture. Create. Stay in control. Original conceptual brand artwork, not an app screenshot." width="100%" />
 </picture>
 
-<br />
-
-# KNOUX REC
-
-### Your creative command center. Built around real work, real files, and your device.
-
-**Record your screen · Shape your media · Organize your work · Export what you create**
-
-[**Explore capabilities**](#-the-workspace) &nbsp;·&nbsp; [**Get started**](#-quick-start) &nbsp;·&nbsp; [**Architecture**](#-architecture) &nbsp;·&nbsp; [**Verify the claims**](#-verification--quality-gates) &nbsp;·&nbsp; [**KNOUX**](#-the-people-behind-knoux-rec)
-
-<br />
-
-![License: MIT](https://img.shields.io/badge/License-MIT-8659FF?style=flat-square)
-![Platform: Desktop](https://img.shields.io/badge/Platform-Desktop-272337?style=flat-square)
-![Privacy: Local First](https://img.shields.io/badge/Privacy-Local--first-197C8C?style=flat-square)
-![Stack: Electron + React + TypeScript](https://img.shields.io/badge/Stack-Electron%20%2B%20React%20%2B%20TypeScript-5549B3?style=flat-square)
-
+<h1>KNOUX REC</h1>
+<h3>Your creative command center. Built around real work, real files, and your device.</h3>
+<p><strong>Record your screen · Shape your media · Organize your work · Export what you create</strong></p>
+<p><a href="#-the-workspace"><strong>Explore capabilities</strong></a> &nbsp;·&nbsp; <a href="#-quick-start"><strong>Get started</strong></a> &nbsp;·&nbsp; <a href="#-architecture"><strong>Architecture</strong></a> &nbsp;·&nbsp; <a href="#-verification--quality-gates"><strong>Verify the claims</strong></a> &nbsp;·&nbsp; <a href="#-the-people-behind-knoux-rec"><strong>KNOUX</strong></a></p>
+<p>
+  <img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-8659FF?style=flat-square" />
+  <img alt="Platform: Desktop" src="https://img.shields.io/badge/Platform-Desktop-272337?style=flat-square" />
+  <img alt="Privacy: Local-first" src="https://img.shields.io/badge/Privacy-Local--first-197C8C?style=flat-square" />
+  <img alt="Electron React TypeScript" src="https://img.shields.io/badge/Stack-Electron%20%2B%20React%20%2B%20TypeScript-5549B3?style=flat-square" />
+</p>
 </div>
 
 > [!IMPORTANT]
@@ -88,6 +81,31 @@ Save media to local IndexedDB, preview and organize it, then export files. No ac
 | [What is not shipped](#-what-is-not-shipped) | [Privacy and security](#-privacy--security) |
 | [Troubleshooting](#-troubleshooting) | [Contribution and project status](#-contributing--project-status) |
 | [Founder and company](#-the-people-behind-knoux-rec) | [License](#-license) |
+
+---
+
+## ◈ Inside the actual application
+
+The gallery below contains **screenshots captured from real KNOUX REC runtime smoke sessions**, not generated concept art. They are **historical test evidence**: consult the current code and re-run the smoke suites to validate a new build. Click any image to inspect it at full size.
+
+<table>
+<tr>
+<td width="50%" valign="top"><a href="docs/readme/screenshots/elysian-layers.png"><img src="docs/readme/screenshots/elysian-layers.png" alt="Elysian Canvas with presets, editing layers, image preview, and controls" width="100%" /></a><br /><strong>Elysian Canvas</strong><br /><sub>Real image workspace · layers and editing controls</sub></td>
+<td width="50%" valign="top"><a href="docs/readme/screenshots/morphcore-mesh.png"><img src="docs/readme/screenshots/morphcore-mesh.png" alt="MorphCore with draggable mesh control points deforming a colorful test image" width="100%" /></a><br /><strong>MorphCore</strong><br /><sub>Local mesh deformation · visible control lattice</sub></td>
+</tr>
+<tr>
+<td valign="top"><a href="docs/readme/screenshots/screenshot-editor.png"><img src="docs/readme/screenshots/screenshot-editor.png" alt="Screenshot editor with annotation controls on a captured test image" width="100%" /></a><br /><strong>Screenshot Editor</strong><br /><sub>Annotation and local pixel edits</sub></td>
+<td valign="top"><a href="docs/readme/screenshots/live-studio.png"><img src="docs/readme/screenshots/live-studio.png" alt="Live Studio comparing processed image regions with job lifecycle details" width="100%" /></a><br /><strong>Live Studio</strong><br /><sub>Image comparison · local jobs and readouts</sub></td>
+</tr>
+<tr>
+<td valign="top"><a href="docs/readme/screenshots/audio-studio.png"><img src="docs/readme/screenshots/audio-studio.png" alt="Audio Studio with waveform controls and editing parameters" width="100%" /></a><br /><strong>Audio Studio</strong><br /><sub>Waveform-focused workflows and operations</sub></td>
+<td valign="top"><a href="docs/readme/screenshots/templates.png"><img src="docs/readme/screenshots/templates.png" alt="Template catalog with a rendered canvas-based video template" width="100%" /></a><br /><strong>Templates</strong><br /><sub>Actual canvas template rendering</sub></td>
+</tr>
+<tr>
+<td valign="top"><a href="docs/readme/screenshots/discover.png"><img src="docs/readme/screenshots/discover.png" alt="Service Discovery view with search, status cards and service counters" width="100%" /></a><br /><strong>Service Discovery</strong><br /><sub>Registry-backed capabilities and blockers</sub></td>
+<td valign="top"><a href="docs/readme/screenshots/arabic-rtl.png"><img src="docs/readme/screenshots/arabic-rtl.png" alt="Elysian Canvas controls laid out in Arabic right-to-left mode" width="100%" /></a><br /><strong>Arabic / RTL</strong><br /><sub>Authentic localized application interface</sub></td>
+</tr>
+</table>
 
 ---
 
@@ -184,6 +202,8 @@ KNOUX REC is a connected set of workspaces. The table below is organized around 
 - **A model inventory is not an inference engine.** Twenty-four manifests are documented, but model availability depends on real weight files and validation; an absent model must be surfaced honestly.
 - **Partial means partial.** Examples: system audio availability, some audio exports, the scope of region-tool support, and model-backed Arabic/AI workflows.
 - **Different sources were captured at different moments.** Generated route registries and service inventories may describe different build snapshots. Prefer the newest relevant code and its associated test evidence for a claim; re-run checks before declaring a release verified.
+
+## ✕ What is not shipped
 
 ### Explicitly unavailable or incomplete
 
@@ -584,17 +604,11 @@ The highest-value changes are those that close **real, measurable gaps**, preser
 ## ◆ The people behind KNOUX REC
 
 <div align="center">
-
 <a href="https://knoux.store/"><img src="https://i.postimg.cc/Kv9g6Kpt/cropped-circle-image-%281%29.png" alt="Official KNOUX corporate logo" width="118" /></a>
-
-### KNOUX
-**Independent software craft. Purpose-built digital products.**
-
-**Founder & Software Engineer**  
-**Eng. Sadek Elgazar · م. صادق الجزار**
-
-*KNOUX is the parent corporate brand. KNOUX REC retains its own product identity, engineering truth and roadmap.*
-
+<h3>KNOUX</h3>
+<p><strong>Independent software craft. Purpose-built digital products.</strong></p>
+<p><strong>Founder &amp; Software Engineer</strong><br /><strong>Eng. Sadek Elgazar · م. صادق الجزار</strong></p>
+<p><em>KNOUX is the parent corporate brand. KNOUX REC retains its own product identity, engineering truth and roadmap.</em></p>
 </div>
 
 | Official channel | Contact |
@@ -618,15 +632,9 @@ The highest-value changes are those that close **real, measurable gaps**, preser
 Released under the **MIT License**. Read the full [LICENSE](LICENSE) and the repository's [third-party notices](docs/THIRD_PARTY_NOTICES.md) for additional context.
 
 <div align="center">
-
----
-
-### KNOUX REC — make something real.
-
-**Capture with confidence. Create with purpose. Keep control.**
-
-[Back to top](#knoux-rec) · [Explore the code](src/) · [View the service inventory](docs/COMPLETE_SERVICE_CATALOG.md) · [Contact KNOUX](mailto:admin@knoux.store)
-
-<sub>Crafted by KNOUX · Eng. Sadek Elgazar · Documentation statements are evidence-scoped, not automatic release certifications.</sub>
-
+<hr />
+<h3>KNOUX REC — make something real.</h3>
+<p><strong>Capture with confidence. Create with purpose. Keep control.</strong></p>
+<p><a href="#knoux-rec">Back to top</a> · <a href="src/">Explore the code</a> · <a href="docs/COMPLETE_SERVICE_CATALOG.md">View the service inventory</a> · <a href="mailto:admin@knoux.store">Contact KNOUX</a></p>
+<p><sub>Crafted by KNOUX · Eng. Sadek Elgazar · Documentation statements are evidence-scoped, not automatic release certifications.</sub></p>
 </div>
