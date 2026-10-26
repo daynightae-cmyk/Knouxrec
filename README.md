@@ -6,7 +6,8 @@
   <img src="docs/readme/hero-dark.svg" alt="KNOUX REC: Capture. Create. Stay in control. Original conceptual brand artwork, not an app screenshot." width="100%" />
 </picture>
 
-<h1>KNOUX REC</h1>
+<p><img src="docs/readme/knoux-logo.png" alt="Official KNOUX corporate emblem" width="80" /></p>
+<h1 id="knoux-rec">KNOUX REC</h1>
 <h3>Your creative command center. Built around real work, real files, and your device.</h3>
 <p><strong>Record your screen · Shape your media · Organize your work · Export what you create</strong></p>
 <p><a href="#-the-workspace"><strong>Explore capabilities</strong></a> &nbsp;·&nbsp; <a href="#-quick-start"><strong>Get started</strong></a> &nbsp;·&nbsp; <a href="#-architecture"><strong>Architecture</strong></a> &nbsp;·&nbsp; <a href="#-verification--quality-gates"><strong>Verify the claims</strong></a> &nbsp;·&nbsp; <a href="#-the-people-behind-knoux-rec"><strong>KNOUX</strong></a></p>
@@ -586,7 +587,7 @@ The highest-value changes are those that close **real, measurable gaps**, preser
 ## ◆ The people behind KNOUX REC
 
 <div align="center">
-<a href="https://knoux.store/"><img src="https://i.postimg.cc/Kv9g6Kpt/cropped-circle-image-%281%29.png" alt="Official KNOUX corporate logo" width="118" /></a>
+<a href="https://knoux.store/"><img src="docs/readme/knoux-logo.png" alt="Official KNOUX corporate logo" width="118" /></a>
 <h3>KNOUX</h3>
 <p><strong>Independent software craft. Purpose-built digital products.</strong></p>
 <p><strong>Founder &amp; Software Engineer</strong><br /><strong>Eng. Sadek Elgazar · م. صادق الجزار</strong></p>
