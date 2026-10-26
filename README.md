@@ -33,27 +33,9 @@ The guiding principle is simple: **every enabled action should do something tang
 
 <table>
 <tr>
-<td width="33%" valign="top">
-
-### ◉ CAPTURE
-
-Capture a display, window, camera or microphone session through real browser media APIs. Pause, resume, stop, or take a screenshot.
-
-</td>
-<td width="33%" valign="top">
-
-### ◇ CREATE
-
-Use actual processors for canvas edits, audio operations, video templates, masking, tone curves, and geometry workflows.
-
-</td>
-<td width="34%" valign="top">
-
-### ▣ KEEP CONTROL
-
-Save media to local IndexedDB, preview and organize it, then export files. No account or cloud upload is required.
-
-</td>
+<td width="33%" valign="top"><h3>◉ CAPTURE</h3><p>Capture a display, window, camera or microphone session through real browser media APIs. Pause, resume, stop, or take a screenshot.</p></td>
+<td width="33%" valign="top"><h3>◇ CREATE</h3><p>Use actual processors for canvas edits, audio operations, video templates, masking, tone curves, and geometry workflows.</p></td>
+<td width="34%" valign="top"><h3>▣ KEEP CONTROL</h3><p>Save media to local IndexedDB, preview and organize it, then export files. No account or cloud upload is required.</p></td>
 </tr>
 </table>
 
