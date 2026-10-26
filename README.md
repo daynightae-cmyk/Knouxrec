@@ -121,9 +121,9 @@ KNOUX REC is a connected set of workspaces. The table below is organized around 
 <details>
 <summary><strong>01 · Capture without pretending</strong></summary>
 
-- Display/window recording uses \`getDisplayMedia\` and the user's source picker.
-- Camera and microphone use \`getUserMedia\`; microphone-only sessions do not request a display source.
-- Media is encoded with \`MediaRecorder\`, with supported formats probed at runtime.
+- Display/window recording uses `getDisplayMedia` and the user's source picker.
+- Camera and microphone use `getUserMedia`; microphone-only sessions do not request a display source.
+- Media is encoded with `MediaRecorder`, with supported formats probed at runtime.
 - Pause/resume is handled by the recording session, not a cosmetic animation.
 - A delayed start offers 3 / 5 / 10 / 30-second countdown options and cancellation. It is **page-scoped**, so a reload does not silently trigger a later recording.
 - System-audio capture remains platform-dependent.
@@ -206,7 +206,7 @@ KNOUX REC is a connected set of workspaces. The table below is organized around 
 
 ### A real recording
 
-\`\`\`text
+```text
 User gesture
     |
     v
@@ -225,13 +225,13 @@ Encoded media Blob
                                                 |
                                                 +----> Export a file
                                                 +----> Trim into a new item*
-\`\`\`
+```
 
 *Trim is real but has the load-dependent failure described above.
 
 ### Media creation without a cloud round trip
 
-\`\`\`text
+```text
 Import or capture pixels
     |
     +--> Screenshot Editor ----> Annotation / Crop / Privacy blur ----+
@@ -245,7 +245,7 @@ Import or capture pixels
                                                        Render / Encode / Export
                                                                      |
                                                           Optional local save
-\`\`\`
+```
 
 ### Practical examples
 
@@ -274,8 +274,8 @@ KNOUX REC is **local-first**, but local does not automatically mean backed up, e
 
 | Data | Location | Notes |
 | :-- | :-- | :-- |
-| Recorded media and saved edits | IndexedDB (\`knoux-rec.library\`) | Actual binary data, local to the browser/Electron profile |
-| Preferences | localStorage (\`knoux-rec.settings.v1\`) and related settings storage | Theme, language and recording preferences |
+| Recorded media and saved edits | IndexedDB (`knoux-rec.library`) | Actual binary data, local to the browser/Electron profile |
+| Preferences | localStorage (`knoux-rec.settings.v1`) and related settings storage | Theme, language and recording preferences |
 | Downloaded exports | User-selected/download location | Normal files outside the application database |
 | Built-in model manifests | Bundled project assets | Presence does **not** guarantee usable model weights |
 | Shared jobs/handoffs | Local application runtime and associated state | Not a cloud synchronization system |
@@ -296,31 +296,31 @@ KNOUX REC is **local-first**, but local does not automatically mean backed up, e
 
 ### Clone and install
 
-\`\`\`bash
+```bash
 git clone https://github.com/daynightae-cmyk/Knouxrec.git
 cd Knouxrec
 npm ci
-\`\`\`
+```
 
 ### Develop
 
-\`\`\`bash
+```bash
 npm run dev           # Vite renderer dev server
 npm run electron      # Electron desktop shell
-\`\`\`
+```
 
 **Important:** The Vite renderer and the Electron shell do not have identical platform privileges. Run tests appropriate to the behavior you are changing.
 
 ### Build
 
-\`\`\`bash
+```bash
 npm run build         # Production renderer -> dist/
 npm run electron:dist # Renderer + Electron packaging -> release/
-\`\`\`
+```
 
 On Windows, the packaging configuration targets **NSIS**. The package is not evidence of a successful installed runtime until the produced binary boots and passes its smoke checks.
 
-The Electron entry point is [\`knoux-rec-app/main.cjs\`](knoux-rec-app/main.cjs). CommonJS is intentional: the package declares \`"type": "module"\`, while Electron's packaged main-process entry needs the \`.cjs\` loader behavior.
+The Electron entry point is [`knoux-rec-app/main.cjs`](knoux-rec-app/main.cjs). CommonJS is intentional: the package declares `"type": "module"`, while Electron's packaged main-process entry needs the `.cjs` loader behavior.
 
 ---
 
@@ -334,9 +334,9 @@ The Electron entry point is [\`knoux-rec-app/main.cjs\`](knoux-rec-app/main.cjs)
 
 | Default shortcut | Action |
 | :-- | :-- |
-| \`Ctrl + Shift + R\` | Start / stop recording |
-| \`Ctrl + Shift + P\` | Pause / resume |
-| \`Ctrl + Shift + S\` | Screenshot |
+| `Ctrl + Shift + R` | Start / stop recording |
+| `Ctrl + Shift + P` | Pause / resume |
+| `Ctrl + Shift + S` | Screenshot |
 
 Some shortcuts can be rebound in **Settings**. Conflicts are refused rather than silently replacing an existing action. Keyboard/OS interception may differ across platforms.
 
@@ -346,7 +346,7 @@ Some shortcuts can be rebound in **Settings**. Conflicts are refused rather than
 
 KNOUX REC separates the desktop host, renderer interface, local processing engines and persistence. The diagram is an **architecture overview**, not a claim that every registry entry has a working processor.
 
-\`\`\`mermaid
+```mermaid
 flowchart TB
     U["User / OS permissions"] --> UI["React + TypeScript interface"]
     UI --> RC["Recorder session / media APIs"]
@@ -362,7 +362,7 @@ flowchart TB
     DB --> EX["Preview / downloadable export"]
     UI <--> IPC["Validated Electron preload IPC"]
     IPC <--> OS["Sandboxed desktop shell"]
-\`\`\`
+```
 
 ### Boundary rules
 
@@ -379,15 +379,15 @@ flowchart TB
 
 | Concern | Entry point / evidence |
 | :-- | :-- |
-| Desktop process | [\`knoux-rec-app/main.cjs\`](knoux-rec-app/main.cjs) |
-| Desktop preload | [\`knoux-rec-app/preload.cjs\`](knoux-rec-app/preload.cjs) |
-| App service inventory | [\`src/data/serviceRegistry.ts\`](src/data/serviceRegistry.ts) |
-| Local image algorithms | [\`src/services/imageOps.ts\`](src/services/imageOps.ts) |
-| Local geometry algorithms | [\`src/services/geometryOps.ts\`](src/services/geometryOps.ts) |
-| Model availability | [\`src/services/modelRegistry.ts\`](src/services/modelRegistry.ts) |
-| Test entry points | [\`scripts/\`](scripts/) |
-| Build / scripts | [\`package.json\`](package.json) |
-| CI | [\`.github/workflows/ci.yml\`](.github/workflows/ci.yml) |
+| Desktop process | [`knoux-rec-app/main.cjs`](knoux-rec-app/main.cjs) |
+| Desktop preload | [`knoux-rec-app/preload.cjs`](knoux-rec-app/preload.cjs) |
+| App service inventory | [`src/data/serviceRegistry.ts`](src/data/serviceRegistry.ts) |
+| Local image algorithms | [`src/services/imageOps.ts`](src/services/imageOps.ts) |
+| Local geometry algorithms | [`src/services/geometryOps.ts`](src/services/geometryOps.ts) |
+| Model availability | [`src/services/modelRegistry.ts`](src/services/modelRegistry.ts) |
+| Test entry points | [`scripts/`](scripts/) |
+| Build / scripts | [`package.json`](package.json) |
+| CI | [`.github/workflows/ci.yml`](.github/workflows/ci.yml) |
 
 ---
 
@@ -403,7 +403,7 @@ flowchart TB
 <tr><td>Packaging</td><td>electron-builder · Windows NSIS installer</td></tr>
 </table>
 
-\`\`\`text
+```text
 Knouxrec/
 ├── .github/workflows/   # CI
 ├── knoux-rec-app/       # Electron main, preload, source picker
@@ -420,7 +420,7 @@ Knouxrec/
 ├── public/              # Bundled assets and model manifests
 ├── package.json
 └── README.md
-\`\`\`
+```
 
 Project paths reflect the inspected repository at this documentation revision; individual modules may move as the product evolves.
 
@@ -431,7 +431,7 @@ Project paths reflect the inspected repository at this documentation revision; i
 The workspace includes English and Arabic localization with **RTL-aware layout**. The codebase also addresses high-density screens, reduced-motion preferences, navigation history, and keyboard interactions. Those properties need renewed regression checks when screens change.
 
 - Language, theme and related preferences persist locally.
-- \`lang\` and \`dir\` are applied at the document root for Arabic mode.
+- `lang` and `dir` are applied at the document root for Arabic mode.
 - Reduced-motion behavior is tested through browser media emulation.
 - Interactive tools need keyboard-accessible controls, feedback states and distinguishable disabled states.
 - A visually attractive screen that silently loses an older working tool is a **regression**, even when TypeScript and the build pass.
@@ -442,18 +442,18 @@ The workspace includes English and Arabic localization with **RTL-aware layout**
 
 **Quality means measured behavior, not a green-looking badge.**
 
-\`\`\`bash
+```bash
 npm run type-check     # TypeScript diagnostics
 npm run lint           # ESLint, zero warnings policy
 npm run check:i18n     # Localized UI string coverage
 npm test               # Vitest unit tests
 npm run build          # Production renderer
 npm run verify         # Combined static/unit/build gate
-\`\`\`
+```
 
 ### Runtime smoke coverage
 
-\`\`\`bash
+```bash
 npm run smoke:ui
 npm run smoke:recording
 npm run smoke:screen
@@ -471,17 +471,17 @@ npm run smoke:workflows
 npm run smoke:batch
 npm run smoke:handoff
 npm run smoke:all       # Entire configured chain; potentially lengthy
-\`\`\`
+```
 
-These are **representative** suites; inspect [\`package.json\`](package.json) for the complete current smoke chain. Some suites need a built app, running preview server, Chromium/Electron facilities or packaged binaries. Follow each script's prerequisites instead of assuming all tests work in every environment.
+These are **representative** suites; inspect [`package.json`](package.json) for the complete current smoke chain. Some suites need a built app, running preview server, Chromium/Electron facilities or packaged binaries. Follow each script's prerequisites instead of assuming all tests work in every environment.
 
 ### Known 25 October 2026 validation snapshot
 
 | Gate | Historical result | Interpretation |
 | :-- | :-- | :-- |
-| \`npm run verify\` | Passed on the services branch | Included type checks, lint, i18n over 24 views plus shared surface, **227 unit tests**, and build |
+| `npm run verify` | Passed on the services branch | Included type checks, lint, i18n over 24 views plus shared surface, **227 unit tests**, and build |
 | Individual smoke suites | Each had a successful standalone run | Does **not** mean the chained run was green |
-| \`npm run smoke:all\` | **Not consistently green** | Intermittent recording trim re-encode failure under sustained load |
+| `npm run smoke:all` | **Not consistently green** | Intermittent recording trim re-encode failure under sustained load |
 | Windows packaged smoke | Passed against an **older package** | Binary was not rebuilt for that services batch |
 
 This is historical [documented evidence](docs/STATUS_2026-10-25_SERVICES.md), **not a test execution performed by this README edit**. For how assertion counts are defined and why earlier reported totals were corrected, see [verification methodology](docs/VERIFICATION_METHOD.md).
@@ -498,7 +498,7 @@ This is historical [documented evidence](docs/STATUS_2026-10-25_SERVICES.md), **
 | Cloud service | No account, telemetry pipeline or mandatory cloud synchronization |
 | Media ownership | User captures and exports media locally |
 | Network boundary | The app renderer enforces a restrictive Content Security Policy and is designed not to load remote resources |
-| Electron isolation | \`nodeIntegration: false\`, \`contextIsolation: true\`, \`sandbox: true\`; navigation and IPC are constrained |
+| Electron isolation | `nodeIntegration: false`, `contextIsolation: true`, `sandbox: true`; navigation and IPC are constrained |
 | Capture permissions | Screen, camera and mic permissions require an explicit user action and OS/browser approval |
 | At-rest encryption | **Not implemented**; local capture data can be read by other processes with the same OS user privileges |
 | Backups | Your exported originals are your responsibility; clearing app/browser storage may remove the library |
@@ -560,8 +560,8 @@ Check which browser/Electron profile is being used and whether site/application 
 
 The highest-value changes are those that close **real, measurable gaps**, preserve existing visual intent, and keep offline/privacy boundaries honest.
 
-1. Review [\`CONTRIBUTING.md\`](CONTRIBUTING.md), [project status](docs/PROJECT_STATUS.md) and the [service inventory](docs/COMPLETE_SERVICE_CATALOG.md).
-2. Inspect the latest \`main\` source, outstanding PRs and test reports before implementing a service.
+1. Review [`CONTRIBUTING.md`](CONTRIBUTING.md), [project status](docs/PROJECT_STATUS.md) and the [service inventory](docs/COMPLETE_SERVICE_CATALOG.md).
+2. Inspect the latest `main` source, outstanding PRs and test reports before implementing a service.
 3. Keep working processors and accepted UI assets intact; do not replace functional execution with placeholder data.
 4. Add tests for pixel, audio, export, persistence, error and localization contracts where relevant.
 5. Run the appropriate static, unit, runtime and packaged gates; state clearly which passed and which were not run.
