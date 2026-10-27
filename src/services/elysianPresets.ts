@@ -231,6 +231,13 @@ export const EFFECTS: EffectDefinition[] = [
 
   /* detail */
   {
+    id: "heal",
+    labelKey: "elysian.effect.heal",
+    category: "detail",
+    op: { kind: "heal", x: 0, y: 0, radius: 24 },
+    controls: [],
+  },
+  {
     id: "blur",
     labelKey: "elysian.effect.blur",
     category: "detail",

@@ -64,6 +64,13 @@ function scaleOp(op: Op, factor: number): Op {
       return { ...op, width: round(op.width), height: round(op.height) };
     case "border":
       return { ...op, width: round(op.width) };
+    case "heal":
+      return {
+        ...op,
+        x: Math.round(op.x * factor),
+        y: Math.round(op.y * factor),
+        radius: round(op.radius),
+      };
     case "text":
       return { ...op, size: round(op.size) };
     case "watermark":
@@ -90,6 +97,16 @@ function instantiate(effect: EffectDefinition, width: number, height: number): O
       width: Math.max(8, Math.round(width * 0.75)),
       height: Math.max(8, Math.round(height * 0.75)),
       filter: "lanczos",
+    };
+  }
+  if (effect.id === "heal") {
+    // Placed at the centre at a size that reads on any image; the inspector
+    // moves it in working-image pixels.
+    return {
+      kind: "heal",
+      x: Math.round(width / 2),
+      y: Math.round(height / 2),
+      radius: Math.max(8, Math.round(Math.min(width, height) * 0.06)),
     };
   }
   if (effect.id === "upscale") {
@@ -701,6 +718,21 @@ export default function ElysianStudioView() {
               ))}
             </div>
             <p className="kx-card-sub">{t("elysian.resampleHint")}</p>
+          </>
+        );
+      case "heal":
+        return (
+          <>
+            {range("elysian.field.x", selectedOp.x, 0, Math.max(1, base.width), 1, (value) =>
+              updateSelected({ x: value }),
+            )}
+            {range("elysian.field.y", selectedOp.y, 0, Math.max(1, base.height), 1, (value) =>
+              updateSelected({ y: value }),
+            )}
+            {range("elysian.field.radius", selectedOp.radius, 2, 240, 1, (value) =>
+              updateSelected({ radius: value }),
+            )}
+            <p className="kx-card-sub">{t("elysian.healHint")}</p>
           </>
         );
       case "rotate":

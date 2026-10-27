@@ -214,6 +214,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "el-marks", hub: "elysian", labelEn: "Borders, text and tiled watermarks", label: "إطارات ونص وعلامات مائية", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-presets", hub: "elysian", labelEn: "Ten presets as editable layers", label: "عشرة إعدادات جاهزة قابلة للتحرير", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-output", hub: "elysian", labelEn: "PNG, JPEG and WebP output with measured size", label: "خرج PNG وJPEG وWebP بحجم مقاس", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
+  entry({ id: "el-heal-spot", hub: "elysian", labelEn: "Spot heal by boundary diffusion", label: "ترقيع البقعة بالانتشار", mode: "LOCAL", status: "VERIFIED", route: "elysian", needs: "" }),
   entry({ id: "el-resample-upscale", hub: "elysian", labelEn: "Lanczos resampling upscale", label: "رفع الدقة بإعادة التشكيل", mode: "LOCAL", status: "VERIFIED", route: "elysian", needs: "" }),
   entry({ id: "el-curves", hub: "elysian", labelEn: "Tone curves and histogram", label: "منحنيات اللون والمدرج", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-retouch", hub: "elysian", labelEn: "Neural retouch and background removal", label: "التنعيم العصبي وإزالة الخلفية", mode: "MODEL-LOCAL", status: "BLOCKED", route: "elysian", needs: "Face-parsing and segmentation weights are not installed" }),

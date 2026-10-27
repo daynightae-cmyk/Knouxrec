@@ -18,7 +18,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
-| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 17 hubs with execution mode, honest status, destination route and missing dependency — 107 VERIFIED, 5 PARTIAL, 3 NOT-IMPLEMENTED, 10 BLOCKED; drives the Discover section and is audited by `serviceRegistry.test.ts` |
+| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 17 hubs with execution mode, honest status, destination route and missing dependency — 108 VERIFIED, 5 PARTIAL, 3 NOT-IMPLEMENTED, 10 BLOCKED; drives the Discover section and is audited by `serviceRegistry.test.ts` |
 | Workflow chains | `src/services/workflowChains.ts` | Four named chains that sequence the existing processors; no chain owns pixel or encoder math of its own |
 
 ## HUB 01 — Dashboard / Command Center
@@ -236,6 +236,7 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 | MP3 / AAC encoding | UNAVAILABLE | BLOCKED — no encoder exists; the control is disabled, not faked |
 | Spectral noise reduction | LOCAL | VERIFIED — `src/services/spectralDenoise.ts` learns a per-bin noise profile from the quietest frames and subtracts it with a protected floor (8 unit tests, measured noise-floor drop above 8 dB, tone preserved); driven from the Audio Studio step stack |
 | Lanczos-3 / Catmull-Rom resampling upscale (2×) | LOCAL | VERIFIED — `resamplePixels` in `src/services/imageOps.ts`, separable with a widened kernel when reducing and premultiplied alpha; 7 unit tests (flat field exact, sharper than bilinear, no dark halo, deterministic) |
+| Spot heal by boundary diffusion | LOCAL | VERIFIED — `healPixels` solves Laplace over the disc with alternating Gauss-Seidel sweeps from the surrounding pixels; 5 unit tests (blemish replaced within 12 levels of the clean background, outside untouched, alpha kept, whole-frame no-op, op dispatch) |
 
 ## HUB 18 — Batch Processing
 

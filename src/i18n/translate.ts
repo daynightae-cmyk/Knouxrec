@@ -766,6 +766,7 @@ const STRINGS: Dictionary = {
 
   "elysian.field.x": { en: "X", ar: "س" },
   "elysian.field.y": { en: "Y", ar: "ص" },
+  "elysian.field.radius": { en: "Radius", ar: "نصف القطر" },
   "elysian.field.resample": { en: "Resampling filter", ar: "مرشح إعادة التشكيل" },
   "elysian.field.width": { en: "Width", ar: "العرض" },
   "elysian.field.height": { en: "Height", ar: "الارتفاع" },
@@ -773,10 +774,10 @@ const STRINGS: Dictionary = {
   "elysian.resample.bilinear": { en: "Bilinear", ar: "ثنائي الخط" },
   "elysian.resample.bicubic": { en: "Bicubic", ar: "تكعيبي" },
   "elysian.resample.lanczos": { en: "Lanczos-3", ar: "لانكوس-3" },
+  "elysian.healHint": { en: "Fills the disc from its own border. It rebuilds a smooth background; heavy texture will look softened, so this is a spot heal and not a content-aware fill.", ar: "يملأ القرص من حدوده نفسها، فيعيد بناء خلفية ناعمة. النسيج الكثيف سيبدو مصقولًا؛ لذلك هو ترقيع بقعة لا تعبئة واعية بالمحتوى." },
   "elysian.resampleHint": { en: "Lanczos keeps edges crisp when enlarging; bilinear is fastest. This is optical resampling, not a neural model.", ar: "يحفظ لانكوس الحواف حادة عند التكبير، وثنائي الخط الأسرع. هذه إعادة تشكيل بصرية وليست نموذجًا عصبيًا." },
   "elysian.field.stops": { en: "Stops", ar: "الإيقافات" },
   "elysian.field.gamma": { en: "Gamma", ar: "جاما" },
-  "elysian.field.radius": { en: "Radius", ar: "نصف القطر" },
   "elysian.field.blocks": { en: "Blocks", ar: "البلوكات" },
   "elysian.field.opacity": { en: "Opacity", ar: "الشفافية" },
   "elysian.field.color": { en: "Colour", ar: "اللون" },
@@ -788,6 +789,7 @@ const STRINGS: Dictionary = {
 
   "elysian.effect.crop": { en: "Crop", ar: "قص" },
   "elysian.effect.resize": { en: "Resize", ar: "تغيير الحجم" },
+  "elysian.effect.heal": { en: "Spot heal", ar: "ترقيع البقعة" },
   "elysian.effect.upscale": { en: "Upscale 2x (Lanczos)", ar: "رفع الدقة ×2 (لانكوس)" },
   "elysian.effect.rotate": { en: "Rotate", ar: "تدوير" },
   "elysian.effect.flipH": { en: "Flip horizontal", ar: "قلب أفقي" },

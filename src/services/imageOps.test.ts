@@ -15,6 +15,7 @@ import {
   exposurePixels,
   flipPixels,
   gammaPixels,
+  healPixels,
   histogramPixels,
   IDENTITY_CURVE,
   meanDifference,
@@ -691,5 +692,80 @@ describe("resampling upscale", () => {
     const bilinear = applyOps(source, [{ kind: "resize", width: 32, height: 32 }]);
     expect(lanczos.width).toBe(32);
     expect(Array.from(lanczos.data)).not.toEqual(Array.from(bilinear.data));
+  });
+});
+
+describe("spot heal", () => {
+  /** A smooth horizontal gradient with a white blemish punched into the middle. */
+  function blemished(width = 64, height = 48): { clean: Pixels; dirty: Pixels } {
+    const make = (spot: boolean): Pixels => {
+      const data = new Uint8ClampedArray(width * height * 4);
+      for (let y = 0; y < height; y += 1) {
+        for (let x = 0; x < width; x += 1) {
+          const at = (y * width + x) * 4;
+          const ramp = Math.round(20 + (x / (width - 1)) * 200);
+          const dx = x - width / 2;
+          const dy = y - height / 2;
+          const inside = spot && dx * dx + dy * dy <= 36;
+          data[at] = inside ? 255 : ramp;
+          data[at + 1] = inside ? 255 : ramp;
+          data[at + 2] = inside ? 255 : ramp;
+          data[at + 3] = 255;
+        }
+      }
+      return { width, height, data };
+    };
+    return { clean: make(false), dirty: make(true) };
+  }
+
+  it("removes a blemish and lands close to the clean background", () => {
+    const { clean, dirty } = blemished();
+    const healed = healPixels(dirty, 32, 24, 8, 240);
+    let error = 0;
+    let count = 0;
+    for (let y = 18; y <= 30; y += 1) {
+      for (let x = 26; x <= 38; x += 1) {
+        const at = (y * dirty.width + x) * 4;
+        error += Math.abs(healed.data[at] - clean.data[at]);
+        count += 1;
+      }
+    }
+    expect(error / count).toBeLessThan(12);
+  });
+
+  it("leaves every pixel outside the disc untouched", () => {
+    const { dirty } = blemished();
+    const healed = healPixels(dirty, 32, 24, 6, 100);
+    for (let y = 0; y < dirty.height; y += 1) {
+      for (let x = 0; x < dirty.width; x += 1) {
+        const dx = x - 32;
+        const dy = y - 24;
+        if (dx * dx + dy * dy <= 36) continue;
+        const at = (y * dirty.width + x) * 4;
+        expect(healed.data[at], `${x},${y}`).toBe(dirty.data[at]);
+      }
+    }
+  });
+
+  it("keeps alpha and never produces NaN", () => {
+    const { dirty } = blemished();
+    const healed = healPixels(dirty, 10, 10, 20, 60);
+    expect(healed.data.every((value) => Number.isFinite(value))).toBe(true);
+    for (let i = 3; i < healed.data.length; i += 4) {
+      expect(healed.data[i]).toBe(255);
+    }
+  });
+
+  it("is a no-op when the disc covers the whole image", () => {
+    const { dirty } = blemished();
+    const healed = healPixels(dirty, 32, 24, 999, 20);
+    expect(Array.from(healed.data)).toEqual(Array.from(dirty.data));
+  });
+
+  it("applies through the op pipeline", () => {
+    const { dirty } = blemished();
+    const healed = applyOps(dirty, [{ kind: "heal", x: 32, y: 24, radius: 6 }]);
+    const centre = (24 * dirty.width + 32) * 4;
+    expect(healed.data[centre]).toBeLessThan(200);
   });
 });

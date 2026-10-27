@@ -55,6 +55,7 @@ export type CurvesOp = {
 export type Op =
   | { kind: "crop"; x: number; y: number; width: number; height: number }
   | { kind: "resize"; width: number; height: number; filter?: ResampleFilter }
+  | { kind: "heal"; x: number; y: number; radius: number }
   | { kind: "rotate"; angle: number }
   | { kind: "flip"; axis: "h" | "v" }
   | { kind: "exposure"; stops: number }
@@ -96,6 +97,7 @@ export const OP_LABELS: Record<OpKind, string> = {
   pixelate: "Pixelate",
   border: "Border",
   curves: "Curves",
+  heal: "Spot heal",
   text: "Text",
   watermark: "Watermark",
 };
@@ -371,6 +373,124 @@ export function resamplePixels(
     out[i + 3] = alpha;
   }
   return { width: outWidth, height: outHeight, data: out };
+}
+
+/**
+ * Spot heal by boundary diffusion.
+ *
+ * Every pixel inside the disc is replaced by the solution of Laplace's
+ * equation with the surrounding pixels fixed, solved with alternating
+ * Gauss-Seidel sweeps. That is a real inpaint — it rebuilds a smooth
+ * background from its own border — and it is honest about what it is: on
+ * strongly textured areas a smooth patch is visible, so the UI calls it a
+ * spot heal, not a content-aware fill.
+ */
+export function healPixels(
+  source: Pixels,
+  x: number,
+  y: number,
+  radius: number,
+  iterations?: number,
+): Pixels {
+  const out = clonePixels(source);
+  const { width, height } = source;
+  const cx = Math.max(0, Math.min(width - 1, Math.round(x)));
+  const cy = Math.max(0, Math.min(height - 1, Math.round(y)));
+  const r = Math.max(1, Math.round(radius));
+  const members: number[] = [];
+  const mask = new Uint8Array(width * height);
+  for (let py = Math.max(0, cy - r); py <= Math.min(height - 1, cy + r); py += 1) {
+    for (let px = Math.max(0, cx - r); px <= Math.min(width - 1, cx + r); px += 1) {
+      const dx = px - cx;
+      const dy = py - cy;
+      if (dx * dx + dy * dy <= r * r) {
+        const index = py * width + px;
+        mask[index] = 1;
+        members.push(index);
+      }
+    }
+  }
+  if (members.length === 0) return out;
+  if (members.length === width * height) return out; // nothing to diffuse from
+
+  // Seed colour: the mean of the pixels that touch the disc but sit outside it.
+  let br = 0;
+  let bg = 0;
+  let bb = 0;
+  let boundary = 0;
+  const visit = (index: number) => {
+    if (mask[index]) return;
+    br += out.data[index * 4];
+    bg += out.data[index * 4 + 1];
+    bb += out.data[index * 4 + 2];
+    boundary += 1;
+  };
+  for (const index of members) {
+    const px = index % width;
+    const py = (index - px) / width;
+    if (px > 0) visit(index - 1);
+    if (px < width - 1) visit(index + 1);
+    if (py > 0) visit(index - width);
+    if (py < height - 1) visit(index + width);
+  }
+  if (boundary === 0) return out;
+  const seedR = br / boundary;
+  const seedG = bg / boundary;
+  const seedB = bb / boundary;
+  for (const index of members) {
+    out.data[index * 4] = seedR;
+    out.data[index * 4 + 1] = seedG;
+    out.data[index * 4 + 2] = seedB;
+  }
+
+  const sweeps = Math.max(24, iterations ?? Math.min(600, r * 6));
+  const count = members.length;
+  for (let sweep = 0; sweep < sweeps; sweep += 1) {
+    const forward = sweep % 2 === 0;
+    for (let step = 0; step < count; step += 1) {
+      const index = forward ? members[step] : members[count - 1 - step];
+      const px = index % width;
+      const py = (index - px) / width;
+      let sr = 0;
+      let sg = 0;
+      let sb = 0;
+      let n = 0;
+      if (px > 0 && !mask[index - 1]) {
+        const at = (index - 1) * 4;
+        sr += out.data[at];
+        sg += out.data[at + 1];
+        sb += out.data[at + 2];
+        n += 1;
+      }
+      if (px < width - 1 && !mask[index + 1]) {
+        const at = (index + 1) * 4;
+        sr += out.data[at];
+        sg += out.data[at + 1];
+        sb += out.data[at + 2];
+        n += 1;
+      }
+      if (py > 0 && !mask[index - width]) {
+        const at = (index - width) * 4;
+        sr += out.data[at];
+        sg += out.data[at + 1];
+        sb += out.data[at + 2];
+        n += 1;
+      }
+      if (py < height - 1 && !mask[index + width]) {
+        const at = (index + width) * 4;
+        sr += out.data[at];
+        sg += out.data[at + 1];
+        sb += out.data[at + 2];
+        n += 1;
+      }
+      if (n > 0) {
+        out.data[index * 4] = sr / n;
+        out.data[index * 4 + 1] = sg / n;
+        out.data[index * 4 + 2] = sb / n;
+      }
+    }
+  }
+  return out;
 }
 
 export function flipPixels(source: Pixels, axis: "h" | "v"): Pixels {
@@ -1028,6 +1148,9 @@ export function applyOps(source: Pixels, ops: Op[], rasterize?: Rasterizer): Pix
         break;
       case "border":
         current = borderPixels(current, op.width, op.color, op.opacity);
+        break;
+      case "heal":
+        current = healPixels(current, op.x, op.y, op.radius);
         break;
       case "curves":
         current = curvePixels(current, op.channel, op.points);
