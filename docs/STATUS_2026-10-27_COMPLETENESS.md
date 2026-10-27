@@ -43,3 +43,29 @@ factor and a residual floor, and preserves length, rate and channel count.
 
 `npm run verify` — PASS (21 test files, 1316 i18n strings, lint 0 warnings,
 build). `smoke:templates` 27/27, `smoke:audio-studio` 44/44, `smoke:ui` 58/58.
+
+## 3. Real resampling upscale and spot heal (same day, later)
+
+- **Upscale** — `resamplePixels` (Lanczos-3, Catmull-Rom on request), separable,
+  with a kernel that widens when reducing and premultiplied alpha. Seven unit
+  tests; a one-click `Upscale 2x` card plus a filter selector on the resize
+  card. Neural super resolution stays blocked on its weight file.
+- **Spot heal** — `healPixels` solves Laplace over the disc with alternating
+  Gauss-Seidel sweeps from the surrounding pixels. Five unit tests (blemish
+  within 12 levels of a clean gradient, outside byte-identical, alpha kept,
+  full-frame no-op, op dispatch). The inspector says plainly that heavy texture
+  softens, so it is a spot heal and not a content-aware fill.
+- **Licence gateway** — `src/services/licensing.ts` with a Settings card. It
+  checks shape and a five-character checksum and stores the result; it never
+  claims activation, because no activation server exists in this build.
+  Eleven unit tests.
+- **MP3 — attempted and reverted.** `lamejs` was installed to unblock `au-mp3`;
+  its module entry throws `MPEGMode is not defined` and its browser bundle does
+  not export an encoder outside a global. Rather than ship a fragile global
+  shim, the dependency was removed and MP3 stays blocked with that reason.
+- **Model inventory — checked, not a defect.** After a full load the screen
+  reports 24 manifests, 0 weight files, 3.6 GB expected and 0 B installed; the
+  earlier empty-looking capture was taken mid-probe.
+
+Totals after this pass: 108 VERIFIED, 5 PARTIAL, 3 NOT-IMPLEMENTED,
+10 BLOCKED. `npm run verify` green with 282 unit tests.
