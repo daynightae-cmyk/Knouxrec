@@ -18,7 +18,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |
 | Templates | `services/realTemplateEngine.ts` | 5 real canvas renderers + 51 development placeholders |
 | Jobs | `src/state/JobsContext.tsx` | Live Studio records for tools, template exports, recordings |
-| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 17 hubs with execution mode, honest status, destination route and missing dependency — 104 VERIFIED, 5 PARTIAL, 3 NOT-IMPLEMENTED, 11 BLOCKED; drives the Discover section and is audited by `serviceRegistry.test.ts` |
+| Service registry | `src/data/serviceRegistry.ts` | 123 entries across 17 hubs with execution mode, honest status, destination route and missing dependency — 105 VERIFIED, 5 PARTIAL, 3 NOT-IMPLEMENTED, 10 BLOCKED; drives the Discover section and is audited by `serviceRegistry.test.ts` |
 | Workflow chains | `src/services/workflowChains.ts` | Four named chains that sequence the existing processors; no chain owns pixel or encoder math of its own |
 
 ## HUB 01 — Dashboard / Command Center
@@ -234,7 +234,7 @@ resize/convert/crop/watermark live in Batch Processing; both are verified there.
 | 16-bit WAV export, always available | LOCAL | VERIFIED |
 | WebM/Opus export through MediaRecorder, probed at runtime, real-time and capped | LOCAL | PARTIAL |
 | MP3 / AAC encoding | UNAVAILABLE | BLOCKED — no encoder exists; the control is disabled, not faked |
-| Spectral noise reduction | MODEL-LOCAL | BLOCKED — no noise model in the bundle |
+| Spectral noise reduction | LOCAL | VERIFIED — `src/services/spectralDenoise.ts` learns a per-bin noise profile from the quietest frames and subtracts it with a protected floor (8 unit tests, measured noise-floor drop above 8 dB, tone preserved); driven from the Audio Studio step stack |
 
 ## HUB 18 — Batch Processing
 

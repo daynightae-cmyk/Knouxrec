@@ -285,8 +285,49 @@ try {
   );
   await click(page, ".kx-audio-actions .kx-btn:nth-child(3)");
   await sleep(1200);
+  await click(page, '[data-group="edit"]');
   const clearedHeader = await headerText(page);
   check("clearing the steps returns the full source", /2\.00s/.test(clearedHeader), clearedHeader);
+
+  /* --------------------------------------------------------- denoise */
+  await click(page, '[data-group="tone"]');
+  const stepsBefore = await page.evaluate(
+    () => document.querySelectorAll(".kx-audio-step").length,
+  );
+  await click(page, '[data-operation-id="denoise"]');
+  await sleep(1800);
+  const denoiseState = await page.evaluate(() => ({
+    steps: document.querySelectorAll(".kx-audio-step").length,
+    label: document.querySelector(".kx-audio-step[aria-pressed='true']")?.textContent ?? "",
+    strength: Boolean(
+      document.querySelector(".kx-audio-inspector input[data-slider='audio.field.strength']"),
+    ),
+    floor: Boolean(
+      document.querySelector(".kx-audio-inspector input[data-slider='audio.field.noiseFloor']"),
+    ),
+    hint: document.querySelector(".kx-audio-inspector .kx-card-sub")?.textContent ?? "",
+  }));
+  const denoiseHeader = await headerText(page);
+  const denoiseEnergy = await waveEnergy(page);
+  check(
+    "reduce noise is a real step with its own controls and an unchanged length",
+    denoiseState.steps === stepsBefore + 1 &&
+      /Reduce noise/.test(denoiseState.label) &&
+      denoiseState.strength &&
+      denoiseState.floor &&
+      denoiseState.hint.length > 40 &&
+      /2\.00s/.test(denoiseHeader),
+    { ...denoiseState, header: denoiseHeader },
+  );
+  check(
+    "the denoised waveform keeps its signal instead of going flat",
+    Boolean(denoiseEnergy && loadedEnergy && denoiseEnergy.sum > loadedEnergy.sum * 0.5),
+    { before: loadedEnergy?.sum, after: denoiseEnergy?.sum },
+  );
+  await click(page, ".kx-audio-actions .kx-btn:nth-child(3)");
+  await sleep(1200);
+  await click(page, '[data-group="edit"]');
+  await sleep(300);
 
   /* ------------------------------------------------------- selection */
   const box = await page.evaluate(() => {

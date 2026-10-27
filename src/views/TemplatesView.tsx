@@ -208,6 +208,14 @@ export default function TemplatesView({
 
     const build = async () => {
       const next: Record<string, string> = {};
+      // The engine draws elements in the template's native coordinate space and
+      // does not rescale them, so a 480x270 render cropped every element that
+      // sat below that box — which is why a lower third and a transition showed
+      // as empty cards. Render at the template's own size, then downscale.
+      const thumbCanvas = document.createElement("canvas");
+      thumbCanvas.width = 480;
+      thumbCanvas.height = 270;
+      const thumbContext = thumbCanvas.getContext("2d", { willReadFrequently: true });
       for (const template of templates) {
         if (cancelled) return;
         let best: { score: number; url: string } | null = null;
@@ -219,7 +227,10 @@ export default function TemplatesView({
               template.id,
               {},
               {
-                resolution: { width: 480, height: 270 },
+                resolution: {
+                  width: Math.max(480, template.width),
+                  height: Math.max(270, template.height),
+                },
                 fps: 12,
                 quality: "draft",
                 format: "png-sequence",
@@ -227,15 +238,18 @@ export default function TemplatesView({
               },
               time,
             );
-            const score = scoreFrame(canvas);
+            if (!thumbContext) break;
+            thumbContext.clearRect(0, 0, 480, 270);
+            thumbContext.drawImage(canvas, 0, 0, 480, 270);
+            const score = scoreFrame(thumbCanvas);
             if (!best || score > best.score) {
-              best = { score, url: canvas.toDataURL("image/png") };
+              best = { score, url: thumbCanvas.toDataURL("image/png") };
             }
           } catch {
             // Keep scanning; one unrenderable sample should not lose the card.
           }
         }
-        if (best) next[template.id] = best.url;
+        if (best && best.score > 0.5) next[template.id] = best.url;
       }
       if (!cancelled) setThumbs(next);
     };

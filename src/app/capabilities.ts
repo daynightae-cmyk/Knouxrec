@@ -179,10 +179,10 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "audioStudio",
     state: "PARTIAL",
     summary:
-      "Local audio workspace on a non-destructive step stack: waveform with drag selection, real playback, trim, split into segments, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo conversion and browser biquad low-pass, high-pass and band-pass filters. Exports 16-bit WAV always and WebM/Opus only when the runtime reports it can.",
+      "Local audio workspace on a non-destructive step stack: waveform with drag selection, real playback, trim, split into segments, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo conversion, browser biquad low-pass, high-pass and band-pass filters, and a learned-profile spectral noise reduction. Exports 16-bit WAV always and WebM/Opus only when the runtime reports it can.",
     requirements: ["An audio file, or a stored library item", "Web Audio decode support"],
     evidence:
-      "src/services/audioOps.ts is pure sample math covered by 25 unit tests (exact frame counts, +6 dB doubling, peak landing on the requested dBFS, detected silence intervals and their removal, split segments adding back up, WAV header round-trip). scripts/audio-studio-smoke.mjs drives the workspace in Chromium and checks the decoded rate and duration, waveform pixels, real playback position, every operation's measured effect on samples, the filter's measured high-frequency attenuation, WebM support probing, saved library bytes and exported file magic.",
+      "src/services/audioOps.ts is pure sample math covered by 25 unit tests (exact frame counts, +6 dB doubling, peak landing on the requested dBFS, detected silence intervals and their removal, split segments adding back up, WAV header round-trip); src/services/spectralDenoise.ts adds a real STFT subtractor with 8 more unit tests, including a measured noise-floor drop above 8 dB on a voiced burst over constant noise and a preserved 440 Hz amplitude. scripts/audio-studio-smoke.mjs drives the workspace in Chromium and checks the decoded rate and duration, waveform pixels, real playback position, every operation's measured effect on samples, the filter's measured high-frequency attenuation, WebM support probing, saved library bytes and exported file magic.",
   },
   batch: {
     id: "batch",

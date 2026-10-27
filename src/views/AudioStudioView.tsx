@@ -93,6 +93,12 @@ const OPERATIONS: Operation[] = [
     make: () => ({ kind: "filter", type: "bandpass" as FilterType, frequency: 1000, q: 1.4, gainDb: 0 }),
   },
   {
+    id: "denoise",
+    group: "tone",
+    labelKey: "audio.op.denoise",
+    make: () => ({ kind: "denoise", strength: 2, floor: 0.08 }),
+  },
+  {
     id: "reverse",
     group: "shape",
     labelKey: "audio.op.reverse",
@@ -526,6 +532,18 @@ export default function AudioStudioView({
             {range("audio.field.minSilence", selectedStep.minSilenceMs, 50, 3000, 10, (value) =>
               updateSelected({ minSilenceMs: value }),
             )}
+          </>
+        );
+      case "denoise":
+        return (
+          <>
+            {range("audio.field.strength", selectedStep.strength, 0.5, 4, 0.1, (value) =>
+              updateSelected({ strength: value }),
+            )}
+            {range("audio.field.noiseFloor", selectedStep.floor, 0.02, 0.5, 0.01, (value) =>
+              updateSelected({ floor: value }),
+            )}
+            <p className="kx-card-sub">{t("audio.denoiseHint")}</p>
           </>
         );
       case "filter":

@@ -1,12 +1,12 @@
 {
-  "generatedAt": "2026-10-23T23:02:29.026Z",
+  "generatedAt": "2026-10-27T00:51:09.968Z",
   "source": {
     "repository": "https://github.com/daynightae-cmyk/Knouxrec.git",
     "commit": "05a542957a62730301972361c1300ccd7d66ca54",
     "note": "Generated from the working tree; runtime states reference artifacts/evidence."
   },
   "counts": {
-    "routes": 16,
+    "routes": 20,
     "core": 16,
     "offlineAI": 38,
     "arabicAI": 38,
@@ -27,25 +27,33 @@
       "evidence": "Rendered shell; navigation and recorder state wired to a single provider."
     },
     {
+      "id": "discover",
+      "group": "capture",
+      "state": "VERIFIED",
+      "summary": "One place to find every service: global search across the canonical registry of 121 entries in 17 hubs, hub filters, favourites and recents, with the execution mode (local, model-local, hybrid, online) and the honest run state of each entry. Blocked services name the missing dependency and link to the model manager.",
+      "requirements": [],
+      "evidence": "src/data/serviceRegistry.ts is the single source and src/data/serviceRegistry.test.ts fails when an entry claims VERIFIED without a route or is BLOCKED without a dependency. scripts/discover-smoke.mjs drives search, filters, favourites persistence across a reload, badge accuracy against the registry, the Live Studio and model-manager links, and Arabic RTL."
+    },
+    {
       "id": "studio",
       "group": "capture",
       "state": "VERIFIED",
-      "summary": "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output.",
+      "summary": "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output, including a microphone-only session that never asks for a display surface and meters the live input in dBFS, and a countdown that starts the chosen source on its own.",
       "requirements": [
         "Screen capture permission",
         "MediaRecorder support"
       ],
-      "evidence": "RecordingSession records real timestamps from the active media stream; output is written to IndexedDB."
+      "evidence": "RecordingSession branches on the capture mode: the display path composes screen, microphone and webcam tracks, while the audio path opens the microphone alone, encodes the container the runtime actually supports (probed with isTypeSupported, never assumed) and measures its level from an AnalyserNode on the same stream. The countdown lives in the recorder context for this page only, so a reload can never begin recording behind the user. scripts/audio-recording-smoke.mjs drives the real pipeline in Chromium with a fake capture device (34/34): no video surface exists for an audio take, the meter holds the loudest moment of the signal, pause holds the clock, a 3-second countdown arms, decreases, fires on its own and clears itself, cancelling it really prevents the recording, the saved blob decodes back to non-silent audio with a real duration, the dashboard voice memo records a second take, and the Arabic build matches. src/services/audioRecording.test.ts pins the engine contract with 11 unit tests, including that a missing audio container is refused before the microphone is opened."
     },
     {
       "id": "screenshots",
       "group": "capture",
       "state": "VERIFIED",
-      "summary": "Real pixel capture from the display stream with PNG/JPEG/WebP encoding.",
+      "summary": "Real display capture plus a full editor: crop, arrows, shapes, highlight, text, blur/pixelate, undo/redo, compare, library save and verified PNG export; fresh captures open directly in the editor.",
       "requirements": [
         "Screen capture permission"
       ],
-      "evidence": "Canvas drawImage from a live display stream; blob signature checked before saving."
+      "evidence": "scripts/screenshot-editor-smoke.mjs captures a real frame from the display stream and drives the editor (16 checks): crop geometry, pixel-changing annotations and blur, undo, compare, the stored PNG and the exported bytes."
     },
     {
       "id": "library",
@@ -61,68 +69,88 @@
       "id": "templates",
       "group": "create",
       "state": "VERIFIED",
-      "summary": "Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content.",
+      "summary": "Five real templates presented as a visual gallery with rendered thumbnails, editable text, frame export and WebM video export; the 51 placeholders stay behind a clearly labelled development catalog.",
       "requirements": [
         "Canvas 2D renderer",
         "MediaRecorder WebM encoder"
       ],
-      "evidence": "services/realTemplateEngine.ts evaluates element lifetimes and animation keyframes per frame; the PNG frame and WebM video are encoded from the same canvas. scripts/templates-smoke.mjs verifies the WebM container, dimensions, duration and animated frame differences."
+      "evidence": "services/realTemplateEngine.ts evaluates element lifetimes and keyframes per frame. scripts/templates-smoke.mjs verifies the gallery thumbnails (480×270 PNG data), customization→pixels, PNG/WebM exports, cancellation and RTL (27 checks)."
     },
     {
       "id": "toolbox",
       "group": "create",
       "state": "VERIFIED",
-      "summary": "Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette.",
+      "summary": "Eleven local media utilities with real processors: resize, filters, format conversion, rotate/flip, crop, pixelate, video thumbnail, waveform, text image, QR code and colour palette.",
       "requirements": [
         "Canvas 2D encoder",
         "Web Audio decoder for the visualiser",
         "Video decoder for the thumbnail"
       ],
-      "evidence": "scripts/toolbox-smoke.mjs drove all eight tools through the UI (99/99 checks): real fixture inputs, invalid-input rejection, preview/saved/export SHA-256 equality, PNG/JPEG/WEBP signatures, cancellation, reload persistence and Arabic RTL."
+      "evidence": "scripts/toolbox-smoke.mjs drives all eleven tools through the UI (127/127 checks): real fixtures, invalid-input rejection, preview/saved/export SHA-256 equality, signatures, cancellation, reload persistence and Arabic RTL."
     },
     {
       "id": "visual-patch",
       "group": "create",
       "state": "PARTIAL",
-      "summary": "Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export.",
+      "summary": "Region based image editor with the fifty preserved tools and their real canvas processors: paint a freehand stroke or drag a rectangle, see the mask over the picture, erase or grow it, apply the tool, compare, undo and export.",
       "requirements": [
         "An image to edit"
       ],
-      "evidence": "scripts/visual-patch-smoke.mjs now verifies the full pipeline (21/21): paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven."
+      "evidence": "src/services/maskOps.ts holds the selection geometry as pure functions (rectangle normalisation, polygon hit testing, segment distance, grow/shrink about a centroid) with 10 unit tests. scripts/visual-patch-smoke.mjs verifies the full pipeline (28/28): the painted mask is visible on the overlay, freehand/rectangle/erase all exist, a dragged rectangle becomes a rectangular region, growing changes the measured extent, erase removes the region under the pointer, clearing empties list and overlay, then paint, apply, pixel change, undo/redo, before/after repaint, reset, PNG export and the library blob signature. Individual algorithms beyond the driven tool family are not each proven."
     },
     {
       "id": "morphcore",
       "group": "create",
-      "state": "MISSING_ENGINE",
-      "summary": "Body-shape tool catalog preserved, but it depended on fictional .exe modules and fabricated output paths.",
+      "state": "PARTIAL",
+      "summary": "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective, a sine warp and a draggable mesh lattice (2×2 up to 6×6 per axis, keyboard-editable control points), with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
       "requirements": [
-        "Native morphology engine",
-        "Per-tool validated model"
+        "An image to transform"
       ],
-      "evidence": "services/knouxMorphCore.ts only simulates execution; no executable module or pixel pipeline exists."
+      "evidence": "src/services/geometryOps.ts holds the mesh as pure functions over RGBA bytes, covered by 11 unit tests (a flat lattice is byte-identical, a pulled vertex moves content with it and leaves a far column untouched, displacement stays local, border pulls survive a density change, alpha follows its pixels). scripts/morphcore-smoke.mjs drives the studio in Chromium (67/67): the 18+ gate refuses a child year and stays session-scoped, stretch lands on the predicted box and source coordinates, pinch resamples only inside the declared radius, perspective leaves fully transparent wedges, rotate fills the rotated bounding box and flips mirror real pixels, warp shifts rows by different amounts, the mesh lattice drags under a real pointer and under arrow keys, flattening restores the exact source bytes and Apply bakes the warp, undo/redo restore snapshots pixel-for-pixel, the saved IndexedDB blob re-opens identical, and the exported PNG decodes to the same bytes. The legacy body-aware catalog is listed separately as blocked with no run control."
+    },
+    {
+      "id": "audio-studio",
+      "group": "create",
+      "state": "PARTIAL",
+      "summary": "Local audio workspace on a non-destructive step stack: waveform with drag selection, real playback, trim, split into segments, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo conversion, browser biquad low-pass, high-pass and band-pass filters, and a learned-profile spectral noise reduction. Exports 16-bit WAV always and WebM/Opus only when the runtime reports it can.",
+      "requirements": [
+        "An audio file, or a stored library item",
+        "Web Audio decode support"
+      ],
+      "evidence": "src/services/audioOps.ts is pure sample math covered by 25 unit tests (exact frame counts, +6 dB doubling, peak landing on the requested dBFS, detected silence intervals and their removal, split segments adding back up, WAV header round-trip); src/services/spectralDenoise.ts adds a real STFT subtractor with 8 more unit tests, including a measured noise-floor drop above 8 dB on a voiced burst over constant noise and a preserved 440 Hz amplitude. scripts/audio-studio-smoke.mjs drives the workspace in Chromium and checks the decoded rate and duration, waveform pixels, real playback position, every operation's measured effect on samples, the filter's measured high-frequency attenuation, WebM support probing, saved library bytes and exported file magic."
+    },
+    {
+      "id": "batch",
+      "group": "create",
+      "state": "PARTIAL",
+      "summary": "Queue many files through the already-verified image processors with bounded concurrency: batch resize, format conversion, crop presets and watermarking. Per-file progress, failure isolation, cancellation, output verification and a multi-file export of everything that succeeded.",
+      "requirements": [
+        "Two or more images"
+      ],
+      "evidence": "src/services/batchQueue.ts runs a fixed worker pool over the real mediaTools processors and records measured output bytes and dimensions per file; scripts/batch-smoke.mjs asserts concurrency never exceeds the cap, a poisoned file fails alone, cancellation stops the queue, every output decodes at the requested size, and the multi-file export writes each artefact."
     },
     {
       "id": "elysian",
       "group": "create",
       "state": "PARTIAL",
-      "summary": "Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle.",
+      "summary": "Full creative image studio on a non-destructive layer stack: crop, resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, sharpen, pixelate, borders, text and tiled watermarks, a tone-curve workbench with a measured histogram and per-channel curves, plus ten presets built from the same operations. The effect browser renders its thumbnails by running those operations on the working image.",
       "requirements": [
         "Image input",
         "Model weights for the AI pipeline"
       ],
-      "evidence": "scripts/elysian-smoke.mjs drives the packaged binary (18/18): age gate, upload, preset filter, compare repaint, verified PNG export with independently decoded pixels, and the saved library blob signature."
+      "evidence": "src/services/imageOps.ts is a pure RGBA pipeline covered by 43 numeric unit tests (exact crop rectangles, bilinear mapping, radius-limited blur, unsharp overshoot, grey-channel presets, monotone curve tables, measured histograms and auto-levels stretch, plus the guarantee that a composite step never writes back into the caller's base pixels). scripts/elysian-studio-smoke.mjs drives the workspace in Chromium (70/70): age gate, unique per-card thumbnails, stacked and reordered layers, history replay, pixel-identical undo/redo, drag crop, rotate, text and watermark rendering, the tone-curve workbench (dragged handle, typed level, per-channel curve, auto levels, straight line that is byte-identical to the source, keyboard nudging), split compare, IndexedDB save with an identical re-open, PNG and half-scale JPEG exports decoded independently, and Arabic RTL. The neural services stay listed as blocked with no preview."
     },
     {
       "id": "body-editor",
       "group": "create",
-      "state": "MISSING_MODEL",
-      "summary": "Age-gated body editor UI preserved. It depends on segmentation models whose weight files are not distributed.",
+      "state": "PARTIAL",
+      "summary": "Age-gated proportion mirror: place five height guides and two edge guides on your own photograph and read the spans between them in pixels and in head lengths, with the artist's canon available as a placement aid. No body recognition, no reshaping, and the body-aware services stay listed as blocked.",
       "requirements": [
         "Age verification",
-        "Segmentation weights",
-        "Inference runtime"
+        "An image to measure",
+        "Segmentation weights for the blocked tools"
       ],
-      "evidence": "public/models/*/model.json manifests exist, weights.bin files do not."
+      "evidence": "src/services/proportions.ts holds the measurement maths as pure functions (span, head length, heads tall, width per head, canon placement, clamping) with 7 unit tests. scripts/proportions-smoke.mjs drives the screen in Chromium (20/20): a child year is refused, an adult declaration opens the mirror, a 400x800 photograph stages at its own size, seven guides measure 384 px and exactly four heads by default, dragging the hip guide re-measures the span, arrow keys nudge a focused guide, canon placement lands chin/shoulder/waist on whole and half heads, the on-page report carries every number, the two body-aware services are listed as blocked with no control, saving archives the source with provenance, and Arabic renders translated. Weight files for the blocked services still do not exist."
     },
     {
       "id": "offline-ai",
@@ -150,19 +178,19 @@
       "id": "models",
       "group": "intelligence",
       "state": "MISSING_MODEL",
-      "summary": "Model manifest inventory with explicit weight-file verification.",
+      "summary": "Model manifest inventory with explicit weight-file probes plus a local validation workflow (size against the manifest, SHA-256 of the chosen file); nothing is installed or executed.",
       "requirements": [
         "Weight binaries"
       ],
-      "evidence": "Only model.json graph metadata ships; no weights.bin present."
+      "evidence": "Only model.json graph metadata ships; no weights.bin present. The validation panel hashes a selected file in-browser and reports the size verdict without claiming installation."
     },
     {
       "id": "settings",
       "group": "system",
       "state": "VERIFIED",
-      "summary": "Persisted appearance, language and recording defaults.",
+      "summary": "Persisted appearance, language and recording defaults, plus keyboard shortcuts that the user can rebind, with conflicts refused before they are stored.",
       "requirements": [],
-      "evidence": "Settings persist in localStorage and are applied to the document root."
+      "evidence": "Settings persist in localStorage and are applied to the document root. src/services/hotkeys.ts canonicalises combinations, refuses a shortcut without a modifier, refuses a duplicate and repairs a hand-edited settings file (12 unit tests); the settings screen records a combination live and Escape leaves it alone; scripts/hotkeys-smoke.mjs drives the real window listener (17/17) — a rebound Ctrl+Alt+K starts and stops a microphone take and archives it, the screenshot binding still lands a file, the binding survives a reload, and the Arabic card stays translated."
     },
     {
       "id": "diagnostics",
@@ -171,6 +199,14 @@
       "summary": "Runtime capability matrix measured from MediaDevices, MediaRecorder, IndexedDB, the Electron bridge and the bundled model folders.",
       "requirements": [],
       "evidence": "Values are computed in-browser; the packaged smoke asserts the live desktop bridge row and the real 0/24 weight inventory from inside Electron."
+    },
+    {
+      "id": "about",
+      "group": "system",
+      "state": "VERIFIED",
+      "summary": "The official KNOUX corporate identity: the genuine logo, the founder and his engineering practice, and every company and personal contact destination — WhatsApp, corporate email, direct call, the website and five social profiles — each one a working action rather than printed text.",
+      "requirements": [],
+      "evidence": "src/data/knouxIdentity.ts is the only source of the destinations and src/services/externalLinks.ts refuses any scheme outside https/mailto/tel (18 unit tests). In Electron a mailto: or tel: click goes through the preload bridge to a main-process handler that validates the same allowlist before shell.openExternal, and a refusal is reported as a refusal with the value copied as the fallback. scripts/about-smoke.mjs drives the screen in Chromium: the bundled logo decodes at its real 800x800 size, all nine destinations match the official list exactly, copy and open actions report real outcomes, and the Arabic build renders translated in RTL."
     },
     {
       "id": "live-studio",

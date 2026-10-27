@@ -1,8 +1,8 @@
 # KNOUX REC capability registry
 
-Generated 2026-10-23T23:02:29.026Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
+Generated 2026-10-27T00:51:09.968Z from commit 05a542957a62730301972361c1300ccd7d66ca54 (working tree).
 
-Counts: routes=16, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
+Counts: routes=20, core=16, offlineAI=38, arabicAI=38, visualPatch=50, morphCore=50, toolbox=8, templatesBase=5, templatesGenerated=51, models=24.
 
 Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catalog entry ships without its runtime; `MOCK` means the data is explicitly generated placeholder content; `BLOCKED` means the view cannot be mounted as shipped.
 
@@ -11,20 +11,24 @@ Statuses are evidence-based. `MISSING_MODEL` and `MISSING_ENGINE` mean the catal
 | Route | Group | State | Summary |
 | --- | --- | --- | --- |
 | dashboard | capture | VERIFIED | Unified capture dashboard with live recorder status and recent local media. |
-| studio | capture | VERIFIED | Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output. |
-| screenshots | capture | VERIFIED | Real pixel capture from the display stream with PNG/JPEG/WebP encoding. |
+| discover | capture | VERIFIED | One place to find every service: global search across the canonical registry of 121 entries in 17 hubs, hub filters, favourites and recents, with the execution mode (local, model-local, hybrid, online) and the honest run state of each entry. Blocked services name the missing dependency and link to the model manager. |
+| studio | capture | VERIFIED | Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output, including a microphone-only session that never asks for a display surface and meters the live input in dBFS, and a countdown that starts the chosen source on its own. |
+| screenshots | capture | VERIFIED | Real display capture plus a full editor: crop, arrows, shapes, highlight, text, blur/pixelate, undo/redo, compare, library save and verified PNG export; fresh captures open directly in the editor. |
 | library | library | VERIFIED | Persistent local library with preview, rename, delete, export and trim. |
-| templates | create | VERIFIED | Five templates render real canvas frames at any playhead and export real WebM video (canvas.captureStream + MediaRecorder); the 51 generated entries stay labelled as mock because they carry no template content. |
-| toolbox | create | VERIFIED | Eight local media utilities with real processors: resize, filters, format conversion (PNG/JPEG/WebP), video thumbnail, waveform, text image, QR code and colour palette. |
-| visual-patch | create | PARTIAL | Region based image editor with the fifty preserved tools and their real canvas processors: paint a region, apply the tool, compare, undo and export. |
-| morphcore | create | MISSING_ENGINE | Body-shape tool catalog preserved, but it depended on fictional .exe modules and fabricated output paths. |
-| elysian | create | PARTIAL | Image editing workspace with slider filters, real presets, before/after comparison, verified PNG export and library save. The AI inference pipeline is not part of the bundle. |
-| body-editor | create | MISSING_MODEL | Age-gated body editor UI preserved. It depends on segmentation models whose weight files are not distributed. |
+| templates | create | VERIFIED | Five real templates presented as a visual gallery with rendered thumbnails, editable text, frame export and WebM video export; the 51 placeholders stay behind a clearly labelled development catalog. |
+| toolbox | create | VERIFIED | Eleven local media utilities with real processors: resize, filters, format conversion, rotate/flip, crop, pixelate, video thumbnail, waveform, text image, QR code and colour palette. |
+| visual-patch | create | PARTIAL | Region based image editor with the fifty preserved tools and their real canvas processors: paint a freehand stroke or drag a rectangle, see the mask over the picture, erase or grow it, apply the tool, compare, undo and export. |
+| morphcore | create | PARTIAL | Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective, a sine warp and a draggable mesh lattice (2×2 up to 6×6 per axis, keyboard-editable control points), with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine. |
+| audio-studio | create | PARTIAL | Local audio workspace on a non-destructive step stack: waveform with drag selection, real playback, trim, split into segments, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo conversion, browser biquad low-pass, high-pass and band-pass filters, and a learned-profile spectral noise reduction. Exports 16-bit WAV always and WebM/Opus only when the runtime reports it can. |
+| batch | create | PARTIAL | Queue many files through the already-verified image processors with bounded concurrency: batch resize, format conversion, crop presets and watermarking. Per-file progress, failure isolation, cancellation, output verification and a multi-file export of everything that succeeded. |
+| elysian | create | PARTIAL | Full creative image studio on a non-destructive layer stack: crop, resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, sharpen, pixelate, borders, text and tiled watermarks, a tone-curve workbench with a measured histogram and per-channel curves, plus ten presets built from the same operations. The effect browser renders its thumbnails by running those operations on the working image. |
+| body-editor | create | PARTIAL | Age-gated proportion mirror: place five height guides and two edge guides on your own photograph and read the spans between them in pixels and in head lengths, with the artist's canon available as a placement aid. No body recognition, no reshaping, and the body-aware services stay listed as blocked. |
 | offline-ai | intelligence | PARTIAL | One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist. |
 | arabic-ai | intelligence | PARTIAL | The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too. |
-| models | intelligence | MISSING_MODEL | Model manifest inventory with explicit weight-file verification. |
-| settings | system | VERIFIED | Persisted appearance, language and recording defaults. |
+| models | intelligence | MISSING_MODEL | Model manifest inventory with explicit weight-file probes plus a local validation workflow (size against the manifest, SHA-256 of the chosen file); nothing is installed or executed. |
+| settings | system | VERIFIED | Persisted appearance, language and recording defaults, plus keyboard shortcuts that the user can rebind, with conflicts refused before they are stored. |
 | diagnostics | system | VERIFIED | Runtime capability matrix measured from MediaDevices, MediaRecorder, IndexedDB, the Electron bridge and the bundled model folders. |
+| about | system | VERIFIED | The official KNOUX corporate identity: the genuine logo, the founder and his engineering practice, and every company and personal contact destination — WhatsApp, corporate email, direct call, the website and five social profiles — each one a working action rather than printed text. |
 | live-studio | create | VERIFIED | Shared execution workspace for every real job: media tools, template WebM exports and recordings, with live lifecycle events, media previews, verification and save/export. |
 
 ## Core runtime

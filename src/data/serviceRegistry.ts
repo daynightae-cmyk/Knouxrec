@@ -187,7 +187,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "au-export-wav", hub: "audio", labelEn: "16-bit WAV export", label: "تصدير WAV بـ16 بت", mode: "LOCAL", status: "VERIFIED", route: "audio-studio" }),
   entry({ id: "au-export-webm", hub: "audio", labelEn: "WebM/Opus export when the runtime supports it", label: "تصدير WebM/Opus عند دعم المنفِّذ", mode: "LOCAL", status: "PARTIAL", route: "audio-studio", needs: "Encoded in real time through MediaRecorder and capped at 30s; unavailable where the runtime reports no support" }),
   entry({ id: "au-mp3", hub: "audio", labelEn: "MP3 and AAC encoding", label: "ترميز MP3 وAAC", mode: "UNAVAILABLE", status: "BLOCKED", needs: "No encoder exists in this runtime; the control is disabled rather than faked" }),
-  entry({ id: "au-noise-reduction", hub: "audio", labelEn: "Spectral noise reduction", label: "خفض الضوضاء الطيفي", mode: "MODEL-LOCAL", status: "BLOCKED", route: "audio-studio", needs: "A noise profile model and a spectral gate that is not implemented" }),
+  entry({ id: "au-noise-reduction", hub: "audio", labelEn: "Spectral noise reduction", label: "خفض الضوضاء الطيفي", mode: "LOCAL", status: "VERIFIED", route: "audio-studio", needs: "" }),
 
   /* ------------------------------------------------------- visual patch */
   entry({ id: "vp-paint", hub: "visual-patch", labelEn: "Paint a region and apply a tool", label: "تلوين منطقة وتطبيق أداة", mode: "LOCAL", status: "VERIFIED", route: "visual-patch" }),

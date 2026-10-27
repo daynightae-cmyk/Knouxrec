@@ -21,6 +21,7 @@ import {
   type SilenceInterval,
 } from "./aiDsp";
 import { buildWaveformPeaks } from "./mediaTools";
+import { denoiseSignal } from "./spectralDenoise";
 
 export type { SilenceInterval };
 
@@ -39,7 +40,8 @@ export type AudioStep =
   | { kind: "channels"; layout: "mono" | "stereo" }
   | { kind: "filter"; type: FilterType; frequency: number; q: number; gainDb: number }
   | { kind: "cut-silence"; thresholdDb: number; minSilenceMs: number }
-  | { kind: "fade"; inMs: number; outMs: number };
+  | { kind: "fade"; inMs: number; outMs: number }
+  | { kind: "denoise"; strength: number; floor: number };
 
 export type AudioStepKind = AudioStep["kind"];
 
@@ -57,6 +59,7 @@ export const STEP_LABELS: Record<AudioStepKind, string> = {
   filter: "Frequency filter",
   "cut-silence": "Cut silence",
   fade: "Fade in/out",
+  denoise: "Reduce noise",
 };
 
 export const clamp = (value: number, min: number, max: number) =>
@@ -292,6 +295,11 @@ export async function applySteps(
         break;
       case "fade":
         signal = fadeSignal(signal, step.inMs, step.outMs);
+        break;
+      case "denoise":
+        // Pure spectral subtraction over the clip's own quietest frames: no
+        // model, no network, and the length never changes.
+        signal = denoiseSignal(signal, { strength: step.strength, floor: step.floor });
         break;
       case "cut-silence":
         signal = cutSilenceSignal(signal, {
