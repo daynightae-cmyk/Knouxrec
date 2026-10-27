@@ -1,5 +1,9 @@
 # PRODUCTION_GATES.md
 
+> [!CAUTION]
+> **INDEPENDENT GATE RESULT: NOT ALL PASS.** G11 visual reference acceptance **FAILED** (sampled historical captures show Splash); G12 trusted signing **FAILED** (installer and EXE report NotSigned); other historical gate claims need case-level evidence. See [corrections](docs/PRODUCTION_EVIDENCE_CORRECTIONS_2026-10-27.md). GitHub CI for `a0a3929` passed, which is a separate, narrower claim.
+
+
 **KNOUX REC — Production Gate Definitions and Results**
 
 ## Gate Definitions
@@ -58,14 +62,14 @@
 - **Result**: ✅ PASS
 - **Evidence**: All 25 suites PASS, 0 failures
 
-### G11: Visual Matrix (240 screenshots)
+### G11: Visual Matrix (240 screenshots; reference capture invalid)
 - **Criteria**: 20 routes × 2 themes × 2 directions × 3 DPIs = 240 PNGs
-- **Result**: ✅ PASS
+- **Result**: ❌ FAILED — Splash overlays captured; no reference comparison
 - **Evidence**: `artifacts/visual-matrix/` — 240 files + manifest.json
 
-### G12: Electron Packaging
+### G12: Signed Electron Packaging
 - **Criteria**: `npm run electron:dist` produces signed installer
-- **Result**: ✅ PASS
+- **Result**: ❌ FAILED — executable and installer NotSigned
 - **Evidence**: `release/KNOUX-REC-Setup-1.0.0-x64.exe` + `release/win-unpacked/`
 
 ---
@@ -84,7 +88,7 @@
 | G8: Trim Stability (3x) | ✅ PASS | recording-smoke ×3 |
 | G9: Packaged Route Coverage (3x) | ✅ PASS | packaged-smoke ×3 |
 | G10: Full Smoke Suite | ✅ PASS | smoke:all |
-| G11: Visual Matrix (240) | ✅ PASS | visual-matrix/ |
-| G12: Electron Packaging | ✅ PASS | release/ |
+| G11: Visual Matrix (240) | ❌ FAILED | visual-matrix/ |
+| G12: Electron Packaging | ❌ FAILED | release/ |
 
-**All 12 production gates: PASS**
+**Independent audit: G11 FAILED visual evidence; G12 FAILED trusted signing; original all-PASS sign-off withdrawn.**
