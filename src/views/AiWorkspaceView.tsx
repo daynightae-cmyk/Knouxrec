@@ -13,6 +13,13 @@ import {
   type ModelInspection,
 } from "../services/modelRegistry";
 import { runtimeFor } from "../data/aiRuntime";
+import {
+  convertArabicNumerals,
+  stripDiacritics,
+  normalizeArabic,
+  arabicWordCount,
+} from "../services/arabicOps";
+import { downloadBlob } from "../lib/format";
 import AiTaskRunner from "./AiTaskRunner";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
 
@@ -45,6 +52,42 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
   const [inspecting, setInspecting] = useState(true);
 
   const preferArabic = variant === "arabic-ai" || settings.language === "ar";
+
+  // Arabic text utilities — deterministic, offline, no model. Wired to a real
+  // user action with real output and export so `ar-tools` is backed by a UI
+  // consumer rather than tests alone.
+  const [arabicText, setArabicText] = useState("");
+  const [arabicResult, setArabicResult] = useState<string | null>(null);
+  const [arabicOp, setArabicOp] = useState<string | null>(null);
+
+  const runArabicOp = (op: string) => {
+    let result: string | null = null;
+    switch (op) {
+      case "to-western":
+        result = convertArabicNumerals(arabicText, "to-western");
+        break;
+      case "to-arabic":
+        result = convertArabicNumerals(arabicText, "to-arabic");
+        break;
+      case "strip":
+        result = stripDiacritics(arabicText);
+        break;
+      case "normalize":
+        result = normalizeArabic(arabicText);
+        break;
+      case "count":
+        result = String(arabicWordCount(arabicText));
+        break;
+    }
+    setArabicResult(result);
+    setArabicOp(op);
+  };
+
+  const exportArabic = () => {
+    if (!arabicResult || !arabicOp) return;
+    const blob = new Blob([arabicResult], { type: "text/plain;charset=utf-8" });
+    downloadBlob(blob, `arabic-tools-${arabicOp}.txt`);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -122,6 +165,15 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
           <strong data-ai-model-count>{modelTasks}</strong> {t("ai.modelRuntimeBody")}
         </div>
       </div>
+
+      {variant === "arabic-ai" && <ArabicToolsPanel
+        t={t}
+        text={arabicText}
+        onTextChange={setArabicText}
+        runOp={runArabicOp}
+        result={arabicResult}
+        exportResult={exportArabic}
+      />}
 
       <div className="kx-row" style={{ gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
         <input
@@ -356,6 +408,81 @@ export default function AiWorkspaceView({ variant }: { variant: AiWorkspaceVaria
       <div className="kx-notice" data-tone="info" style={{ marginTop: 16 }}>
         <Icon name="shield" size={18} />
         <div>{t("ai.privacy")}</div>
+      </div>
+    </div>
+  );
+}
+
+function ArabicToolsPanel({
+  t,
+  text,
+  onTextChange,
+  runOp,
+  result,
+  exportResult,
+}: {
+  t: (key: string) => string;
+  text: string;
+  onTextChange: (value: string) => void;
+  runOp: (op: string) => void;
+  result: string | null;
+  exportResult: () => void;
+}) {
+  return (
+    <div className="kx-card" style={{ marginBottom: 16 }}>
+      <div className="kx-card-title" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <Icon name="pencil" size={16} />
+        <strong>{t("arabicTools.title")}</strong>
+      </div>
+      <div className="kx-muted kx-card-sub" style={{ marginTop: 6 }}>{t("arabicTools.subtitle")}</div>
+      <div style={{ marginTop: 12 }}>
+        <label className="kx-field" style={{ display: "block", marginBottom: 8 }}>
+          <span className="kx-label">{t("arabicTools.input")}</span>
+          <textarea
+            className="kx-input"
+            value={text}
+            onChange={(event) => onTextChange(event.target.value)}
+            placeholder={t("arabicTools.inputHint")}
+            rows={3}
+            dir="auto"
+            spellCheck={false}
+          />
+        </label>
+        <div className="kx-row" style={{ gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+          <button type="button" className="kx-btn" onClick={() => runOp("to-western")}>
+            {t("arabicTools.toWestern")}
+          </button>
+          <button type="button" className="kx-btn" onClick={() => runOp("to-arabic")}>
+            {t("arabicTools.toArabic")}
+          </button>
+          <button type="button" className="kx-btn" onClick={() => runOp("strip")}>
+            {t("arabicTools.stripDiacritics")}
+          </button>
+          <button type="button" className="kx-btn" onClick={() => runOp("normalize")}>
+            {t("arabicTools.normalize")}
+          </button>
+          <button type="button" className="kx-btn" onClick={() => runOp("count")}>
+            {t("arabicTools.wordCount")}
+          </button>
+        </div>
+        {result !== null && (
+          <div style={{ marginTop: 10 }}>
+            <div className="kx-row" style={{ gap: 8, alignItems: "center", marginBottom: 8 }}>
+              <strong style={{ fontSize: "0.78rem" }}>{t("arabicTools.output")}</strong>
+              <button
+                type="button"
+                className="kx-btn kx-btn-sm"
+                onClick={exportResult}
+              >
+                <Icon name="download" size={13} />
+                {t("arabicTools.export")}
+              </button>
+            </div>
+            <div className="kx-mono" style={{ marginTop: 8, padding: 10, borderRadius: 6 }}>
+              {result}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

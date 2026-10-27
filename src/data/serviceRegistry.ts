@@ -115,7 +115,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "shot-redact", hub: "screenshots", labelEn: "Pixelate or blur a sensitive region", label: "تمويه أو بكسلة منطقة حساسة", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-history", hub: "screenshots", labelEn: "Undo, redo and before/after", label: "تراجع وإعادة ومقارنة", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-export", hub: "screenshots", labelEn: "Save as new image and export PNG", label: "حفظ كصورة جديدة وتصدير", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
-  entry({ id: "shot-os-region", hub: "screenshots", labelEn: "OS-level window or region picker", label: "منتقي النافذة أو المنطقة من النظام", mode: "LOCAL", status: "NOT-IMPLEMENTED", needs: "Native window enumeration in the desktop bridge" }),
+  entry({ id: "shot-os-region", hub: "screenshots", labelEn: "OS-level region capture", label: "التقاط منطقة من النظام", mode: "LOCAL", status: "IMPLEMENTED-NOT-VERIFIED", route: "screenshots", needs: "End-to-end region-picker smoke under the desktop bridge" }),
   entry({ id: "shot-delay", hub: "screenshots", labelEn: "Delayed capture with a live countdown", label: "التقاط مؤجل بعدّاد حي", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
 
   /* ------------------------------------------------------------ library */
@@ -231,13 +231,13 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "ai-ocr", hub: "offline-ai", labelEn: "Optical character recognition", label: "التعرف الضوئي على الحروف", mode: "MODEL-LOCAL", status: "BLOCKED", route: "models", needs: "An OCR model" }),
 
   /* ---------------------------------------------------------- arabic ai */
-  entry({ id: "ar-tools", hub: "arabic-ai", labelEn: "Arabic text utilities", label: "أدوات النصوص العربية", mode: "LOCAL", status: "PARTIAL", route: "arabic-ai", needs: "Deterministic utilities run; model-backed tasks need weights" }),
+  entry({ id: "ar-tools", hub: "arabic-ai", labelEn: "Arabic text utilities", label: "أدوات النصوص العربية", mode: "LOCAL", status: "PARTIAL", route: "arabic-ai", needs: "Deterministic utilities (numerals, diacritics, normalization, word count) run; model-backed Arabic tasks need weights" }),
   entry({ id: "ar-model", hub: "arabic-ai", labelEn: "Arabic language model tasks", label: "مهام نموذج اللغة العربي", mode: "MODEL-LOCAL", status: "BLOCKED", route: "models", needs: "A quantified Arabic model bundle" }),
 
   /* ------------------------------------------------------------- models */
   entry({ id: "models-inventory", hub: "models", labelEn: "Model manifest inventory", label: "جرد بيانات النماذج", mode: "LOCAL", status: "VERIFIED", route: "models" }),
   entry({ id: "models-validate", hub: "models", labelEn: "Validate a local weight file against its manifest", label: "تحقق من ملف أوزان محلي", mode: "LOCAL", status: "VERIFIED", route: "models" }),
-  entry({ id: "models-download", hub: "models", labelEn: "Download weights inside the app", label: "تنزيل الأوزان من داخل التطبيق", mode: "ONLINE", status: "NOT-IMPLEMENTED", needs: "An explicit user-approved download path; nothing is fetched silently" }),
+  entry({ id: "models-download", hub: "models", labelEn: "Import and verify local model weights", label: "استيراد الأوزان المحلية والتحقق منها", mode: "LOCAL", status: "IMPLEMENTED-NOT-VERIFIED", route: "models", needs: "Local manifest + weight import with SHA-256 verification is implemented; remote download stays blocked until a trusted, authorized distribution source exists" }),
 
   /* ----------------------------------------------------------- settings */
   entry({ id: "set-theme", hub: "settings", labelEn: "Theme, language and motion preferences", label: "السمة واللغة والحركة", mode: "LOCAL", status: "VERIFIED", route: "settings" }),

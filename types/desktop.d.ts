@@ -18,6 +18,19 @@ interface KnouxDesktopBridge {
    */
   openExternal(url: string): Promise<boolean>;
   onCommand(callback: (command: string) => void): () => void;
+  /**
+   * Open a user-picked local model manifest (and optional weight file),
+   * validate the manifest and weight integrity, and return a report. Remote
+   * download is never offered by this bridge.
+   */
+  importModel(): Promise<{
+    canceled?: boolean;
+    ok?: boolean;
+    reason?: string;
+    manifest?: any;
+    weights?: any;
+    manifestSha256?: string;
+  }>;
 }
 
 interface Window {

@@ -52,6 +52,12 @@ export default function ModelsView() {
   const [query, setQuery] = useState("");
   const [checks, setChecks] = useState<Record<string, WeightCheck>>({});
   const [checking, setChecking] = useState<string | null>(null);
+  const [importReport, setImportReport] = useState<{
+    ok: boolean;
+    reason: string;
+    manifest?: { modelName: string; version: string; expectedWeightsBytes: number; tensorCount: number } | null;
+    weights?: { name: string; size: number; sha256: string; matchesDeclaredSize: boolean; sha256Trusted: boolean } | null;
+  } | null>(null);
   const weightInputRef = useRef<HTMLInputElement | null>(null);
   const checkTargetRef = useRef<string | null>(null);
 
@@ -99,6 +105,42 @@ export default function ModelsView() {
     if (!input) return;
     input.value = "";
     input.click();
+  };
+
+  const importLocalModel = async () => {
+    const bridge = window.knouxDesktop;
+    if (!bridge?.importModel) return;
+    setImportReport(null);
+    try {
+      const report = await bridge.importModel();
+      if (report?.canceled) return;
+      setImportReport({
+        ok: Boolean(report?.ok),
+        reason: report?.reason ?? t("models.importUnknownResult"),
+        manifest: report?.manifest ?? null,
+        weights: report?.weights ?? null,
+      });
+      const weightsInstalled =
+        Boolean(report?.weights?.matchesDeclaredSize && report?.weights?.sha256Trusted !== false);
+      if (weightsInstalled) {
+        push(
+          "success",
+          t("models.importOk"),
+          `${report.manifest?.modelName ?? ""} · ${formatBytes(report.manifest?.expectedWeightsBytes ?? 0)}`,
+        );
+      } else if (report?.ok) {
+        push(
+          "info",
+          t("models.importValidated"),
+          `${t("models.manifestOnly")} · ${t("models.notInstalledNote")}`,
+        );
+      } else {
+        push("error", t("models.importFailed"), report?.reason ?? t("models.importUnknownResult"));
+      }
+    } catch (cause) {
+      setImportReport({ ok: false, reason: cause instanceof Error ? cause.message : String(cause), manifest: null, weights: null });
+      push("error", t("models.importFailed"), cause instanceof Error ? cause.message : String(cause));
+    }
   };
 
   const onWeightFile = async (file: File | null) => {
@@ -211,6 +253,16 @@ export default function ModelsView() {
         <span className="kx-badge" data-state="PARTIAL">
           {visible.length} / {rows.length}
         </span>
+        <button
+          type="button"
+          className="kx-btn kx-btn-primary"
+          onClick={importLocalModel}
+          disabled={typeof window.knouxDesktop?.importModel !== "function"}
+          title={typeof window.knouxDesktop?.importModel === "function" ? undefined : t("models.importDesktopOnly")}
+        >
+          <Icon name="upload" size={14} />
+          {t("models.importLocalModel")}
+        </button>
         <input
           ref={weightInputRef}
           type="file"
@@ -367,6 +419,61 @@ export default function ModelsView() {
           {formatBytes(manifestBytes)} {t("models.ofManifests")})
         </div>
       </div>
+
+      {importReport && (
+        <div
+          className="kx-card"
+          style={{
+            marginTop: 16,
+            border: `1px solid ${
+              importReport?.weights?.matchesDeclaredSize && importReport?.weights?.sha256Trusted !== false
+                ? "var(--kx-success)"
+                : importReport.ok
+                  ? "var(--kx-info)"
+                  : "var(--kx-danger)"
+            }`
+          }}
+        >
+          <div className="kx-card-title" style={{ display: "flex", gap: 8, alignItems: "center" }}>
+            <Icon
+              name={
+                importReport?.weights?.matchesDeclaredSize && importReport?.weights?.sha256Trusted !== false
+                  ? "shield"
+                  : importReport.ok
+                    ? "info"
+                    : "alert"
+              }
+              size={15}
+            />
+            <strong>
+              {importReport?.weights?.matchesDeclaredSize && importReport?.weights?.sha256Trusted !== false
+                ? t("models.importOk")
+                : importReport.ok
+                  ? t("models.importValidated")
+                  : t("models.importRejected")}
+            </strong>
+          </div>
+          <div className="kx-muted" style={{ marginTop: 8 }}>{importReport.reason}</div>
+          {importReport.manifest && (
+            <div className="kx-row" style={{ gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+              <span className="kx-muted kx-mono">{importReport.manifest.modelName}</span>
+              <span className="kx-muted kx-mono">v{importReport.manifest.version}</span>
+              <span className="kx-muted kx-mono">{importReport.manifest.tensorCount} {t("models.tensors")}</span>
+              <span className="kx-muted kx-mono">{importReport.manifest.expectedWeightsBytes > 0 ? formatBytes(importReport.manifest.expectedWeightsBytes) : t("models.noSizeBaseline")}</span>
+            </div>
+          )}
+          {importReport.weights && (
+            <div className="kx-row" style={{ gap: 12, marginTop: 10, flexWrap: "wrap" }}>
+              <span className="kx-muted kx-mono">{importReport.weights.name}</span>
+              <span className="kx-muted kx-mono">{formatBytes(importReport.weights.size)}</span>
+              <span className={`kx-badge ${importReport.weights.matchesDeclaredSize ? "VERIFIED" : "BLOCKED"}`}>
+                {importReport.weights.matchesDeclaredSize ? t("models.sizeMatch") : t("models.sizeMismatch")}
+              </span>
+              <span className="kx-muted kx-mono" style={{ fontSize: "0.7rem" }}>{importReport.weights.sha256.slice(0, 16)}…</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

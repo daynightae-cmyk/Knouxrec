@@ -37,6 +37,7 @@ const BOOT_TIMEOUT = Number(arg("timeout", "90000"));
 
 const ROUTES = [
   "dashboard",
+  "discover",
   "studio",
   "screenshots",
   "library",
@@ -44,6 +45,8 @@ const ROUTES = [
   "toolbox",
   "visual-patch",
   "morphcore",
+  "audio-studio",
+  "batch",
   "elysian",
   "body-editor",
   "offline-ai",
@@ -51,6 +54,7 @@ const ROUTES = [
   "models",
   "settings",
   "diagnostics",
+  "about",
   "live-studio",
 ];
 

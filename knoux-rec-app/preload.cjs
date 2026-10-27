@@ -11,6 +11,12 @@ contextBridge.exposeInMainWorld("knouxDesktop", {
   openExternal(url) {
     return ipcRenderer.invoke("knoux:links:open", String(url));
   },
+  desktopSources() {
+    return ipcRenderer.invoke("knoux:desktop:sources");
+  },
+  async importModel() {
+    return ipcRenderer.invoke("knoux:models:import");
+  },
   onCommand(callback) {
     if (typeof callback !== "function") return () => {};
     const listener = (_event, command) => callback(String(command));

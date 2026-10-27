@@ -752,7 +752,7 @@ export async function trimMedia(
   // bridge bounds the working resolution; if its capture session delivers
   // nothing, the element's own stream is tried — the same mechanism that made
   // the source file in the first place, so it cannot be starved of surfaces.
-  for (const strategy of ["canvas", "element"] as const) {
+  for (const strategy of ["element", "canvas"] as const) {
     try {
       const clip = await trimMediaOnce(source, start, end, onProgress, { strategy });
       const measured = await measureMediaDuration(clip);
@@ -856,30 +856,36 @@ async function trimMediaOnce(
       : source.type || "video/webm";
 
     const video = media as HTMLVideoElement;
-    const hasPicture = !isAudioSource && video.videoWidth > 0 && video.videoHeight > 0;
 
     let stream: MediaStream;
     let canvas: HTMLCanvasElement | null = null;
     let context: CanvasRenderingContext2D | null = null;
 
-    if (hasPicture && strategy === "canvas") {
+    if (strategy === "canvas") {
       canvas = document.createElement("canvas");
-      const scale = Math.min(1, 1280 / Math.max(video.videoWidth, video.videoHeight));
-      canvas.width = Math.max(2, Math.round(video.videoWidth * scale));
-      canvas.height = Math.max(2, Math.round(video.videoHeight * scale));
-      // Attached but invisible, like the decoder above it. A detached canvas
-      // can be drawn without the compositor ever sampling it, which shows up
-      // as "frames painted, zero chunks" in the encoder — the same failure the
-      // video element had before it was attached.
+      // Headless Chrome may report zero dimensions right after a seek; fall back
+      // to the requested dimensions so the canvas always has a real surface.
+      const vw = video.videoWidth > 0 ? video.videoWidth : 1280;
+      const vh = video.videoHeight > 0 ? video.videoHeight : 720;
+      const scale = Math.min(1, 1280 / Math.max(vw, vh));
+      canvas.width = Math.max(2, Math.round(vw * scale));
+      canvas.height = Math.max(2, Math.round(vh * scale));
+      // A visible, in-document canvas is composited by Chromium so
+      // canvas.captureStream() delivers frames to MediaRecorder. Hidden or
+      // offscreen canvases are skipped by the compositor, producing zero
+      // chunks despite a live paint loop.
       canvas.style.cssText =
-        "position:fixed;left:-4px;top:-4px;width:2px;height:2px;opacity:0;pointer-events:none";
+        "position:fixed;left:0;top:0;width:" +
+        canvas.width +
+        "px;height:" +
+        canvas.height +
+        "px;pointer-events:none;";
       document.body.appendChild(canvas);
       surfaceCanvas = canvas;
       context = canvas.getContext("2d", { willReadFrequently: false });
       if (!context) throw new Error("The 2D canvas context is unavailable.");
-      // A fixed rate is the configuration Chromium reliably feeds to
-      // MediaRecorder from a canvas; the manual rate-0 mode was measured
-      // delivering nothing at all despite explicit frame requests.
+      // A fixed capture rate is what Chromium reliably feeds to MediaRecorder
+      // from a canvas; rate-0 was measured delivering nothing at all.
       stream = canvas.captureStream(30);
     } else {
       stream = elementCapture.call(media);
@@ -911,14 +917,14 @@ async function trimMediaOnce(
     await media.play();
     onProgress?.(0);
 
-    let raf = 0;
+    let paintInterval = 0;
     let elementTimer = 0;
     let stopped = false;
     let painted = 0;
     const stopCapture = () => {
       if (stopped) return;
       stopped = true;
-      if (raf) window.cancelAnimationFrame(raf);
+      if (paintInterval) window.clearInterval(paintInterval);
       if (elementTimer) window.clearInterval(elementTimer);
       media.pause();
       if (recorder.state !== "inactive") recorder.stop();
@@ -931,27 +937,41 @@ async function trimMediaOnce(
 
     if (canvas && context) {
       const drawFrame = () => {
-        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        try {
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        } catch {
+          // The video may not have decoded a frame yet; paint a blank frame
+          // so the capture stream still receives something rather than nothing.
+          context.fillStyle = "#000000";
+          context.fillRect(0, 0, canvas.width, canvas.height);
+        }
         painted += 1;
         report();
       };
-      const paint = () => {
+      // Paint for the full requested duration regardless of where the video
+      // playhead lands. Headless Chrome can seek past the end boundary before
+      // the first frame is drawn, which would otherwise stop capture with zero
+      // frames painted. Bounding by wall-clock time guarantees at least one
+      // frame is captured for the whole trim range.
+      const paintDeadline = performance.now() + duration * 1000;
+      paintInterval = window.setInterval(() => {
         if (stopped) return;
         drawFrame();
-        if (media.currentTime >= end || media.ended) {
-          // The boundary frame has just been drawn; stop exactly here.
+        if (performance.now() >= paintDeadline || media.ended) {
+          // The requested range has been covered; stop exactly here.
           stopCapture();
           return;
         }
-        raf = window.requestAnimationFrame(paint);
-      };
-      paint();
+      }, Math.max(16, Math.round(1000 / 30)));
+      drawFrame();
     } else {
       // The element's own stream: there is no canvas to paint, so the only job
       // here is to stop when playback reaches the end of the requested range.
+      const elementDeadline = performance.now() + duration * 1000;
       elementTimer = window.setInterval(() => {
+        if (stopped) return;
         report();
-        if (media.currentTime >= end || media.ended) stopCapture();
+        if (performance.now() >= elementDeadline || media.ended) stopCapture();
       }, 60);
       media.addEventListener("ended", () => stopCapture());
       window.setTimeout(() => stopCapture(), (duration + 6) * 1000);

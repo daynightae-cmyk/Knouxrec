@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRecorder } from "../state/RecorderContext";
 import { useLibrary } from "../state/LibraryContext";
 import { useSettings } from "../state/SettingsContext";
@@ -12,6 +12,7 @@ import {
   Thumbnail,
 } from "./ui";
 import ScreenshotEditor from "./ScreenshotEditor";
+import RegionCaptureOverlay from "../ui/RegionCaptureOverlay";
 import { downloadBlob, formatBytes } from "../lib/format";
 import type { LibraryItem } from "../state/types";
 
@@ -22,6 +23,9 @@ export default function ScreenshotsView() {
   const t = (key: string) => translate(settings.language, key);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
   const [editing, setEditing] = useState<LibraryItem | null>(null);
+  const [regionOpen, setRegionOpen] = useState(false);
+  const [regionStream, setRegionStream] = useState<MediaStream | null>(null);
+  const [regionError, setRegionError] = useState<string | null>(null);
   const [delay, setDelay] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
   const timerRef = useRef<number | null>(null);
@@ -34,6 +38,25 @@ export default function ScreenshotsView() {
     }
     setCountdown(null);
   };
+
+  useEffect(() => () => clearCountdown(), []);
+
+  // Release a region-capture stream the view owns when the overlay closes or
+  // the component unmounts so no camera/screen track stays open.
+  const stopRegionStream = useCallback(() => {
+    if (regionStream) {
+      regionStream.getTracks().forEach((track) => {
+        try { track.stop(); } catch { /* noop */ }
+      });
+      setRegionStream(null);
+    }
+  }, [regionStream]);
+
+  // Stop the view-owned region stream when the overlay closes so no track
+  // stays open after the user cancels.
+  useEffect(() => {
+    if (!regionOpen) stopRegionStream();
+  }, [regionOpen, stopRegionStream]);
 
   // A delay is real wall-clock time: the overlay counts it down and either the
   // countdown reaches zero or the user cancels before any pixels are captured.
@@ -56,7 +79,33 @@ export default function ScreenshotsView() {
     }, 1000);
   };
 
-  useEffect(() => () => clearCountdown(), []);
+  // OS display capture (getDisplayMedia) requires a transient user gesture, so
+  // the stream is acquired directly in this click handler and handed to the
+  // overlay. The overlay never re-requests it, which keeps the picker inside
+  // the activation window and avoids a denied capture on Windows.
+  const openRegionCapture = async () => {
+    stopRegionStream();
+    setRegionError(null);
+    if (typeof navigator === "undefined" || !navigator.mediaDevices?.getDisplayMedia) {
+      setRegionError("OS display capture is not available in this runtime.");
+      return;
+    }
+    try {
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: { width: { ideal: 3840 }, height: { ideal: 2160 } },
+        audio: false,
+      });
+      if (stream.getVideoTracks().length === 0) {
+        stream.getTracks().forEach((track) => track.stop());
+        setRegionError("The display picker returned no video track.");
+        return;
+      }
+      setRegionStream(stream);
+      setRegionOpen(true);
+    } catch (cause) {
+      setRegionError(cause instanceof Error ? cause.message : "Region capture was cancelled.");
+    }
+  };
 
   // A fresh capture opens straight into the editor once its library row exists.
   const lastCaptureId = recorder.lastCapture?.id ?? null;
@@ -78,17 +127,35 @@ export default function ScreenshotsView() {
         title={t("screenshots")}
         description={t("screenshots.description")}
         actions={
-          <button
-            type="button"
-            className="kx-btn kx-btn-primary"
-            onClick={startCapture}
-            disabled={!recorder.support.display && !recorder.previewStream || countdown !== null}
-          >
-            <Icon name="camera" size={17} />
-            {t("captureScreen")}
-          </button>
+          <>
+            <button
+              type="button"
+              className="kx-btn kx-btn-primary"
+              onClick={openRegionCapture}
+              disabled={countdown !== null}
+            >
+              <Icon name="cut" size={17} />
+              {t("regionCapture.label")}
+            </button>
+            <button
+              type="button"
+              className="kx-btn kx-btn-primary"
+              onClick={startCapture}
+              disabled={!recorder.support.display && !recorder.previewStream || countdown !== null}
+            >
+              <Icon name="camera" size={17} />
+              {t("captureScreen")}
+            </button>
+          </>
         }
       />
+
+      {regionError && (
+        <div className="kx-notice" data-tone="error" role="alert">
+          <Icon name="alert" size={17} />
+          <div>{regionError}</div>
+        </div>
+      )}
 
       <div className="kx-row kx-shot-delay" role="group" aria-label={t("screenshots.delay")}>
         <span className="kx-muted kx-mono" style={{ fontSize: "0.68rem" }}>
@@ -260,6 +327,12 @@ export default function ScreenshotsView() {
         blob={editing?.blob ?? null}
         name={editing?.name ?? ""}
         onClose={() => setEditing(null)}
+      />
+
+      <RegionCaptureOverlay
+        open={regionOpen}
+        onClose={() => setRegionOpen(false)}
+        sourceStream={regionStream}
       />
     </div>
   );

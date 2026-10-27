@@ -11,6 +11,7 @@ const {
 const fs = require("fs");
 const path = require("path");
 const { pathToFileURL } = require("url");
+const crypto = require("crypto");
 
 const isPackaged = app.isPackaged;
 const appEntry = path.join(__dirname, "..", "dist", "index.html");
@@ -370,6 +371,136 @@ ipcMain.handle("knoux:models:inspect", (event, id) => {
   }
 });
 
+function shapeBytes(shape, dtype) {
+  if (!Array.isArray(shape) || shape.length === 0) return 0;
+  const elements = shape.reduce((total, value) => total * Math.max(1, Number(value) || 1), 1);
+  return elements * (dtype === "float16" ? 2 : dtype === "int8" || dtype === "bool" || dtype === "uint8" ? 1 : 4);
+}
+
+function sha256Hex(buffer) {
+  return crypto.createHash("sha256").update(buffer).digest("hex");
+}
+
+const MAX_WEIGHTS_BYTES = 8 * 1024 * 1024 * 1024;
+const MAX_MODEL_MANIFEST_BYTES = 4 * 1024 * 1024;
+
+async function hashModelFile(filePath) {
+  const digest = crypto.createHash("sha256");
+  for await (const chunk of fs.createReadStream(filePath, { highWaterMark: 1024 * 1024 })) {
+    digest.update(chunk);
+  }
+  return digest.digest("hex");
+}
+
+/**
+ * Safe local model import. The user picks a manifest (and optional weight
+ * file); we validate the manifest, hash the weights, compare the declared
+ * size, and report. Nothing is downloaded, nothing is written into the bundle,
+ * and no model is marked runnable by this flow.
+ */
+ipcMain.handle("knoux:models:import", async (event) => {
+  if (!isMainSender(event)) return null;
+  const result = await dialog.showOpenDialog(mainWindow ?? undefined, {
+    properties: ["openFile", "multiSelections"],
+    filters: [
+      { name: "Model manifest", extensions: ["json"] },
+      { name: "Weight file", extensions: ["bin"] },
+    ],
+  });
+  if (result.canceled || result.filePaths.length === 0) {
+    return { canceled: true };
+  }
+
+  let manifestBuffer = null;
+  let manifestName = "";
+  let selectedWeightsPath = null;
+  let selectedWeightsSize = 0;
+  let weightsName = "";
+
+  for (const filePath of result.filePaths) {
+    try {
+      const name = path.basename(filePath).toLowerCase();
+      if (!name.endsWith(".json") && !name.endsWith(".bin")) continue;
+      const info = await fs.promises.stat(filePath);
+      if (!info.isFile()) continue;
+      if (name.endsWith(".json") && !manifestBuffer) {
+        if (info.size === 0 || info.size > MAX_MODEL_MANIFEST_BYTES) {
+          return { ok: false, reason: "Model manifest must be between 1 byte and 4 MiB." };
+        }
+        const buffer = await fs.promises.readFile(filePath);
+        try { JSON.parse(buffer.toString("utf8")); } catch { continue; }
+        manifestBuffer = buffer;
+        manifestName = path.basename(filePath);
+      } else if (name.endsWith(".bin") && !selectedWeightsPath) {
+        if (info.size === 0 || info.size > MAX_WEIGHTS_BYTES) {
+          return { ok: false, reason: "Weight file must be between 1 byte and 8 GiB." };
+        }
+        selectedWeightsPath = filePath;
+        selectedWeightsSize = info.size;
+        weightsName = path.basename(filePath);
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  if (!manifestBuffer) {
+    return { ok: false, reason: "No valid model manifest was selected." };
+  }
+
+  let manifest;
+  try {
+    manifest = JSON.parse(manifestBuffer.toString("utf8"));
+  } catch {
+    return { ok: false, reason: "The manifest is not valid JSON." };
+  }
+
+  const group = manifest.weightsManifest ? manifest.weightsManifest[0] : null;
+  const weightsPath = group && group.paths ? group.paths[0] : "weights.bin";
+  const tensors = group && Array.isArray(group.weights) ? group.weights : [];
+  const expectedWeightsBytes = tensors.reduce((total, t) => {
+    const shape = t && Array.isArray(t.shape) ? t.shape : [];
+    const elements = shape.reduce((n, v) => n * Math.max(1, Number(v) || 1), 1);
+    return total + elements * (t.dtype === "float16" ? 2 : t.dtype === "int8" || t.dtype === "bool" || t.dtype === "uint8" ? 1 : 4);
+  }, 0);
+
+  const report = {
+    ok: true,
+    manifest: {
+      modelName: manifest.modelName ? manifest.modelName : manifestName.replace(/\.json$/i, ""),
+      version: manifest.version ? manifest.version : "",
+      description: manifest.description ? manifest.description : "",
+      weightsPath,
+      expectedWeightsBytes,
+      tensorCount: tensors.length,
+      capabilities: manifest.userDefinedMetadata && manifest.userDefinedMetadata.capabilities ? manifest.userDefinedMetadata.capabilities : [],
+      source: manifest.source ? manifest.source : manifest.generatedBy ? manifest.generatedBy : null,
+      license: manifest.license ? manifest.license : null,
+    },
+    manifestSha256: sha256Hex(manifestBuffer),
+  };
+
+  if (!selectedWeightsPath) {
+    report.reason = "Manifest parsed. No weights selected; this does not install or activate a model.";
+    return report;
+  }
+
+  // Stream from disk rather than buffering up to 8 GiB in Electron's main process.
+  const matchesDeclaredSize = expectedWeightsBytes > 0 && selectedWeightsSize === expectedWeightsBytes;
+  const digest = await hashModelFile(selectedWeightsPath);
+  report.weights = {
+    name: weightsName,
+    size: selectedWeightsSize,
+    sha256: digest,
+    matchesDeclaredSize,
+  };
+  report.ok = matchesDeclaredSize;
+  report.reason = !matchesDeclaredSize
+    ? "Selected file size does not match a declared, supported tensor inventory."
+    : "Manifest and selected file sizes match; SHA-256 fingerprint computed. No model was installed, activated, or independently authenticated.";
+  return report;
+});
+
 ipcMain.handle("knoux:picker:list", (event) => {
   if (!isPickerSender(event)) return [];
   return (pendingPicker?.sources ?? []).map(({ id, name, thumbnail }) => ({
@@ -393,6 +524,20 @@ ipcMain.on("knoux:picker:select", (event, payload) => {
 ipcMain.on("knoux:picker:cancel", (event) => {
   if (!isPickerSender(event)) return;
   resolvePicker({});
+});
+
+ipcMain.handle("knoux:desktop:sources", async (event) => {
+  if (!isMainSender(event)) return [];
+  const sources = await desktopCapturer.getSources({
+    types: ["screen", "window"],
+    thumbnailSize: { width: 320, height: 180 },
+    fetchWindowIcons: false,
+  });
+  return sources.map(({ id, name, thumbnail }) => ({
+    id,
+    name,
+    thumbnail: thumbnail ? thumbnail.toDataURL() : null,
+  }));
 });
 
 app.on("window-all-closed", () => {
