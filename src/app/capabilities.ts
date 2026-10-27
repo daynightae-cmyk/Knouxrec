@@ -19,6 +19,7 @@ export type RouteId =
   | "models"
   | "settings"
   | "diagnostics"
+  | "about"
   | "live-studio";
 
 export interface Capability {
@@ -60,7 +61,11 @@ export const NAVIGATION: SectionGroup[] = [
     ],
   },
   { id: "intelligence", labelKey: "groupIntelligence", routes: ["offline-ai", "arabic-ai", "models"] },
-  { id: "system", labelKey: "groupSystem", routes: ["settings", "diagnostics"] },
+  {
+    id: "system",
+    labelKey: "groupSystem",
+    routes: ["settings", "diagnostics", "about"],
+  },
 ];
 
 /**
@@ -273,6 +278,17 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     evidence:
       "Values are computed in-browser; the packaged smoke asserts the live desktop bridge row and the real 0/24 weight inventory from inside Electron.",
   },
+  about: {
+    id: "about",
+    group: "system",
+    labelKey: "about",
+    state: "VERIFIED",
+    summary:
+      "The official KNOUX corporate identity: the genuine logo, the founder and his engineering practice, and every company and personal contact destination — WhatsApp, corporate email, direct call, the website and five social profiles — each one a working action rather than printed text.",
+    requirements: [],
+    evidence:
+      "src/data/knouxIdentity.ts is the only source of the destinations and src/services/externalLinks.ts refuses any scheme outside https/mailto/tel (18 unit tests). In Electron a mailto: or tel: click goes through the preload bridge to a main-process handler that validates the same allowlist before shell.openExternal, and a refusal is reported as a refusal with the value copied as the fallback. scripts/about-smoke.mjs drives the screen in Chromium: the bundled logo decodes at its real 800x800 size, all nine destinations match the official list exactly, copy and open actions report real outcomes, and the Arabic build renders translated in RTL.",
+  },
   "live-studio": {
     id: "live-studio",
     group: "create",
@@ -305,5 +321,6 @@ export const ROUTE_TITLES: Record<RouteId, string> = {
   models: "models",
   settings: "settings",
   diagnostics: "diagnostics",
+  about: "about",
   "live-studio": "liveStudio",
 };

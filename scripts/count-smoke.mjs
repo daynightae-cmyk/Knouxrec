@@ -58,6 +58,7 @@ const REPORT_CANDIDATES = [
   ["smoke:audio-recording", "artifacts/evidence/audio-recording/report.json"],
   ["smoke:hotkeys", "artifacts/evidence/hotkeys/report.json"],
   ["smoke:proportions", "artifacts/evidence/proportions/report.json"],
+  ["smoke:about", "artifacts/evidence/about/report.json"],
 ];
 
 const byCommand = new Map(REPORT_CANDIDATES);

@@ -71,13 +71,34 @@ Object.defineProperty(window, "crypto", {
   writable: true,
 });
 
-Object.defineProperty(window, "URL", {
-  value: {
-    createObjectURL: vi.fn(() => "blob:test"),
-    revokeObjectURL: vi.fn(),
-  },
-  writable: true,
-});
+// jsdom's URL.createObjectURL throws "not implemented", so the two blob
+// helpers are stubbed. The constructor itself has to survive the stub: code
+// that validates a destination (src/services/externalLinks.ts) relies on the
+// platform URL parser, and replacing the global with a plain object made every
+// `new URL(...)` in the suite throw.
+{
+  const RealURL = window.URL;
+  const stubs: Array<[string, (...args: unknown[]) => unknown]> = [
+    ["createObjectURL", () => "blob:test"],
+    ["revokeObjectURL", () => undefined],
+  ];
+  for (const [name, impl] of stubs) {
+    try {
+      Object.defineProperty(RealURL, name, {
+        value: vi.fn(impl),
+        writable: true,
+        configurable: true,
+      });
+    } catch {
+      /* the host refuses to redefine it; the real implementation stays */
+    }
+  }
+  Object.defineProperty(window, "URL", {
+    value: RealURL,
+    writable: true,
+    configurable: true,
+  });
+}
 
 Object.defineProperty(HTMLCanvasElement.prototype, "toBlob", {
   value: vi.fn((cb) => cb(new Blob(["test"], { type: "image/png" }))),

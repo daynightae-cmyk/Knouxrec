@@ -60,7 +60,11 @@ export type IconName =
   | "export"
   | "undo"
   | "redo"
-  | "minus";
+  | "minus"
+  | "mail"
+  | "phone"
+  | "code"
+  | "cloud";
 
 const PATHS: Record<IconName, React.ReactNode> = {
   dashboard: (
@@ -354,6 +358,19 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   minus: <path d="M5 12h14" />,
+  mail: (
+    <>
+      <rect x="3" y="5" width="18" height="14" rx="2.4" />
+      <path d="m3.6 7.4 7.3 5.1a2 2 0 0 0 2.2 0l7.3-5.1" />
+    </>
+  ),
+  phone: (
+    <path d="M6.2 3.5h2.1l1.6 3.9-1.9 1.4a11.4 11.4 0 0 0 5.2 5.2l1.4-1.9 3.9 1.6v2.1a2.3 2.3 0 0 1-2.5 2.3A16.4 16.4 0 0 1 3.9 6a2.3 2.3 0 0 1 2.3-2.5Z" />
+  ),
+  code: <path d="m8.5 8-4 4 4 4M15.5 8l4 4-4 4M13.4 5l-2.8 14" />,
+  cloud: (
+    <path d="M7.2 18.5a4.2 4.2 0 0 1-.5-8.36 5.4 5.4 0 0 1 10.34-1.1A3.9 3.9 0 0 1 17.6 18.5Z" />
+  ),
 };
 
 export function Icon({

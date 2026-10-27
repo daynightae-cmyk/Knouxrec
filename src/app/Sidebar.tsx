@@ -26,6 +26,7 @@ const ROUTE_ICONS: Record<RouteId, IconName> = {
   models: "models",
   settings: "settings",
   diagnostics: "diagnostics",
+  about: "info",
   "live-studio": "studio",
 };
 

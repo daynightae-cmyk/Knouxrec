@@ -113,6 +113,31 @@ try {
   );
 
   check("secure preload bridge is available", result.electron.bridge, result.electron.platform);
+
+  // The corporate identity screen asks the main process to hand mailto:/tel:
+  // destinations to the operating system. Only the refusal path is exercised
+  // here on purpose: nothing is opened, no mail client or dialer is started.
+  const linkPolicy = await evaluate(
+    client,
+    `(async () => ({
+      exposed: typeof window.knouxDesktop?.openExternal === "function",
+      javascript: await window.knouxDesktop.openExternal("javascript:alert(1)"),
+      file: await window.knouxDesktop.openExternal("file:///C:/Windows/explorer.exe"),
+      data: await window.knouxDesktop.openExternal("data:text/html,<script>alert(1)</script>"),
+      empty: await window.knouxDesktop.openExternal(""),
+      smuggled: await window.knouxDesktop.openExternal("java\\nscript:alert(1)"),
+    }))()`,
+  );
+  check(
+    "desktop bridge exposes openExternal and refuses every unsafe scheme",
+    linkPolicy.exposed === true &&
+      linkPolicy.javascript === false &&
+      linkPolicy.file === false &&
+      linkPolicy.data === false &&
+      linkPolicy.empty === false &&
+      linkPolicy.smuggled === false,
+    linkPolicy,
+  );
   check("renderer runs in Electron", /Electron\//.test(result.electron.userAgent), result.electron.userAgent);
   check("CSP meta tag is present", Boolean(result.electron.csp));
 

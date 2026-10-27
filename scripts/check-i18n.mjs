@@ -41,6 +41,7 @@ const VIEW_FILES = [
   "src/views/DiscoverView.tsx",
   "src/views/AudioStudioView.tsx",
   "src/views/BodyProportionsView.tsx",
+  "src/views/AboutView.tsx",
 ];
 
 // Shared workspace surfaces render user-visible text too, so they are held to
@@ -51,7 +52,10 @@ const SCANNED_FILES = [...VIEW_FILES, ...VIEW_FILES_SHARED];
 
 // Registries that carry user-visible labels through a key field rather than a
 // t("…") call, so their literals are checked against the dictionary too.
-const KEY_FIELD_FILES = ["src/services/elysianPresets.ts"];
+const KEY_FIELD_FILES = [
+  "src/services/elysianPresets.ts",
+  "src/data/knouxIdentity.ts",
+];
 
 const TEXT_PATTERN = />\s*([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})\s*</g;
 const ATTRIBUTE_PATTERN =
@@ -143,7 +147,9 @@ for (const file of SCANNED_FILES) {
 // dedicated registry files and the view files are resolved here.
 for (const file of [...SCANNED_FILES, ...KEY_FIELD_FILES]) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
-  for (const match of text.matchAll(/\b(?:labelKey|reasonKey):\s*"([a-zA-Z][a-zA-Z0-9.]*)"/g)) {
+  for (const match of text.matchAll(
+    /\b(?:labelKey|reasonKey|hintKey|actionKey):\s*"([a-zA-Z][a-zA-Z0-9.]*)"/g,
+  )) {
     if (!dictionaryKeys.has(match[1])) {
       failures.push(`${file}: missing translation key "${match[1]}"`);
     }
