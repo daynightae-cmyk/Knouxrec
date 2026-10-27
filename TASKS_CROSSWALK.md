@@ -1,5 +1,9 @@
 # TASKS_CROSSWALK.md
 
+> [!CAUTION]
+> **EVIDENCE CROSSWALK NOT CLOSED.** Six referenced evidence files were missing at the listed paths during independent inspection. Historical green labels are agent claims until corresponding files and current-SHA tests are verified. See [independent evidence corrections](docs/PRODUCTION_EVIDENCE_CORRECTIONS_2026-10-27.md).
+
+
 **KNOUX REC — Production Closure Crosswalk**
 
 This document maps every production gate to the commit, test evidence, and artifact that satisfies it.
@@ -101,4 +105,4 @@ This document maps every production gate to the commit, test evidence, and artif
 
 ---
 
-**All production gates satisfied. Ready for FINAL_DELIVERY.md sign-off.**
+**NOT CLOSED: independent audit invalidated the visual evidence/signature claims and found six missing linked evidence files. No production sign-off.**
