@@ -54,7 +54,7 @@ export type CurvesOp = {
 
 export type Op =
   | { kind: "crop"; x: number; y: number; width: number; height: number }
-  | { kind: "resize"; width: number; height: number }
+  | { kind: "resize"; width: number; height: number; filter?: ResampleFilter }
   | { kind: "rotate"; angle: number }
   | { kind: "flip"; axis: "h" | "v" }
   | { kind: "exposure"; stops: number }
@@ -185,6 +185,190 @@ export function resizePixels(source: Pixels, width: number, height: number): Pix
       out[at + 2] = value[2];
       out[at + 3] = value[3];
     }
+  }
+  return { width: outWidth, height: outHeight, data: out };
+}
+
+export type ResampleFilter = "bilinear" | "bicubic" | "lanczos";
+
+const LANCZOS_RADIUS = 3;
+const BICUBIC_RADIUS = 2;
+
+function kernelValue(filter: Exclude<ResampleFilter, "bilinear">, distance: number): number {
+  const x = Math.abs(distance);
+  if (filter === "bicubic") {
+    // Catmull-Rom: sharp, mild ringing, the classic editor default.
+    if (x < 1) return 1.5 * x * x * x - 2.5 * x * x + 1;
+    if (x < 2) return -0.5 * x * x * x + 2.5 * x * x - 4 * x + 2;
+    return 0;
+  }
+  if (x >= LANCZOS_RADIUS) return 0;
+  if (x < 1e-8) return 1;
+  const px = Math.PI * x;
+  return (Math.sin(px) / px) * (Math.sin(px / LANCZOS_RADIUS) / (px / LANCZOS_RADIUS));
+}
+
+interface TapList {
+  start: number;
+  weights: Float32Array;
+}
+
+/**
+ * Pre-computed, normalised kernel taps for one axis. When the output is
+ * smaller than the source the kernel widens by the scale factor, which is what
+ * turns a naive point sample into a proper anti-aliased reduction.
+ */
+function buildTaps(
+  sourceLength: number,
+  targetLength: number,
+  filter: Exclude<ResampleFilter, "bilinear">,
+): TapList[] {
+  const scale = targetLength / sourceLength;
+  const radius = filter === "bicubic" ? BICUBIC_RADIUS : LANCZOS_RADIUS;
+  const stretch = Math.min(1, scale);
+  const support = radius / stretch;
+  const taps: TapList[] = [];
+  for (let i = 0; i < targetLength; i += 1) {
+    const center = (i + 0.5) / scale - 0.5;
+    const start = Math.ceil(center - support);
+    const end = Math.floor(center + support);
+    const count = Math.max(1, end - start + 1);
+    const weights = new Float32Array(count);
+    let total = 0;
+    for (let j = 0; j < count; j += 1) {
+      const value = kernelValue(filter, (start + j - center) * stretch);
+      weights[j] = value;
+      total += value;
+    }
+    if (Math.abs(total) > 1e-9) {
+      for (let j = 0; j < count; j += 1) weights[j] /= total;
+    } else {
+      weights[0] = 1;
+    }
+    taps.push({ start, weights });
+  }
+  return taps;
+}
+
+function resampleRows(
+  input: Float32Array,
+  width: number,
+  height: number,
+  targetWidth: number,
+  taps: TapList[],
+): Float32Array {
+  const out = new Float32Array(targetWidth * height * 4);
+  for (let y = 0; y < height; y += 1) {
+    const rowBase = y * width * 4;
+    for (let x = 0; x < targetWidth; x += 1) {
+      const { start, weights } = taps[x];
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      for (let j = 0; j < weights.length; j += 1) {
+        const sx = Math.max(0, Math.min(width - 1, start + j));
+        const at = rowBase + sx * 4;
+        const w = weights[j];
+        r += input[at] * w;
+        g += input[at + 1] * w;
+        b += input[at + 2] * w;
+        a += input[at + 3] * w;
+      }
+      const to = (y * targetWidth + x) * 4;
+      out[to] = r;
+      out[to + 1] = g;
+      out[to + 2] = b;
+      out[to + 3] = a;
+    }
+  }
+  return out;
+}
+
+function resampleColumns(
+  input: Float32Array,
+  width: number,
+  height: number,
+  targetHeight: number,
+  taps: TapList[],
+): Float32Array {
+  const out = new Float32Array(width * targetHeight * 4);
+  for (let y = 0; y < targetHeight; y += 1) {
+    const { start, weights } = taps[y];
+    for (let x = 0; x < width; x += 1) {
+      let r = 0;
+      let g = 0;
+      let b = 0;
+      let a = 0;
+      for (let j = 0; j < weights.length; j += 1) {
+        const sy = Math.max(0, Math.min(height - 1, start + j));
+        const at = (sy * width + x) * 4;
+        const w = weights[j];
+        r += input[at] * w;
+        g += input[at + 1] * w;
+        b += input[at + 2] * w;
+        a += input[at + 3] * w;
+      }
+      const to = (y * width + x) * 4;
+      out[to] = r;
+      out[to + 1] = g;
+      out[to + 2] = b;
+      out[to + 3] = a;
+    }
+  }
+  return out;
+}
+
+/**
+ * Real resampling upscale (Lanczos-3 by default, Catmull-Rom on request).
+ * Alpha is premultiplied before filtering so edges do not grow dark halos, and
+ * weights are normalised so a flat field keeps its exact colour.
+ *
+ * This is optical resampling, not a neural super-resolution model: it makes a
+ * small image larger and cleaner, and it does not invent detail that was never
+ * captured. The super-resolution service stays blocked on its weight file.
+ */
+export function resamplePixels(
+  source: Pixels,
+  width: number,
+  height: number,
+  filter: "bicubic" | "lanczos" = "lanczos",
+): Pixels {
+  const outWidth = Math.max(1, Math.round(width));
+  const outHeight = Math.max(1, Math.round(height));
+  if (outWidth === source.width && outHeight === source.height) {
+    return { width: outWidth, height: outHeight, data: source.data.slice() };
+  }
+  const premultiplied = new Float32Array(source.width * source.height * 4);
+  for (let i = 0; i < premultiplied.length; i += 4) {
+    const alpha = source.data[i + 3] / 255;
+    premultiplied[i] = source.data[i] * alpha;
+    premultiplied[i + 1] = source.data[i + 1] * alpha;
+    premultiplied[i + 2] = source.data[i + 2] * alpha;
+    premultiplied[i + 3] = source.data[i + 3];
+  }
+  const horizontal = resampleRows(
+    premultiplied,
+    source.width,
+    source.height,
+    outWidth,
+    buildTaps(source.width, outWidth, filter),
+  );
+  const vertical = resampleColumns(
+    horizontal,
+    outWidth,
+    source.height,
+    outHeight,
+    buildTaps(source.height, outHeight, filter),
+  );
+  const out = new Uint8ClampedArray(outWidth * outHeight * 4);
+  for (let i = 0; i < out.length; i += 4) {
+    const alpha = vertical[i + 3];
+    const alphaFraction = alpha > 0 ? 255 / alpha : 0;
+    out[i] = vertical[i] * alphaFraction;
+    out[i + 1] = vertical[i + 1] * alphaFraction;
+    out[i + 2] = vertical[i + 2] * alphaFraction;
+    out[i + 3] = alpha;
   }
   return { width: outWidth, height: outHeight, data: out };
 }
@@ -802,7 +986,9 @@ export function applyOps(source: Pixels, ops: Op[], rasterize?: Rasterizer): Pix
         current = cropPixels(current, op.x, op.y, op.width, op.height);
         break;
       case "resize":
-        current = resizePixels(current, op.width, op.height);
+        current = op.filter && op.filter !== "bilinear"
+          ? resamplePixels(current, op.width, op.height, op.filter)
+          : resizePixels(current, op.width, op.height);
         break;
       case "rotate":
         current = rotatePixels(current, op.angle);

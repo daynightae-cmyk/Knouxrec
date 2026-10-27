@@ -89,6 +89,15 @@ function instantiate(effect: EffectDefinition, width: number, height: number): O
       kind: "resize",
       width: Math.max(8, Math.round(width * 0.75)),
       height: Math.max(8, Math.round(height * 0.75)),
+      filter: "lanczos",
+    };
+  }
+  if (effect.id === "upscale") {
+    return {
+      kind: "resize",
+      width: Math.max(16, Math.round(width * 2)),
+      height: Math.max(16, Math.round(height * 2)),
+      filter: "lanczos",
     };
   }
   // Curve layers own their control points: copy them so the shared card
@@ -677,6 +686,21 @@ export default function ElysianStudioView() {
             {range("elysian.field.height", selectedOp.height, 8, 4096, 1, (value) =>
               updateSelected({ height: value }),
             )}
+            <div className="kx-row" style={{ gap: 6 }} role="group" aria-label={t("elysian.field.resample")}>
+              {(["bilinear", "bicubic", "lanczos"] as const).map((filter) => (
+                <button
+                  key={filter}
+                  type="button"
+                  className="kx-chip"
+                  aria-pressed={(selectedOp.filter ?? "bilinear") === filter}
+                  data-resample={filter}
+                  onClick={() => updateSelected({ filter })}
+                >
+                  {t(`elysian.resample.${filter}`)}
+                </button>
+              ))}
+            </div>
+            <p className="kx-card-sub">{t("elysian.resampleHint")}</p>
           </>
         );
       case "rotate":

@@ -214,6 +214,7 @@ export const SERVICES: ServiceEntry[] = [
   entry({ id: "el-marks", hub: "elysian", labelEn: "Borders, text and tiled watermarks", label: "إطارات ونص وعلامات مائية", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-presets", hub: "elysian", labelEn: "Ten presets as editable layers", label: "عشرة إعدادات جاهزة قابلة للتحرير", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-output", hub: "elysian", labelEn: "PNG, JPEG and WebP output with measured size", label: "خرج PNG وJPEG وWebP بحجم مقاس", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
+  entry({ id: "el-resample-upscale", hub: "elysian", labelEn: "Lanczos resampling upscale", label: "رفع الدقة بإعادة التشكيل", mode: "LOCAL", status: "VERIFIED", route: "elysian", needs: "" }),
   entry({ id: "el-curves", hub: "elysian", labelEn: "Tone curves and histogram", label: "منحنيات اللون والمدرج", mode: "LOCAL", status: "VERIFIED", route: "elysian" }),
   entry({ id: "el-retouch", hub: "elysian", labelEn: "Neural retouch and background removal", label: "التنعيم العصبي وإزالة الخلفية", mode: "MODEL-LOCAL", status: "BLOCKED", route: "elysian", needs: "Face-parsing and segmentation weights are not installed" }),
   entry({ id: "el-upscale", hub: "elysian", labelEn: "Super resolution", label: "رفع الدقة العصبي", mode: "MODEL-LOCAL", status: "BLOCKED", route: "models", needs: "An upscaler weight file" }),
@@ -240,6 +241,7 @@ export const SERVICES: ServiceEntry[] = [
   /* ----------------------------------------------------------- settings */
   entry({ id: "set-theme", hub: "settings", labelEn: "Theme, language and motion preferences", label: "السمة واللغة والحركة", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
   entry({ id: "set-hotkeys", hub: "settings", labelEn: "Hotkey configuration", label: "ضبط مفاتيح الاختصار", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
+  entry({ id: "set-license", hub: "settings", labelEn: "Licence key check and storage", label: "فحص مفتاح الترخيص وحفظه", mode: "LOCAL", status: "VERIFIED", route: "settings", needs: "" }),
   entry({ id: "set-storage", hub: "settings", labelEn: "Storage location and quota", label: "موقع التخزين والحصة", mode: "LOCAL", status: "VERIFIED", route: "settings" }),
 
   /* -------------------------------------------------------- diagnostics */

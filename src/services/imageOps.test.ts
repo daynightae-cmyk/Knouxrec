@@ -21,6 +21,7 @@ import {
   normaliseCurvePoints,
   pixelatePixels,
   resizePixels,
+  resamplePixels,
   rotatePixels,
   saturationPixels,
   sharpenPixels,
@@ -569,5 +570,126 @@ describe("pipeline purity", () => {
     const first = applyOps(source, ops);
     const second = applyOps(source, ops);
     expect(Array.from(first.data)).toEqual(Array.from(second.data));
+  });
+});
+
+describe("resampling upscale", () => {
+  const solid = (width: number, height: number, rgba: [number, number, number, number]): Pixels => {
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let i = 0; i < data.length; i += 4) {
+      data[i] = rgba[0];
+      data[i + 1] = rgba[1];
+      data[i + 2] = rgba[2];
+      data[i + 3] = rgba[3];
+    }
+    return { width, height, data };
+  };
+
+  const edge = (width = 8, height = 8): Pixels => {
+    const data = new Uint8ClampedArray(width * height * 4);
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        const at = (y * width + x) * 4;
+        const value = x < width / 2 ? 0 : 255;
+        data[at] = value;
+        data[at + 1] = value;
+        data[at + 2] = value;
+        data[at + 3] = 255;
+      }
+    }
+    return { width, height, data };
+  };
+
+  it("returns the exact source when the size is unchanged", () => {
+    const source = edge(8, 8);
+    const result = resamplePixels(source, 8, 8, "lanczos");
+    expect(Array.from(result.data)).toEqual(Array.from(source.data));
+  });
+
+  it("keeps a flat field flat at any scale", () => {
+    const source = solid(6, 4, [40, 120, 200, 255]);
+    for (const filter of ["lanczos", "bicubic"] as const) {
+      const result = resamplePixels(source, 24, 16, filter);
+      expect(result.width).toBe(24);
+      expect(result.height).toBe(16);
+      const unique = new Set<string>();
+      for (let i = 0; i < result.data.length; i += 4) {
+        unique.add(`${result.data[i]},${result.data[i + 1]},${result.data[i + 2]}`);
+      }
+      expect(unique.size).toBe(1);
+      expect([...unique][0]).toBe("40,120,200");
+    }
+  });
+
+  it("resolves a hard edge more sharply than bilinear", () => {
+    const source = edge(8, 8);
+    const measure = (pixels: Pixels): number => {
+      // Sum of |difference| between neighbouring columns: a sharper edge has a
+      // higher peak but a narrower ramp, so count the mid-grey columns instead.
+      let midtones = 0;
+      const row = Math.floor(pixels.height / 2);
+      for (let x = 0; x < pixels.width; x += 1) {
+        const value = pixels.data[(row * pixels.width + x) * 4];
+        if (value > 40 && value < 215) midtones += 1;
+      }
+      return midtones;
+    };
+    const bilinear = resizePixels(source, 64, 64);
+    const lanczos = resamplePixels(source, 64, 64, "lanczos");
+    expect(measure(lanczos)).toBeLessThan(measure(bilinear));
+    expect(measure(lanczos)).toBeGreaterThan(0);
+  });
+
+  it("premultiplies alpha so transparent pixels never bleed dark", () => {
+    const source = solid(4, 4, [255, 0, 0, 255]);
+    // Punch a transparent hole in the corner.
+    for (let i = 0; i < 4 * 4; i += 1) {
+      if (i < 8) {
+        source.data[i * 4 + 3] = 0;
+      }
+    }
+    const result = resamplePixels(source, 16, 16, "lanczos");
+    for (let i = 0; i < result.data.length; i += 4) {
+      if (result.data[i + 3] === 0) {
+        expect(result.data[i]).toBeLessThanOrEqual(1);
+        expect(result.data[i + 1]).toBeLessThanOrEqual(1);
+        expect(result.data[i + 2]).toBeLessThanOrEqual(1);
+      }
+    }
+  });
+
+  it("downscales with a widened kernel instead of dropping pixels", () => {
+    // A one-pixel checkerboard averages to mid grey under a proper low-pass,
+    // while a point sample keeps only the value it happens to land on.
+    const source = solid(8, 8, [0, 0, 0, 255]);
+    for (let y = 0; y < 8; y += 1) {
+      for (let x = 0; x < 8; x += 1) {
+        const at = (y * 8 + x) * 4;
+        const value = (x + y) % 2 === 0 ? 0 : 255;
+        source.data[at] = value;
+        source.data[at + 1] = value;
+        source.data[at + 2] = value;
+      }
+    }
+    const result = resamplePixels(source, 2, 2, "lanczos");
+    const colours = Array.from(result.data).filter((_, index) => index % 4 !== 3);
+    const mean = colours.reduce((a, b) => a + b, 0) / colours.length;
+    expect(mean).toBeGreaterThan(70);
+    expect(mean).toBeLessThan(185);
+  });
+
+  it("is deterministic", () => {
+    const source = edge(10, 10);
+    const first = resamplePixels(source, 37, 29, "lanczos");
+    const second = resamplePixels(source, 37, 29, "lanczos");
+    expect(Array.from(first.data)).toEqual(Array.from(second.data));
+  });
+
+  it("applies through the resize op when a filter is named", () => {
+    const source = edge(8, 8);
+    const lanczos = applyOps(source, [{ kind: "resize", width: 32, height: 32, filter: "lanczos" }]);
+    const bilinear = applyOps(source, [{ kind: "resize", width: 32, height: 32 }]);
+    expect(lanczos.width).toBe(32);
+    expect(Array.from(lanczos.data)).not.toEqual(Array.from(bilinear.data));
   });
 });

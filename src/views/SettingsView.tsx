@@ -4,6 +4,15 @@ import { useLibrary } from "../state/LibraryContext";
 import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
 import { Icon } from "../app/icons";
+import { openExternal } from "../services/externalLinks";
+import {
+  activateLicense,
+  checkLicenseKey,
+  clearLicense,
+  PURCHASE_URL,
+  readLicense,
+  sampleLicenseKey,
+} from "../services/licensing";
 import { ConfirmDialog, SectionHeader, StatCard } from "./ui";
 import { formatBytes, formatDuration } from "../lib/format";
 import {
@@ -23,6 +32,8 @@ export default function SettingsView() {
   const [confirmReset, setConfirmReset] = useState(false);
   const [capturing, setCapturing] = useState<HotkeyAction | null>(null);
   const [conflict, setConflict] = useState<string | null>(null);
+  const [license, setLicense] = useState(() => readLicense());
+  const [licenseInput, setLicenseInput] = useState("");
 
   // While a shortcut is being recorded the listener owns the keyboard: it
   // stops propagation so the very combination being entered cannot also fire
@@ -416,6 +427,77 @@ export default function SettingsView() {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="kx-card" data-license-card>
+        <div className="kx-card-title">
+          <span>
+            <Icon name="shield" size={16} /> {t("settings.license")}
+          </span>
+          <span className="kx-badge" data-state={license?.state === "format-valid" ? "AVAILABLE_UNVERIFIED" : license?.state === "invalid" ? "BLOCKED" : "NOT_IMPLEMENTED"} data-license-state={license?.state ?? "unlicensed"}>
+            {license?.state === "format-valid"
+              ? t("settings.licenseStateValid")
+              : license?.state === "invalid"
+                ? t("settings.licenseStateInvalid")
+                : t("settings.licenseStateNone")}
+          </span>
+        </div>
+        <p className="kx-card-sub">{t("settings.licenseDescription")}</p>
+        <div className="kx-row" style={{ gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+          <input
+            className="kx-input"
+            dir="ltr"
+            spellCheck={false}
+            value={licenseInput}
+            placeholder={sampleLicenseKey()}
+            aria-label={t("settings.licensePlaceholder")}
+            data-license-input
+            onChange={(event) => setLicenseInput(event.target.value)}
+          />
+          <button
+            type="button"
+            className="kx-btn kx-btn-primary"
+            data-license-activate
+            onClick={() => {
+              const record = activateLicense(licenseInput);
+              setLicense(record);
+              const verdict = checkLicenseKey(licenseInput);
+              if (verdict.ok) push("success", t("settings.license"), t("settings.licenseFormatValid"));
+              else push("error", t("settings.license"), t("settings.licenseInvalid"));
+            }}
+          >
+            {t("settings.licenseActivate")}
+          </button>
+          {license && (
+            <button
+              type="button"
+              className="kx-btn"
+              data-license-remove
+              onClick={() => {
+                clearLicense();
+                setLicense(null);
+                setLicenseInput("");
+              }}
+            >
+              {t("settings.licenseRemove")}
+            </button>
+          )}
+        </div>
+        {license?.state === "format-valid" && (
+          <p className="kx-card-sub kx-mono" dir="ltr" data-license-key>
+            {license.key}
+          </p>
+        )}
+        <p className="kx-card-sub">{t("settings.licenseHonest")}</p>
+        <button
+          type="button"
+          className="kx-btn kx-btn-sm"
+          data-license-purchase
+          onClick={() => void openExternal(PURCHASE_URL, window.knouxDesktop)}
+        >
+          {t("settings.licensePurchase")}
+          <Icon name="external" size={13} />
+        </button>
       </div>
 
       <ConfirmDialog

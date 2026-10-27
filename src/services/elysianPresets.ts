@@ -125,11 +125,20 @@ export const EFFECTS: EffectDefinition[] = [
     id: "resize",
     labelKey: "elysian.effect.resize",
     category: "geometry",
-    op: { kind: "resize", width: 1200, height: 800 },
+    op: { kind: "resize", width: 1200, height: 800, filter: "lanczos" },
     controls: [
       slider("width", "elysian.field.width", 16, 4096),
       slider("height", "elysian.field.height", 16, 4096),
     ],
+  },
+  {
+    // One click doubles the working image through the same Lanczos path; the
+    // neural super-resolution service stays blocked on its weight file.
+    id: "upscale",
+    labelKey: "elysian.effect.upscale",
+    category: "geometry",
+    op: { kind: "resize", width: 0, height: 0, filter: "lanczos" },
+    controls: [],
   },
   {
     id: "rotate",
