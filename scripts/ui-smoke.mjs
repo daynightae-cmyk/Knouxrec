@@ -119,7 +119,7 @@ try {
   }));
   report.shell = shell;
   check("dashboard idle screenshot", true, dashboard);
-  check("18 navigation routes registered", shell.nav.length === 18, shell.nav);
+  check("19 navigation routes registered", shell.nav.length === 19, shell.nav);
   check("document language is English", shell.lang === "en", shell.lang);
   check("no horizontal overflow at 1600x1000", shell.overflow <= 0, shell.overflow);
 
@@ -189,7 +189,9 @@ try {
   }));
   check(
     "sidebar scroll reaches last route by real click",
-    scrolledNav.hash === "#/diagnostics" && Boolean(scrolledNav.active),
+    // The last entry in the sidebar is the newest one (About), which is the
+    // point of the check: a real click must reach the bottom of the nav list.
+    scrolledNav.hash === "#/about" && Boolean(scrolledNav.active),
     scrolledNav,
   );
   await page.evaluate(() =>

@@ -12,7 +12,7 @@ IMPLEMENTED-NOT-VERIFIED / BLOCKED / NOT-IMPLEMENTED / UNKNOWN.
 
 | Registry | File | What it drives |
 | --- | --- | --- |
-| Route capabilities | `src/app/capabilities.ts` | 18 routes, honest state, evidence strings, sidebar indicators |
+| Route capabilities | `src/app/capabilities.ts` | 19 routes, honest state, evidence strings, sidebar indicators |
 | Media tools | `src/services/mediaTools.ts` + `mediaJobs.ts` | Real local processors with validation, cancellation, verification |
 | AI catalog | `src/data/aiCatalog.ts` | 38 canonical tasks (15 deterministic, 23 model-gated) |
 | Models | `src/services/modelRegistry.ts` | 24 manifests, weight probes, SHA-256, expected tensor bytes |

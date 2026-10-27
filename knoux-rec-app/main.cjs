@@ -41,6 +41,37 @@ function isPickerSender(event) {
   );
 }
 
+/**
+ * Destinations the renderer may ask the operating system to open. The About
+ * screen needs this for mailto:/tel:, which a webview cannot launch itself.
+ * Anything outside the allowlist resolves to null and never reaches shell.
+ */
+const EXTERNAL_LINK_ALLOWLIST = new Set(["https:", "http:", "mailto:", "tel:"]);
+
+function allowedExternalUrl(raw) {
+  if (typeof raw !== "string") return null;
+  const target = raw.trim();
+  // Control characters and spaces are how a scheme gets smuggled in.
+  if (!target || /[\u0000-\u0020\u007f]/.test(target)) return null;
+  let url = null;
+  try {
+    url = new URL(target);
+  } catch {
+    return null;
+  }
+  const scheme = url.protocol.toLowerCase();
+  if (!EXTERNAL_LINK_ALLOWLIST.has(scheme)) return null;
+  if (scheme === "https:" || scheme === "http:") {
+    if (!url.hostname || url.username || url.password) return null;
+  }
+  if (scheme === "mailto:") {
+    const address = decodeURIComponent(url.pathname).trim();
+    if (!/^[^\s@]+@[^\s@]+(\.[^\s@]+)+$/i.test(address)) return null;
+  }
+  if (scheme === "tel:" && url.pathname.replace(/\D/g, "").length < 6) return null;
+  return target;
+}
+
 function sendCommand(command) {
   if (mainWindow && !mainWindow.isDestroyed()) {
     mainWindow.webContents.send("knoux:command", command);
@@ -284,6 +315,20 @@ app.whenReady().then(() => {
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+});
+
+ipcMain.handle("knoux:links:open", async (event, raw) => {
+  if (!isMainSender(event)) return false;
+  const target = allowedExternalUrl(raw);
+  if (!target) return false;
+  try {
+    await shell.openExternal(target);
+    return true;
+  } catch {
+    // No registered handler, or the OS refused: report it honestly so the
+    // renderer can show a fallback instead of a fake success.
+    return false;
+  }
 });
 
 ipcMain.handle("knoux:models:inspect", (event, id) => {

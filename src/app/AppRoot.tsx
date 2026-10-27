@@ -26,6 +26,7 @@ import ScreenshotsView from "../views/ScreenshotsView";
 import LibraryView from "../views/LibraryView";
 import SettingsView from "../views/SettingsView";
 import DiagnosticsView from "../views/DiagnosticsView";
+import AboutView from "../views/AboutView";
 import ModelsView from "../views/ModelsView";
 import ToolboxView from "../views/ToolboxView";
 import AiWorkspaceView from "../views/AiWorkspaceView";
@@ -320,6 +321,8 @@ export default function AppRoot() {
         return <SettingsView />;
       case "diagnostics":
         return <DiagnosticsView />;
+      case "about":
+        return <AboutView />;
       case "models":
         return <ModelsView />;
       case "templates":
