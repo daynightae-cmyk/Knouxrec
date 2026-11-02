@@ -186,6 +186,24 @@ export default function AudioStudioView({
   const [sourceItem, setSourceItem] = useState<LibraryItem | null>(null);
   const [provenance, setProvenance] = useState<ProvenanceRecord[]>([]);
 
+  // Chromium fires `timeupdate` only about four times a second, so a playhead
+  // driven by that event alone lags the audio by up to 250 ms — the numeric
+  // readout and the line drawn over the waveform both sit visibly behind the
+  // sound. While playing, the position is read from the element every frame
+  // instead; `onTimeUpdate` remains as the path for scrubs made through the
+  // native controls while paused.
+  useEffect(() => {
+    if (!playing) return undefined;
+    let frame = 0;
+    const tick = () => {
+      const element = audioRef.current;
+      if (element) setPlayhead(element.currentTime);
+      frame = window.requestAnimationFrame(tick);
+    };
+    frame = window.requestAnimationFrame(tick);
+    return () => window.cancelAnimationFrame(frame);
+  }, [playing]);
+
   useHandoffReceiver("audio-studio", "audio", (incoming) => {
     void adopt(incoming.blob, incoming.name);
   });

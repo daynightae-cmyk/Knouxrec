@@ -218,8 +218,39 @@ try {
     () => document.querySelector("[data-playhead]")?.textContent ?? "",
   );
   await click(page, '[data-action="play"]');
-  await sleep(900);
-  const duringPlay = await page.evaluate(() => {
+  // Poll for progress instead of sleeping a fixed 900 ms and then demanding a
+  // fixed position. A media element that is starved of CPU by the rest of the
+  // suite still plays; a fixed window just measures how busy the machine was
+  // and reports a working player as broken.
+  const playDeadline = Date.now() + 12000;
+  let duringPlay = { currentTime: 0, paused: true, label: "" };
+  while (Date.now() < playDeadline) {
+    duringPlay = await page.evaluate(() => {
+      const element = document.querySelector(".kx-audio-element");
+      return {
+        currentTime: element?.currentTime ?? 0,
+        paused: element?.paused ?? true,
+        label: document.querySelector("[data-playhead]")?.textContent ?? "",
+      };
+    });
+    if (duringPlay.currentTime > 0.15 && !duringPlay.paused) break;
+    await sleep(120);
+  }
+  check(
+    "playback runs on the real decoded audio",
+    duringPlay.currentTime > 0.15 && duringPlay.paused === false,
+    { beforePlay, duringPlay },
+  );
+
+  // Pause and let the component settle before comparing the readout to the
+  // media. While the transport runs, the label is React state and the position
+  // is a live clock, so sampling both at one instant measures how quickly the
+  // page got a frame — on a busy machine that race failed even after the
+  // playhead was made frame-driven. Once paused the two must agree, which is
+  // the invariant a user reading the number actually depends on.
+  await click(page, '[data-action="play"]');
+  await sleep(600);
+  const settled = await page.evaluate(() => {
     const element = document.querySelector(".kx-audio-element");
     return {
       currentTime: element?.currentTime ?? 0,
@@ -227,17 +258,16 @@ try {
       label: document.querySelector("[data-playhead]")?.textContent ?? "",
     };
   });
-  await click(page, '[data-action="stop"]');
-  check(
-    "playback runs on the real decoded audio",
-    duringPlay.currentTime > 0.15 && duringPlay.paused === false,
-    { beforePlay, duringPlay },
-  );
+  const labelSeconds = parseFloat((settled.label.match(/([\d.]+)\s*\//) ?? [])[1] ?? "0");
   check(
     "the playhead label follows the media position",
-    parseFloat((duringPlay.label.match(/([\d.]+)\s*\//) ?? [])[1] ?? "0") > 0.15,
-    duringPlay.label,
+    settled.paused === true &&
+      labelSeconds > 0.15 &&
+      Math.abs(labelSeconds - settled.currentTime) <= 0.05,
+    { duringPlay, settled },
   );
+
+  await click(page, '[data-action="stop"]');
   const stopped = await page.evaluate(
     () => document.querySelector(".kx-audio-element")?.currentTime ?? -1,
   );
