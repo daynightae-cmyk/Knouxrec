@@ -240,25 +240,55 @@ async function main() {
     "NOT_REVIEWED — these captures prove the route rendered without the splash, at the requested theme, direction and viewport, with no horizontal overflow. They are not a human design-fidelity acceptance.";
 
   manifest.consoleErrors = consoleErrors.slice(0, 50);
+  const scopeLabel = `${routes.length} routes × ${themes.length} theme(s) × ${directions.length} direction(s) × ${dpis.length} dpi`;
   const manifestPath = path.join(OUT_ROOT, label, "manifest.json");
-  await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+
+  // A second run with a narrower --routes list used to replace the manifest
+  // outright, so capturing four light cases deleted the record of the
+  // thirty-eight already taken. Captures are additive: this run's keys
+  // overwrite their own previous entries and everything else is kept.
+  manifest.shotCount = Object.keys(manifest.shots).length;
+  let merged = manifest;
+  if (existsSync(manifestPath)) {
+    try {
+      const previous = JSON.parse(await readFile(manifestPath, "utf8"));
+      merged = {
+        ...previous,
+        ...manifest,
+        shots: { ...(previous.shots ?? {}), ...manifest.shots },
+        runs: [...(previous.runs ?? []), { at: manifest.capturedAt, scope: scopeLabel }],
+      };
+      merged.failingCount = Object.values(merged.shots).filter(
+        (value) => value.problems?.length || value.error,
+      ).length;
+      merged.shotCount = Object.keys(merged.shots).length;
+    } catch {
+      // An unreadable previous manifest is replaced rather than trusted.
+    }
+  }
+
+  await writeFile(manifestPath, JSON.stringify(merged, null, 2));
   await browser.close();
-  console.log(`\nManifest: ${manifestPath}`);
+  console.log(`\nManifest: ${manifestPath} (${merged.shotCount ?? 0} captures on record)`);
   if (consoleErrors.length) {
     console.log(`Console errors observed: ${consoleErrors.length}`);
   }
 
-  // The manifest is written either way, but a run where every capture was
-  // flagged must not report success. Counting failures and exiting 0 is the
-  // same faulty evidence method the production-evidence correction called out:
-  // the harness proved it could take a picture, not that the picture was real.
-  if (failing.length) {
+  // The manifest is written either way, but a run where captures were flagged
+  // must not report success. Counting failures and exiting 0 is the same faulty
+  // evidence method the production-evidence correction called out: the harness
+  // proved it could take a picture, not that the picture was real. Judged
+  // against the merged record, so a narrow clean run cannot bury an earlier
+  // flagged capture.
+  const onRecord = Object.entries(merged.shots ?? {});
+  const flagged = onRecord.filter(
+    ([, value]) => value.problems?.length || value.error,
+  );
+  if (flagged.length) {
     console.error(
-      `\nvisual-execution-capture: FAILED — ${failing.length} of ${
-        Object.keys(manifest.shots).length
-      } captures flagged`,
+      `\nvisual-execution-capture: FAILED — ${flagged.length} of ${onRecord.length} captures on record flagged`,
     );
-    for (const [key, value] of failing.slice(0, 15)) {
+    for (const [key, value] of flagged.slice(0, 15)) {
       console.error(
         ` - ${key}: ${(value.problems?.length ? value.problems : [value.error]).join("; ")}`,
       );
@@ -266,7 +296,7 @@ async function main() {
     process.exit(1);
   }
   console.log(
-    `\nvisual-execution-capture: PASSED — ${Object.keys(manifest.shots).length} captures, none flagged`,
+    `\nvisual-execution-capture: PASSED — ${onRecord.length} captures on record, none flagged`,
   );
 }
 

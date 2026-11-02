@@ -58,6 +58,7 @@ const report = {
   steps: [],
   consoleErrors: [],
   pageErrors: [],
+  notFound: [],
   screens: [],
 };
 
@@ -372,6 +373,14 @@ try {
   const page = await browser.newPage();
   page.on("console", (message) => {
     if (message.type() === "error") report.consoleErrors.push(message.text());
+  });
+  // The app probes /models/*/weights.bin so it can state honestly whether a
+  // model's weights are present. Missing weights is this build's real state, and
+  // Chromium logs each resulting 404 as a console error — so that count belongs
+  // to the model catalogue, not to the page. The URLs are recorded here and the
+  // errors are only excused while every 404 on the run is one of those probes.
+  page.on("response", (response) => {
+    if (response.status() === 404) report.notFound.push(response.url());
   });
   page.on("pageerror", (error) => report.pageErrors.push(String(error)));
 
@@ -973,10 +982,18 @@ try {
   );
 
   check("morphcore: no uncaught page errors", report.pageErrors.length === 0, report.pageErrors);
+  // Only the deliberate weights-absence probes are excused, and only when every
+  // 404 on the run is one. A new missing asset still fails here.
+  const probesOnly =
+    report.notFound.length > 0 &&
+    report.notFound.every((url) => /\/models\/[^/]+\/weights\.bin$/.test(url));
+  const unexplained = report.consoleErrors.filter(
+    (text) => !(probesOnly && /status of 404/.test(text)),
+  );
   check(
-    "morphcore: no console errors",
-    report.consoleErrors.length === 0,
-    report.consoleErrors.slice(0, 5),
+    "morphcore: no console errors beyond the weights-absence probes",
+    unexplained.length === 0,
+    { unexplained: unexplained.slice(0, 5), probedMissing: report.notFound.length },
   );
 } catch (error) {
   report.fatal = String(error);
