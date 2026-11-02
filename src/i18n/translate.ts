@@ -2035,6 +2035,36 @@ const STRINGS: Dictionary = {
   },
   "templates.renderable": { en: "Renderable templates", ar: "القوالب القابلة للرسم" },
   "templates.allCategories": { en: "All categories", ar: "كل الفئات" },
+
+  // Templates — search, sort, header promises and the spec strip
+  "templates.searchLabel": { en: "Search templates", ar: "ابحث في القوالب" },
+  "templates.searchPlaceholder": {
+    en: "Search intro, outro, lower third…",
+    ar: "ابحث: مقدمة، خاتمة، شريط سفلي…",
+  },
+  "templates.sort": { en: "Sort", ar: "الترتيب" },
+  "templates.sort.featured": { en: "Featured", ar: "المميزة" },
+  "templates.sort.name": { en: "Name", ar: "الاسم" },
+  "templates.sort.duration": { en: "Duration", ar: "المدة" },
+  "templates.noMatches": {
+    en: "No template matches that search",
+    ar: "لا يوجد قالب يطابق هذا البحث",
+  },
+  "templates.noMatchesHint": {
+    en: "Only the renderable catalogue is searched. The generated placeholders stay in their own section.",
+    ar: "يُبحث في كتالوج القوالب القابلة للرسم فقط. تبقى العناصر النائبة المولّدة في قسمها الخاص.",
+  },
+  "templates.clearFilters": { en: "Clear filters", ar: "مسح المرشحات" },
+  "templates.promiseRenderable": {
+    en: "Renderable and exportable",
+    ar: "قابل للرسم والتصدير",
+  },
+  "templates.promiseCanvas": { en: "Canvas ready", ar: "جاهز للكانفس" },
+  "templates.promiseEditable": { en: "Text and colour editable", ar: "النص واللون قابلان للتحرير" },
+  "templates.specResolution": { en: "Resolution", ar: "الدقة" },
+  "templates.specDuration": { en: "Duration", ar: "المدة" },
+  "templates.specFrameRate": { en: "Frame rate", ar: "معدل الإطارات" },
+  "templates.specExportFormat": { en: "Export format", ar: "صيغة التصدير" },
   "templates.ready": { en: "Ready", ar: "جاهزة" },
   "templates.loading": { en: "Reading the template engine", ar: "قراءة محرّك القوالب" },
   "templates.loadingHint": {

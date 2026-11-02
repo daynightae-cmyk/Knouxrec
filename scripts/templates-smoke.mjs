@@ -84,7 +84,18 @@ async function selectRow(page, matcher) {
     row.click();
     return true;
   }, matcher);
-  if (!selected) throw new Error(`Template row not found: ${matcher}`);
+  if (!selected) {
+    const where = await page.evaluate(() => ({
+      hash: window.location.hash,
+      cards: document.querySelectorAll(".kx-template-card").length,
+      subs: [...document.querySelectorAll(".kx-template-sub")].map((node) =>
+        node.textContent,
+      ),
+    }));
+    throw new Error(
+      `Template row not found: ${matcher} — ${JSON.stringify(where)}`,
+    );
+  }
   await sleep(500);
 }
 
@@ -638,7 +649,10 @@ try {
 
   /* ------------------------------------- text customizations reach pixels */
   const customized = await page.evaluate(async () => {
-    const inputs = [...document.querySelectorAll("input.kx-input")];
+    // Targeted by its own hook rather than "the first input on the page": the
+    // gallery now carries a search field, and a positional pick would type the
+    // proof string into that instead of into a template text element.
+    const inputs = [...document.querySelectorAll("input.kx-input[data-template-text]")];
     if (!inputs.length) return { targeted: false, reason: "no text input" };
     const input = inputs[0];
     const setter = Object.getOwnPropertyDescriptor(

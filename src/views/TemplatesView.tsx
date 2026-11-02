@@ -97,6 +97,40 @@ export default function TemplatesView({
   const [studioJobId, setStudioJobId] = useState<string | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, string>>({});
   const [category, setCategory] = useState<string>("all");
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<"featured" | "name" | "duration">("featured");
+
+  /**
+   * The gallery the reference artwork shows is searchable and sortable. Both
+   * operate on the real engine catalogue that is already loaded, so a search
+   * that matches nothing says so instead of quietly showing the full list.
+   */
+  const visibleTemplates = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    const list = templates.filter(
+      (template) =>
+        (category === "all" || template.category === category) &&
+        (!needle ||
+          template.name.toLowerCase().includes(needle) ||
+          (template.description ?? "").toLowerCase().includes(needle) ||
+          template.category.toLowerCase().includes(needle)),
+    );
+    if (sort === "name") {
+      return [...list].sort((a, b) => a.name.localeCompare(b.name));
+    }
+    if (sort === "duration") {
+      return [...list].sort((a, b) => a.duration - b.duration);
+    }
+    return list;
+  }, [templates, category, query, sort]);
+
+  const categoryCounts = useMemo(() => {
+    const tally = new Map<string, number>();
+    for (const template of templates) {
+      tally.set(template.category, (tally.get(template.category) ?? 0) + 1);
+    }
+    return tally;
+  }, [templates]);
 
   const urlRef = useRef<string | null>(null);
   const videoUrlRef = useRef<string | null>(null);
@@ -495,7 +529,25 @@ export default function TemplatesView({
         eyebrow={t("groupCreate")}
         title={t("templates")}
         description={t("templates.description")}
-        actions={<StateBadge state={capability.state} />}
+        actions={
+          <>
+            <span className="kx-promise" data-template-promises>
+              <span className="kx-promise-item">
+                <Icon name="sparkles" size={14} />
+                {t("templates.promiseRenderable")}
+              </span>
+              <span className="kx-promise-item">
+                <Icon name="studio" size={14} />
+                {t("templates.promiseCanvas")}
+              </span>
+              <span className="kx-promise-item">
+                <Icon name="pencil" size={14} />
+                {t("templates.promiseEditable")}
+              </span>
+            </span>
+            <StateBadge state={capability.state} />
+          </>
+        }
       />
 
       <div className="kx-notice" data-tone="ok" style={{ marginBottom: 16 }}>
@@ -522,6 +574,33 @@ export default function TemplatesView({
               <EmptyState icon="alert" title={t("templates.loadFailed")} hint={loadError} />
             ) : (
               <>
+                <div className="kx-tpl-tools">
+                  <label className="kx-search kx-tpl-search">
+                    <Icon name="search" size={15} />
+                    <input
+                      className="kx-input"
+                      value={query}
+                      data-template-search
+                      aria-label={t("templates.searchLabel")}
+                      placeholder={t("templates.searchPlaceholder")}
+                      onChange={(event) => setQuery(event.target.value)}
+                    />
+                  </label>
+                  <select
+                    className="kx-select kx-select-sm"
+                    value={sort}
+                    data-template-sort
+                    aria-label={t("templates.sort")}
+                    onChange={(event) =>
+                      setSort(event.target.value as "featured" | "name" | "duration")
+                    }
+                  >
+                    <option value="featured">{t("templates.sort.featured")}</option>
+                    <option value="name">{t("templates.sort.name")}</option>
+                    <option value="duration">{t("templates.sort.duration")}</option>
+                  </select>
+                </div>
+
                 <div className="kx-template-filter" role="group" aria-label={t("templates.allCategories")}>
                   {["all", ...Array.from(new Set(templates.map((template) => template.category)))].map(
                     (categoryId) => (
@@ -536,14 +615,37 @@ export default function TemplatesView({
                         {categoryId === "all"
                           ? t("templates.allCategories")
                           : CATEGORY_LABELS[categoryId] ?? categoryId}
+                        <b className="kx-template-chip-count" data-category-count={categoryId}>
+                          {categoryId === "all"
+                            ? templates.length
+                            : categoryCounts.get(categoryId) ?? 0}
+                        </b>
                       </button>
                     ),
                   )}
                 </div>
+                {visibleTemplates.length === 0 ? (
+                  <EmptyState
+                    icon="search"
+                    title={t("templates.noMatches")}
+                    hint={t("templates.noMatchesHint")}
+                    action={
+                      <button
+                        type="button"
+                        className="kx-btn kx-btn-sm"
+                        data-action="clear-template-filters"
+                        onClick={() => {
+                          setQuery("");
+                          setCategory("all");
+                        }}
+                      >
+                        {t("templates.clearFilters")}
+                      </button>
+                    }
+                  />
+                ) : (
                 <div className="kx-template-gallery">
-                  {templates
-                    .filter((template) => category === "all" || template.category === category)
-                    .map((template) => (
+                  {visibleTemplates.map((template) => (
                       <button
                         key={template.id}
                         type="button"
@@ -577,6 +679,7 @@ export default function TemplatesView({
                       </button>
                     ))}
                 </div>
+                )}
               </>
             )}
           </div>
@@ -639,6 +742,29 @@ export default function TemplatesView({
                   {selected.description}
                 </p>
 
+                <div className="kx-tpl-specs" data-template-specs>
+                  <span className="kx-tpl-spec">
+                    <Icon name="studio" size={14} />
+                    <b>{selected.width}×{selected.height}</b>
+                    <span>{t("templates.specResolution")}</span>
+                  </span>
+                  <span className="kx-tpl-spec">
+                    <Icon name="clock" size={14} />
+                    <b>{selected.duration}s</b>
+                    <span>{t("templates.specDuration")}</span>
+                  </span>
+                  <span className="kx-tpl-spec">
+                    <Icon name="activity" size={14} />
+                    <b>{selected.fps} fps</b>
+                    <span>{t("templates.specFrameRate")}</span>
+                  </span>
+                  <span className="kx-tpl-spec">
+                    <Icon name="video" size={14} />
+                    <b dir="ltr">WebM</b>
+                    <span>{t("templates.specExportFormat")}</span>
+                  </span>
+                </div>
+
                 {selected.textElements.length > 0 && (
                   <>
                     <div className="kx-divider" />
@@ -651,6 +777,7 @@ export default function TemplatesView({
                           <span className="kx-label">{element.label}</span>
                           <input
                             className="kx-input"
+                            data-template-text={element.id}
                             value={customizations[element.id] ?? ""}
                             placeholder={element.label}
                             onChange={(event) => {

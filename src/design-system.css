@@ -7717,3 +7717,74 @@ html[dir="rtl"] .kx-region-hint {
 }
 
 .kx-lib-controls .kx-search { flex: 0 1 300px; }
+
+/* =====================================================================
+   Templates — search/sort tools, category counts, spec strip
+   ===================================================================== */
+
+.kx-tpl-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.kx-tpl-search { flex: 1 1 260px; }
+
+.kx-template-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.kx-template-chip-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 20px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--kx-surface-strong);
+  color: var(--kx-text-soft);
+  font-family: var(--kx-font-numeric);
+  font-size: 0.62rem;
+  font-weight: 700;
+}
+
+.kx-template-chip[data-active="true"] .kx-template-chip-count {
+  background: var(--kx-accent);
+  color: var(--kx-accent-ink);
+}
+
+.kx-tpl-specs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.kx-tpl-spec {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 104px;
+  padding: 8px 11px;
+  border-radius: var(--kx-radius-xs);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-surface);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--kx-text-faint);
+}
+
+.kx-tpl-spec svg { color: var(--kx-accent); margin-bottom: 3px; }
+
+.kx-tpl-spec b {
+  font-family: var(--kx-font-numeric);
+  font-size: 0.82rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--kx-text);
+}
