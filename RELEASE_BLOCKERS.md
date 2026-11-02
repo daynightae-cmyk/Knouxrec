@@ -1,17 +1,21 @@
 # RELEASE_BLOCKERS.md
 
+> [!CAUTION]
+> **RELEASE BLOCKED — source and visual gaps also remain.** A passing CI job and a generated unsigned installer do not prove release readiness. Historical visual matrix screenshots captured Splash overlays. See [independent evidence corrections](docs/PRODUCTION_EVIDENCE_CORRECTIONS_2026-10-27.md).
+
+
 **KNOUX REC — Release Blockers and External Requirements**
 
-## Status: NO CODE BLOCKERS
+## Status: PRODUCTION BLOCKED (visual evidence + signing + release prerequisites)
 
-All code-level production gates (G1–G12) are PASS. The following items are **external requirements** that must be resolved before public release.
+Historical all-PASS certification is invalid; G11 visual evidence and G12 signing failed independent verification. The following items are **external requirements** that must be resolved before public release.
 
 ---
 
 ## External Blockers (Require User/Approval Action)
 
 ### B1: Authenticode Code Signing
-- **Status**: Self-signed (development certificate)
+- **Status**: NotSigned (neither installer nor unpacked executable has an Authenticode signer)
 - **Requirement**: Purchase and configure a real Authenticode certificate
 - **Impact**: Windows SmartScreen will warn users on unsigned installers
 - **Action Required**: Procure certificate, configure in `electron-builder` signing pipeline
@@ -70,4 +74,4 @@ All code-level production gates (G1–G12) are PASS. The following items are **e
 - [ ] B4: License decision made
 - [ ] B5: Store listing assets prepared
 
-**Until B1–B5 are resolved, the product is available via direct download only (unsigned installer).**
+**Do not claim a trusted public release until signing, functional and visual evidence, and policy gates have passed.**

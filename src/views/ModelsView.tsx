@@ -120,13 +120,15 @@ export default function ModelsView() {
         manifest: report?.manifest ?? null,
         weights: report?.weights ?? null,
       });
-      const weightsInstalled =
-        Boolean(report?.weights?.matchesDeclaredSize && report?.weights?.sha256Trusted !== false);
-      if (weightsInstalled) {
+      // The desktop picker only inspects local files. It does not persist the
+      // weights, register an inference runtime or authenticate an external source.
+      const weightsInspected =
+        Boolean(report?.ok && report?.weights?.matchesDeclaredSize);
+      if (weightsInspected) {
         push(
-          "success",
-          t("models.importOk"),
-          `${report.manifest?.modelName ?? ""} · ${formatBytes(report.manifest?.expectedWeightsBytes ?? 0)}`,
+          "info",
+          t("models.importValidated"),
+          report.reason ?? t("models.notInstalledNote"),
         );
       } else if (report?.ok) {
         push(
