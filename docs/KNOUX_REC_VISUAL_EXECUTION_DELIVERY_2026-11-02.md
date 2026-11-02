@@ -3,7 +3,7 @@
 Workspace: `K:\Knoux Projects\Knouxrec\workspace`
 Remote: https://github.com/daynightae-cmyk/Knouxrec
 Baseline HEAD at start: `a0a39299631497f8055314d1ce919b53b357c376` (main)
-State: **local commits only — nothing pushed, nothing released, no deploy.**
+State: **merged to `origin/main`. Not released, not signed, not published.**
 
 ---
 
@@ -212,10 +212,11 @@ twelve-file queue so both measure a real interruption. `smoke:batch` 37/37.
 |---|---|
 | `npm run type-check` | exit 0 |
 | `npm run lint` (max-warnings 0) | exit 0 |
-| `npm run check:i18n` | PASSED — 1549 translated strings, 25 views + 1 shared surface |
-| `npm test` | 26 files, **319 tests** passed |
+| `npm run check:i18n` | PASSED — 1608 translated strings across **48 renderer files** (was 25 views + 1 shared surface; see §6.4) |
+| `npm test` | 28 files, **342 tests** passed |
 | `npm run build` | exit 0 |
 | `npm run verify` (all five above) | **exit 0** |
+| `node scripts/smoke-all.mjs` | **26/26 passed**, 726 s, exit 0 — first complete aggregate run (§6.8) |
 | `smoke:ui` | 58/58 |
 | `smoke:discover` | 26/26 |
 | `smoke:recording` | 21/21 |
@@ -231,7 +232,7 @@ twelve-file queue so both measure a real interruption. `smoke:batch` 37/37.
 
 Commits, in order: `b5d67b9` (01–04) → `c2b5401` (05) → `d2e67ba` (06) →
 `da40ff4` (07) → `c97c969` (08) → `e63d67a` (09) → `ccc6799` (10) →
-`03adef9` (splash regression fix).
+`03adef9` (splash regression fix) → then the review work in §6, listed at §6.9.
 
 ---
 
@@ -276,16 +277,217 @@ Commits, in order: `b5d67b9` (01–04) → `c2b5401` (05) → `d2e67ba` (06) →
 - **MP3 / AAC / FLAC encoding do not exist in this runtime** and are not
   offered.
 - **Scrolling screenshot capture is not implemented** and is shown as blocked.
-- **Templates WebM export has a real flake**: when an export starts immediately
-  after a cancelled one, the frame loop can hit its wall-clock ceiling while the
-  previous job still holds CPU, producing a short clip and failing three timing
-  assertions. It reproduced once and cleared on re-run. It is a genuine
-  robustness weakness in `templateExport.ts`, not caused by this work, and it is
-  **not fixed here**.
+- **Templates WebM export was flaky under load; two causes fixed after this
+  section was first written.** It appeared as a short clip failing three timing
+  assertions when an export ran while the machine was busy. Cause one was an
+  absolute wall-clock ceiling combined with a `requestAnimationFrame` loop that
+  Chromium throttles — fixed in `aab9258`. Cause two was the encoder's tracks
+  being released before `recorder.stop()` had flushed — fixed in `869911b`. What
+  remains true is the underlying characteristic: the export depends on the page
+  being compositor-priority, so on a loaded machine it takes materially longer
+  (measured 14 s alone against 140 s inside a full suite run). See §6.8.
 - **Android-native was not touched.** It is out of scope for a desktop visual
   pass and was left alone as instructed.
 - **Elysian Canvas, MorphCore, Visual Patch, Proportion Mirror, Offline AI,
   Arabic AI, AI Models, Settings, Diagnostics, About and Live Studio were not
   edited.** They are covered by the full smoke sweep below; shared shell and card
   changes were made additively so their own layouts are unchanged.
-- **Nothing is pushed, published or released.**
+- **Merged, not released.** The work is on `origin/main`. There is no signed
+  installer, no published GitHub release and no update feed: the signing gate in
+  the production-evidence correction still reads BLOCKED, and nothing here
+  changes that.
+
+---
+
+## 6. Post-delivery review (same day)
+
+The ten phases above were delivered first and reviewed after. This section
+records what the review found, including defects in the tools that produced the
+evidence in sections 2–4. It supersedes nothing: the phase text stands as
+written at the time.
+
+### 6.1 Upstream merge
+
+`origin/main` had moved to `a0a3929` and PR #4 (the independent production
+evidence corrections) had merged. Merged here as `7fdceeb` — no file overlap
+with the visual work, so no resolution was needed. The correction record
+`docs/PRODUCTION_EVIDENCE_CORRECTIONS_2026-10-27.md` is now part of this
+branch's history and its acceptance gates are applied below.
+
+### 6.2 Two runtime defects found by re-reading, not by a failing test
+
+- **Template export produced 0.236 s files.** `templateExport.ts` bounded the
+  frame loop with an absolute wall-clock ceiling and paced it on
+  `requestAnimationFrame`. On a loaded machine rAF is throttled, so the ceiling
+  fired while frames were still valid: the clip ended early and three timing
+  assertions failed. Replaced with a stall budget keyed to the last frame time
+  and a `setTimeout` loop (`aab9258`).
+- **Audio Studio playhead lagged 0.1–0.25 s behind the clock.** It was driven by
+  `timeupdate`, which Chromium fires about four times per second. Now driven per
+  frame (`4344679`). The harness that "proved" this was also wrong: it compared
+  a rendered label against a live clock in the same instant, which measures
+  render latency rather than correctness, and it clicked Stop — zeroing both —
+  before checking.
+
+### 6.3 The screenshot harness was producing invalid evidence
+
+Re-checking the corrected harness against the acceptance gates in the production
+evidence record found that **all 19 RTL captures were silently the LTR page**:
+identical byte sizes to their LTR counterparts and `document.dir` still `ltr`.
+Root cause: navigating by hash alone does not create a new document, so the
+boot-time preference hook never ran again. Fixed by forcing a real load
+(`about:blank` then the route) — the same class of fault the October audit
+called out in the previous harness.
+
+The harness also **flagged bad captures and then exited 0**: it computed the
+failing list, wrote it into the manifest, and reported success. It now exits 1
+with the flagged cases named. A green signal from a red run is exactly the
+failure mode that audit was written about, and this was my own code doing it.
+
+### 6.4 Arabic build
+
+Visual review of `dashboard-rtl-100.png` found English inside an Arabic page.
+Two of the defects were mine, and neither the i18n gate nor any test could see
+them:
+
+- the gate's text pattern could not match a JSX text node containing a newline,
+  so every paragraph wrapped at a readable width passed as "no text found";
+- `src/views/ui.tsx` was not in the gate's file list at all. Its capability
+  badges render on 19 routes, so "Missing engine" and "Not implemented" were
+  shipping into the Arabic build everywhere at once.
+
+Fixed in `2c872c7`: shared dialogs, badges and notices go through the dictionary;
+the scanned set is discovered from the renderer directories (33 files → 48) with
+a required-surface guard; and a dotted literal is validated wherever it appears,
+which is the only way a lookup table like `STATE_KEY` is checked at all.
+
+`src/i18n/translate.test.ts` now audits the dictionary at runtime instead of by
+source regex: both locales present, Arabic script present, `{placeholders}`
+intact, no untranslated Latin word. The Latin rule ships with its own positive
+control — it asserts `"إعادة shaping"` **is** reported while `"وMediaRecorder"`
+and `"{count}"` are not — because a clean run from a broken detector is worthless.
+Writing that test surfaced two further real defects: an Arabic value glued to a
+file name (`model.jsonالموجودة`) and one brand transliterated two different ways
+in the same dictionary.
+
+Not fixed, and stated plainly: `src/app/capabilities.ts` also carries `requirements[]`
+and `evidence` prose per service. Those render in the capability notice on
+Diagnostics and on the models/discover detail cards, and they are still English
+in the Arabic build — visible in `artifacts/visual-execution/after/dark/models-rtl-100.png`
+as "المتطلبات: Weight binaries". The service *summaries* are translated; the
+dependency and evidence lines are not.
+
+A sweep of the whole dictionary for characters outside Arabic and Latin found
+two Arabic values shipped with **Chinese inside them** — `dashboard.featuredServicesDesc`
+began with `整套 ` and `models.honestBody` read `…الأوزان也不再 التحقق…`. Neither
+is noticed by the Latin-word rule (CJK is not Latin) nor by the Arabic-script
+rule (the value does contain Arabic). Both are rewritten against the English
+source, and `translate.test.ts` now rejects any third script in either field —
+verified to catch both original strings and to pass the corrected ones.
+
+### 6.8 Aggregate sweep versus isolated suites
+
+Four full 26-suite runs were made. The result depends on how loaded the machine
+is, and the honest report is both numbers:
+
+| Run | Wall | Result | Cause |
+|---|---|---|---|
+| 1 | 698 s | 25/26 | `recording` failed; detail destroyed by piping stdout through `tail` |
+| 2 | 1143 s | 22/26 | pre-flush-fix: four encoders starved |
+| 3 | 952 s | 24/26 | flush fix landed; two harness timeouts remained |
+| 4 | 687 s | 25/26 | only `morphcore`, on weights-probe 404 console noise |
+| 5 | 1288 s | 23/26 | `audio-recording`, `recording`, `region` — heavy external load |
+| 6 | 726 s | **26/26** | final run on the pushed code, all fixes in |
+
+Run 6 is the first aggregate execution of all 26 suites with nothing skipped,
+and it exits 0. The intermediate runs are kept in this table rather than
+replaced by the green one, because the sequence is the evidence: each failure
+named here led to a fix, and the number only moved when a fix went in.
+
+**Every one of the 26 suites also passes when run individually**, including each
+of the five that ever failed in aggregate. Failures between runs rotated and
+correlated with wall time rather than with the diff: the same code produced
+25/26 in 687 s and 23/26 in 1288 s. The mechanism is that a canvas- or
+element-captured `MediaRecorder` session depends on the page being
+compositor-priority, and a second Chromium starting while the first is tearing
+down starves it.
+
+What the sweeps genuinely fixed, rather than merely revealed: the encoder flush
+ordering (§6.6) and the region suite's misattribution (§6.6). Two further
+evidence defects came out of the same review — `morphcore` asserted zero console
+errors while the app deliberately probes missing `weights.bin` files, so the
+policy now excuses only those probes and still fails on any other missing asset;
+and the capture harness's narrower second run **overwrote** the full manifest,
+deleting the record of 38 captures, so manifests are now merged and the exit
+code is judged against the whole record.
+
+The app's behaviour under starvation is correct and is not a defect: it errors
+with a precise diagnostic — "the recorder produced an empty file. Nothing was
+saved" — and stores nothing.
+
+### 6.9 Commits added by the review
+
+`7fdceeb` merge of PR #4 → `aab9258` template export frame loop →
+`4344679` audio playhead → `2c872c7` shared-UI translation + gate blind spots →
+`294acd8` smoke runner + fail-closed harness → `869911b` recorder flush +
+harness attribution → `845ba04` capability registry translation, CJK dictionary
+repairs and recorder toasts → `08695dd` weights-probe console policy and capture
+manifest merge → then this record. All are on `origin/main`.
+
+### 6.5 Evidence infrastructure
+
+`npm run smoke:all` was 25 `npm run …` calls joined by `&&`, which has two
+failure modes: the first failing suite prevented every later suite from running
+at all (one splash-selector regression during this mission silently hid 24
+suites), and a suite missing from the chain simply vanished from the record —
+`smoke:region`, the selected-area capture gate the mission names as mandatory,
+was defined and never executed by the aggregate. Replaced by
+`scripts/smoke-all.mjs` (`294acd8`): derives its list from package.json, runs
+every suite regardless of its neighbours, writes a per-suite transcript, and
+returns 1 if any failed.
+
+### 6.6 Recorder robustness under load
+
+A full 26-suite run surfaced a class of failure that no isolated run reproduces:
+`recording`, `region`, `screen` and `templates` all reported encoders producing
+**zero chunks while still painting frames**. Two findings came out of it.
+
+A genuine ordering bug, now fixed: `trimMediaOnce` and `templateExport` stopped
+the `MediaStream` tracks immediately after `recorder.stop()` and only then
+awaited the blob. `stop()` is asynchronous — the last timeslices are still
+arriving through `dataavailable` when `onstop` fires — so releasing the tracks
+first discards them. `src/services/mediaFlush.ts` now holds the bounded wait
+every encoder uses before releasing its tracks; `recordingEngine.stop()` and
+`aiTasks` already had the order right, so two of the codebase's four encoders
+were affected.
+
+An evidence bug in my own suite, also fixed: `region-recording-smoke.mjs`
+identified the region take with `.at(-1)` — "the newest video". When a region
+take failed to store, that silently returned the earlier **full-screen** file,
+and the suite reported "the selected-area file is 1920×1080, not the chosen
+1536×864 rectangle". That reads as the exact accusation the mission forbids —
+decorative overlay recording the whole monitor — when the truth was that no
+region file existed. The suite now snapshots the library first and identifies
+the take by being new, and fails explicitly when there is no new item.
+
+Behaviour under load is a real limit of this runtime, not a fixed bug: every one
+of these four suites passes on an otherwise idle machine, and the app's response
+to starvation is correct — it errors with a precise diagnostic and saves
+nothing. The runner now settles 2.5 s between suites, which removes the overlap
+between one suite's Chromium teardown and the next one's capture.
+
+**Packaged evidence caveat.** `smoke:packaged` and `smoke:electron` pass, but
+`release/win-unpacked/resources/app.asar` is dated **2026-10-27** — five days
+before this work. They prove the old bundle boots; they do **not** evidence the
+redesigned renderer in a packaged runtime. `release/` was left untouched because
+the October audit cites those exact files.
+
+### 6.7 A note on this session's own errors
+
+While testing the gate's required-surface guard I ran `git checkout --` on
+`scripts/check-i18n.mjs`, which destroyed the uncommitted gate work. The file
+was rebuilt from scratch and each construct re-verified individually rather than
+assumed. No other file was affected and nothing committed was lost. Earlier, one
+aggregate run was piped through `tail -60`, which discarded the failing check
+line of a recorder failure permanently — the reason the runner now writes
+transcripts to `artifacts/smoke/<timestamp>/` instead of relying on stdout.
