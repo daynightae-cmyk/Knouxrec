@@ -7947,3 +7947,17 @@ html[dir="rtl"] .kx-region-hint {
 html[dir="rtl"] .kx-tbx-card:hover .kx-tbx-card-go {
   transform: translateX(-2px) rotate(180deg);
 }
+
+/* ---------- audio studio: promise chips and the drop zone ---------- */
+
+.kx-kbd-inline {
+  position: static;
+  margin-inline-start: 6px;
+  inset-inline-end: auto;
+}
+
+.kx-audio-hero .kx-empty { gap: 10px; }
+
+@media (max-width: 1180px) {
+  .kx-audio-hero .kx-promise { display: none; }
+}

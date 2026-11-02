@@ -3,6 +3,7 @@ import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { Icon } from "../app/icons";
 import MediaPicker from "../ui/MediaPicker";
 import { useLibrary } from "../state/LibraryContext";
+import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
 import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
@@ -134,12 +135,25 @@ export default function AudioStudioView({
   const { settings } = useSettings();
   const { add } = useLibrary();
   const { push } = useToast();
+  const recorder = useRecorder();
   const t = useCallback(
     (key: string) => translate(settings.language, key),
     [settings.language],
   );
 
   const fileRef = useRef<HTMLInputElement | null>(null);
+
+  // The drop zone prints Ctrl O on its open button, so the binding exists.
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "o") {
+        event.preventDefault();
+        fileRef.current?.click();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const renderFilter = useMemo(() => createFilterRenderer(), []);
@@ -608,7 +622,21 @@ export default function AudioStudioView({
         title={t("audio.title")}
         description={t("audio.description")}
         actions={
-          <div className="kx-row" style={{ gap: 8 }}>
+          <div className="kx-row" style={{ gap: 8, flexWrap: "wrap" }}>
+            <span className="kx-promise" data-audio-promises>
+              <span className="kx-promise-item">
+                <Icon name="layers" size={14} />
+                {t("audio.promiseNonDestructive")}
+              </span>
+              <span className="kx-promise-item">
+                <Icon name="cpu" size={14} />
+                {t("audio.promiseLocal")}
+              </span>
+              <span className="kx-promise-item">
+                <Icon name="shield" size={14} />
+                {t("audio.promiseNoUpload")}
+              </span>
+            </span>
             <StateBadge state={capability.state} />
             <button type="button" className="kx-btn kx-btn-sm" onClick={() => setPickerOpen(true)}>
               <Icon name="folder" size={14} />
@@ -644,21 +672,67 @@ export default function AudioStudioView({
             title={t("audio.emptyTitle")}
             hint={t("audio.emptyHint")}
             action={
-              <div className="kx-row" style={{ gap: 8 }}>
+              <div className="kx-row" style={{ gap: 8, flexWrap: "wrap" }}>
                 <button
                   type="button"
                   className="kx-btn kx-btn-primary"
+                  data-action="open-audio"
                   onClick={() => fileRef.current?.click()}
                   disabled={busy}
                 >
+                  <Icon name="upload" size={15} />
                   {t("audio.open")}
+                  <kbd className="kx-kbd kx-kbd-inline">Ctrl O</kbd>
                 </button>
-                <button type="button" className="kx-btn" onClick={() => setPickerOpen(true)}>
+                {/* A real microphone take through the same engine the recorder
+                    uses. It lands in the library, and the clip is then opened
+                    here — the studio does not pretend to record inline. */}
+                <button
+                  type="button"
+                  className="kx-btn"
+                  data-action="record-take"
+                  onClick={() => {
+                    if (recorder.status === "recording" && recorder.mode === "audio") {
+                      void recorder.stop();
+                      push("info", t("audio.takeStored"), t("audio.takeStoredHint"));
+                      return;
+                    }
+                    void recorder.start("audio");
+                  }}
+                  disabled={
+                    !recorder.support.microphone ||
+                    (recorder.status !== "idle" &&
+                      !(recorder.status === "recording" && recorder.mode === "audio"))
+                  }
+                >
+                  <Icon name={recorder.status === "recording" ? "stop" : "microphone"} size={15} />
+                  {recorder.status === "recording" && recorder.mode === "audio"
+                    ? `${t("audio.stopTake")} · ${formatDuration(recorder.elapsed)}`
+                    : t("audio.recordTake")}
+                </button>
+                <button
+                  type="button"
+                  className="kx-btn"
+                  data-action="from-library"
+                  onClick={() => setPickerOpen(true)}
+                >
+                  <Icon name="folder" size={15} />
                   {t("audio.fromLibrary")}
                 </button>
               </div>
             }
           />
+          <p className="kx-muted" style={{ fontSize: "0.7rem", marginTop: 4 }} dir="ltr">
+            {t("audio.decodeFormats")}
+          </p>
+          {recorder.status === "recording" && recorder.mode === "audio" && (
+            <div className="kx-notice" data-tone="ok" role="status" data-live-take>
+              <Icon name="microphone" size={16} />
+              <div>
+                <strong>{t("audio.recordingNow")}</strong> {t("audio.recordingNowHint")}
+              </div>
+            </div>
+          )}
           {error && (
             <div className="kx-notice" data-tone="danger">
               <Icon name="alert" size={16} />

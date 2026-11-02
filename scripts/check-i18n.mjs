@@ -84,6 +84,7 @@ const ALLOWED = new Set([
   // A printed key combination, like the recorder hotkeys above: it is the same
   // two tokens in every language and is not prose to translate.
   "Ctrl K",
+  "Ctrl O",
 ]);
 
 const dictionary = fs.readFileSync(path.join(root, "src/i18n/translate.ts"), "utf8");
