@@ -321,6 +321,15 @@ try {
     { surface: [surfaceWidth, surfaceHeight], ...selectionSize },
   );
 
+  // Snapshot the library before the take, so the region file is identified by
+  // being new rather than by being last. `at(-1)` silently compared the
+  // full-screen recording whenever the region take failed to store, which reads
+  // as "the app recorded the whole monitor" when the truth is "there is no
+  // region file".
+  const beforeRegionIds = new Set(
+    (await readItems()).filter((record) => record.kind === "video").map((record) => record.id),
+  );
+
   await click(".kx-region-footer .kx-btn-primary");
   const regionStarted = await waitFor(
     () => document.querySelector(".kx-status-chip")?.textContent?.includes("Recording") ?? false,
@@ -363,7 +372,18 @@ try {
   check("the selected-area take is written to the library", regionSaved);
 
   items = await readItems();
-  const regionItem = items.filter((item) => item.kind === "video").at(-1) ?? null;
+  const regionItem =
+    items
+      .filter((item) => item.kind === "video")
+      .find((item) => !beforeRegionIds.has(item.id)) ?? null;
+  check(
+    "the region take is a distinct new library item",
+    Boolean(regionItem),
+    {
+      newId: regionItem?.id ?? null,
+      videos: items.filter((item) => item.kind === "video").length,
+    },
+  );
   const regionDecoded = regionItem ? await decodeDimensions({ id: regionItem.id }) : null;
 
   check(

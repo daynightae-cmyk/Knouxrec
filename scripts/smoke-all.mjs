@@ -19,7 +19,7 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -30,10 +30,23 @@ const scripts = JSON.parse(
 ).scripts;
 
 const onlyIndex = process.argv.indexOf("--only");
+// Accept either spelling: --only recording,region and
+// --only smoke:recording,smoke:region both select the same two suites.
 const only =
   onlyIndex === -1
     ? null
-    : process.argv[onlyIndex + 1].split(",").map((name) => name.trim());
+    : process.argv[onlyIndex + 1]
+        .split(",")
+        .map((name) => `smoke:${name.trim().replace(/^smoke:/, "")}`)
+        .filter((name) => name !== "smoke:");
+
+if (only) {
+  const unknown = only.filter((name) => !Object.keys(scripts).includes(name));
+  if (unknown.length) {
+    console.error(`smoke-all: unknown suite(s): ${unknown.join(", ")}`);
+    process.exit(2);
+  }
+}
 
 const suites = Object.keys(scripts)
   .filter((name) => name.startsWith("smoke:") && name !== "smoke:all")
@@ -45,16 +58,32 @@ if (suites.length === 0) {
   process.exit(2);
 }
 
-if (only) {
-  const unknown = only.filter((name) => !Object.keys(scripts).includes(`smoke:${name}`));
-  if (unknown.length) {
-    console.error(`smoke-all: unknown suite(s): ${unknown.join(", ")}`);
-    process.exit(2);
-  }
-}
-
 const results = [];
 const started = Date.now();
+
+// Each suite starts its own Chromium with a fake capture device. Run back to
+// back, the previous instance is still tearing down while the next one asks
+// the compositor for frames, and the capture-dependent suites (trim, template
+// export, selected-area, screen) then measure zero chunks from a loop that is
+// still painting. Passing individually and failing in aggregate is the
+// signature. A short settle between suites removes the overlap.
+const settleMs = Number(process.env.KNOUX_SMOKE_SETTLE_MS ?? 2500);
+const settle = () =>
+  new Promise((resolve) => {
+    setTimeout(resolve, settleMs);
+  });
+
+// A sweep is the only run that executes every suite, so its transcript is the
+// evidence. It used to live only on stdout, and one invocation piped through
+// `tail` lost the failing check line of a recorder failure for good. Each suite
+// now writes its own full log next to the summary.
+const logDir = path.join(
+  root,
+  "artifacts",
+  "smoke",
+  new Date().toISOString().replace(/[:.]/g, "-"),
+);
+mkdirSync(logDir, { recursive: true });
 
 for (const name of suites) {
   const command = scripts[name];
@@ -66,12 +95,20 @@ for (const name of suites) {
   const start = Date.now();
   const run = spawnSync(process.execPath, [file, ...rest], {
     cwd: root,
-    stdio: "inherit",
+    encoding: "utf8",
     env: process.env,
   });
   const ms = Date.now() - start;
+  const output = `${run.stdout ?? ""}${run.stderr ?? ""}`;
+  // Echo without a trailing newline: the suites already end their own lines,
+  // and adding one per suite inserts blank rows into the transcript.
+  process.stdout.write(output);
   const status =
     run.error !== undefined ? "CRASHED" : run.status === 0 ? "PASS" : "FAIL";
+  writeFileSync(
+    path.join(logDir, `${label}.txt`),
+    `# ${label} · ${status} · ${ms} ms · exit ${run.status}\n\n${output}`,
+  );
   results.push({
     label,
     status,
@@ -83,6 +120,7 @@ for (const name of suites) {
   } else {
     process.stdout.write(`ok ${label} (${ms} ms)\n`);
   }
+  await settle();
 }
 
 const counts = { PASS: 0, FAIL: 0, CRASHED: 0 };
@@ -100,6 +138,22 @@ process.stdout.write(
     (Date.now() - started) /
     1000
   ).toFixed(0)}s wall\n`,
+);
+process.stdout.write(`Transcript: ${path.relative(root, logDir)}\n`);
+
+writeFileSync(
+  path.join(logDir, "summary.json"),
+  JSON.stringify(
+    {
+      startedAt: new Date(started).toISOString(),
+      wallSeconds: (Date.now() - started) / 1000,
+      base: process.env.KNOUX_BASE_URL ?? "http://localhost:4173/",
+      counts,
+      suites: results,
+    },
+    null,
+    2,
+  ),
 );
 
 process.exit(counts.FAIL + counts.CRASHED > 0 ? 1 : 0);

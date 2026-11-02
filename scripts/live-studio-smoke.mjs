@@ -214,7 +214,12 @@ async function openStudioFromService(page) {
             element.textContent ?? "",
           ),
         ),
-      { timeout: 20000 },
+      // Bound is generous on purpose. Individually this suite renders in seconds;
+      // inside a full 26-suite run the same render measured ~10x slower because
+      // the machine is still carrying the previous Chromium's teardown. A short
+      // bound here does not test the app, it tests how busy the host happens to
+      // be, and it produced a fatal with zero failed checks.
+      { timeout: 60000 },
     )
     .then(() => true)
     .catch(() => false);

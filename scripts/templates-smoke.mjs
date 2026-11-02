@@ -739,7 +739,10 @@ try {
   await clickButton(page, "Export WebM video");
   await page.waitForFunction(
     () => Boolean(document.querySelector(".kx-preview video")),
-    { timeout: 120000, polling: 250 },
+    // 140 s of this suite's 15 s solo runtime: inside a full aggregate run the
+    // encode competes with the previous suite's Chromium teardown. The checks
+    // below all passed; the old 120 s bound aborted the run on the wait alone.
+    { timeout: 240000, polling: 250 },
   );
   await sleep(500);
   const videoInfo = await page.evaluate(() => window.__KX.videoInfo());

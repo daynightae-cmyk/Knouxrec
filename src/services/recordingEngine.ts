@@ -1,5 +1,6 @@
 import type { RecorderSettings } from "../state/types";
 import { patchWebmDuration } from "./webm";
+import { settledWithin } from "./mediaFlush";
 import { RegionCompositor } from "./regionRecording";
 import type { ScreenRegion } from "./regionCapture";
 
@@ -1064,6 +1065,12 @@ async function trimMediaOnce(
     window.clearTimeout(watchdog);
 
     onProgress?.(1);
+    // Wait for the encoder to flush *before* releasing the capture tracks.
+    // `result` resolves inside recorder.onstop, and Chromium fires that only
+    // after the last timeslice has been delivered through dataavailable.
+    // Stopping the tracks first cuts the flush short, which on a loaded machine
+    // measures as a live paint count and zero chunks. See mediaFlush.settledWithin.
+    await settledWithin(result, 5000);
     stream.getTracks().forEach((track) => {
       try {
         track.stop();
@@ -1072,7 +1079,9 @@ async function trimMediaOnce(
       }
     });
 
-    const blob = await result;
+    // Built here rather than from `result` so the bytes are assembled after the
+    // flush completed, from the same chunk list the recorder filled.
+    const blob = new Blob(chunks, { type: recorder.mimeType });
     if (!blob.size) {
       // Both halves are named because they fail for different reasons: a paint
       // count of zero means the decoder never presented a frame, a zero chunk

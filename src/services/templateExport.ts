@@ -8,6 +8,7 @@
  */
 
 import { realTemplateEngine } from "../../services/realTemplateEngine";
+import { settledWithin } from "./mediaFlush";
 import { patchWebmDuration } from "./webm";
 
 export interface TemplateExportSpec {
@@ -325,6 +326,11 @@ async function exportTemplateVideoOnce(
         // The recorder may already be stopping.
       }
     }
+    // The tracks stay live until the session has flushed. Killing them on the
+    // line after stop() is what turned a two-second ident into a 0.069 s file
+    // on a busy machine: stop() is asynchronous, and the remaining timeslices
+    // are still on their way to dataavailable when onstop finally fires.
+    await settledWithin(stopped, 5000);
     stream.getTracks().forEach((track) => track.stop());
   }
 }
