@@ -78,12 +78,22 @@ export interface PoolReport {
 export interface PoolOptions {
   concurrency: number;
   isCancelled: () => boolean;
+  /**
+   * While this returns true no worker takes another item. Work already in
+   * flight is allowed to finish, so pausing never abandons a half-written
+   * output — it just stops the queue from advancing.
+   */
+  isPaused?: () => boolean;
   onItem: (id: string, patch: Partial<BatchItem>) => void;
 }
 
+/** How long a parked worker waits before checking the pause flag again. */
+const PAUSE_POLL_MS = 120;
+
 /**
  * Run `task` over `items` with at most `concurrency` in flight. A rejected task
- * fails only its own item; cancellation stops new starts and marks the rest.
+ * fails only its own item; cancellation stops new starts and marks the rest; a
+ * pause holds the queue without discarding anything.
  */
 export async function runPool<T extends { id: string }>(
   items: T[],
@@ -95,11 +105,20 @@ export async function runPool<T extends { id: string }>(
   const workers: Promise<void>[] = [];
   const width = Math.max(1, Math.min(options.concurrency, items.length || 1));
 
+  const waitWhilePaused = async () => {
+    while (options.isPaused?.() && !options.isCancelled()) {
+      await new Promise((resolve) => setTimeout(resolve, PAUSE_POLL_MS));
+    }
+  };
+
   for (let slot = 0; slot < width; slot += 1) {
     workers.push(
       (async () => {
         while (queue.length > 0) {
           if (options.isCancelled()) break;
+          await waitWhilePaused();
+          if (options.isCancelled()) break;
+          if (queue.length === 0) break;
           const item = queue.shift() as T;
           try {
             await task(item);

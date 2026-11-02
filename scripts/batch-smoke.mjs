@@ -426,6 +426,65 @@ try {
     ).length,
   }));
   check("the queue is still working when cancel is offered", midRun.cancelVisible && midRun.busy > 4, midRun);
+
+  /* ---- pause really holds the queue, and resume lets it advance again ---- */
+  await page.evaluate(() => document.querySelector('[data-action="pause"]')?.click());
+  await sleep(150);
+  const atPause = await page.evaluate(() => ({
+    done: [...document.querySelectorAll("[data-batch-item]")]
+      .filter((node) => node.dataset.status === "done").length,
+    pressed: document.querySelector('[data-action="pause"]')?.getAttribute("aria-pressed"),
+    label: document.querySelector('[data-action="pause"]')?.textContent?.trim(),
+    stat: document.querySelector('[data-stat="processing"]')?.dataset.paused,
+  }));
+  await sleep(1500);
+  const afterPause = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-batch-item]")].filter(
+      (node) => node.dataset.status === "done",
+    ).length,
+  );
+  check(
+    "pause stops new files from starting while in-flight work completes",
+    afterPause - atPause.done <= 1,
+    { atPause: atPause.done, afterPause },
+  );
+  check(
+    "the pause control reads as engaged and offers resume",
+    atPause.pressed === "true" && /resume/i.test(atPause.label ?? "") && atPause.stat === "true",
+    atPause,
+  );
+  await page.evaluate(() => document.querySelector('[data-action="pause"]')?.click());
+  await sleep(1200);
+  const afterResume = await page.evaluate(() =>
+    [...document.querySelectorAll("[data-batch-item]")]
+      .filter((node) => node.dataset.status === "done").length,
+  );
+  check(
+    "resume lets the queue advance again",
+    afterResume > afterPause,
+    { afterPause, afterResume },
+  );
+
+  // The pause detour means this queue may now have drained, so cancellation is
+  // measured on a fresh twelve-file run rather than on the leftovers.
+  await page.evaluate(() => document.querySelector('[data-action="cancel"]')?.click());
+  await waitForBatch(page, 20000).catch(() => undefined);
+  await click(page, '[data-action="clear"]');
+  await attach(page, many);
+  await click(page, '[data-action="start"]');
+  await sleep(600);
+  const cancelReady = await page.evaluate(() => ({
+    cancelVisible: Boolean(document.querySelector('[data-action="cancel"]')),
+    busy: [...document.querySelectorAll("[data-batch-item]")].filter(
+      (node) => node.dataset.status === "queued" || node.dataset.status === "running",
+    ).length,
+  }));
+  check(
+    "a fresh twelve-file queue is still busy when cancel is offered",
+    cancelReady.cancelVisible && cancelReady.busy > 4,
+    cancelReady,
+  );
+
   await click(page, '[data-action="cancel"]');
   await sleep(3000);
   const cancelledState = await page.evaluate(() => ({

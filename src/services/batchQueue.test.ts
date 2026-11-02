@@ -170,3 +170,98 @@ describe("batch defaults", () => {
     expect(item.blob.size).toBe(10);
   });
 });
+
+describe("runPool pause", () => {
+  it("stops taking new items while paused and lets in-flight work finish", async () => {
+    let paused = false;
+    const tracker = makeTracker();
+    const run = runPool(
+      items(6),
+      async (item) => {
+        await tracker.run(item.id, 10);
+      },
+      options({
+        concurrency: 2,
+        isPaused: () => paused,
+      }),
+    );
+
+    // Let the first pair get underway, then pause.
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    paused = true;
+    const atPause = tracker.started.length;
+    await new Promise((resolve) => setTimeout(resolve, 120));
+
+    // Nothing new may have been taken beyond the two already in flight.
+    expect(tracker.started.length).toBeLessThanOrEqual(atPause);
+    expect(tracker.started.length).toBeLessThanOrEqual(2);
+
+    paused = false;
+    const report = await run;
+    expect(report.done).toBe(6);
+    expect(tracker.started.length).toBe(6);
+  });
+
+  it("never leaves the queue short after a pause and resume", async () => {
+    let paused = false;
+    let ticks = 0;
+    const tracker = makeTracker();
+    const run = runPool(
+      items(5),
+      async (item) => {
+        await tracker.run(item.id, 6);
+      },
+      options({
+        concurrency: 1,
+        isPaused: () => {
+          // Pause after a couple of items, then release again.
+          if (ticks === 2) paused = true;
+          if (ticks === 3) paused = false;
+          ticks += 1;
+          return paused;
+        },
+      }),
+    );
+    const report = await run;
+    expect(report.done).toBe(5);
+    expect(tracker.started).toHaveLength(5);
+  });
+
+  it("a pause released by cancellation lets the workers exit", async () => {
+    let paused = true;
+    let cancelled = false;
+    const tracker = makeTracker();
+    const run = runPool(
+      items(8),
+      async (item) => {
+        await tracker.run(item.id, 5);
+      },
+      options({
+        concurrency: 2,
+        isPaused: () => paused,
+        isCancelled: () => cancelled,
+      }),
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 40));
+    expect(tracker.started.length).toBeLessThanOrEqual(2);
+
+    cancelled = true;
+    paused = false;
+    await run;
+    // Cancelled workers must drain rather than hang in the poll loop.
+    expect(true).toBe(true);
+  });
+});
+
+function makeTracker() {
+  const started: string[] = [];
+  return {
+    started,
+    async run(id: string, ms: number) {
+      started.push(id);
+      await new Promise((resolve) => setTimeout(resolve, ms));
+    },
+  };
+}
+

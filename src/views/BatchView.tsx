@@ -6,7 +6,7 @@ import { useLibrary } from "../state/LibraryContext";
 import { useSettings } from "../state/SettingsContext";
 import { useToast } from "../state/ToastContext";
 import { translate } from "../i18n/translate";
-import { downloadBlob, formatBytes } from "../lib/format";
+import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 import type { LibraryItem, ProvenanceRecord } from "../state/types";
 import {
   BatchCancelledError,
@@ -20,6 +20,7 @@ import {
 } from "../services/batchQueue";
 import { createZip } from "../services/zip";
 import { EmptyState, SectionHeader, StateBadge } from "./ui";
+import { RingGauge } from "./dashboardWidgets";
 import { useHandoffReceiver } from "../ui/handoff";
 
 const MAX_FILES = 40;
@@ -62,13 +63,26 @@ export default function BatchView({
 
   const [items, setItems] = useState<BatchItem[]>([]);
   const [config, setConfig] = useState<BatchSettings>(DEFAULT_SETTINGS);
-  const [concurrency, setConcurrency] = useState(3);
+  const [concurrency, setConcurrency] = useState(4);
   const [running, setRunning] = useState(false);
+  const [paused, setPaused] = useState(false);
+  const [elapsedMs, setElapsedMs] = useState(0);
   const [summary, setSummary] = useState<{ done: number; failed: number; cancelled: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [handoffNote, setHandoffNote] = useState<string | null>(null);
   const [busyArchive, setBusyArchive] = useState(false);
+
+  const pausedRef = useRef(false);
+  const startedAtRef = useRef(0);
+
+  useEffect(() => {
+    if (!running) return undefined;
+    const timer = window.setInterval(() => {
+      setElapsedMs(performance.now() - startedAtRef.current);
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [running]);
 
   const patch = useCallback((id: string, value: Partial<BatchItem>) => {
     setItems((current) =>
@@ -170,6 +184,10 @@ export default function BatchView({
       return;
     }
     cancelledRef.current = false;
+    pausedRef.current = false;
+    setPaused(false);
+    startedAtRef.current = performance.now();
+    setElapsedMs(0);
     setRunning(true);
     setSummary(null);
     setError(null);
@@ -196,15 +214,36 @@ export default function BatchView({
       {
         concurrency,
         isCancelled: () => cancelledRef.current,
+        isPaused: () => pausedRef.current,
         onItem: (id, value) => patch(id, value),
       },
     );
     setSummary({ done: report.done, failed: report.failed, cancelled: report.cancelled });
     setRunning(false);
+    setPaused(false);
+    pausedRef.current = false;
+    setElapsedMs(performance.now() - startedAtRef.current);
   }, [config, concurrency, items, patch, t]);
 
   const cancel = useCallback(() => {
     cancelledRef.current = true;
+    // Releasing the pause lets the parked workers see the cancellation and
+    // exit instead of sitting in their poll loop.
+    pausedRef.current = false;
+    setPaused(false);
+  }, []);
+
+  /**
+   * Pause is real queue back-pressure, not a visual state: workers stop taking
+   * the next file, while anything already being processed runs to completion so
+   * no half-written output is ever recorded as done.
+   */
+  const togglePause = useCallback(() => {
+    setPaused((current) => {
+      const next = !current;
+      pausedRef.current = next;
+      return next;
+    });
   }, []);
 
   const clearFinished = useCallback(() => {
@@ -286,12 +325,43 @@ export default function BatchView({
     const finished = items.filter((item) => item.output);
     return {
       queued: items.filter((item) => item.status === "queued").length,
+      processing: items.filter((item) => item.status === "running").length,
       done: finished.length,
       failed: items.filter((item) => item.status === "failed").length,
       inputBytes: items.reduce((sum, item) => sum + item.inputBytes, 0),
       outputBytes: finished.reduce((sum, item) => sum + (item.output?.bytes ?? 0), 0),
     };
   }, [items]);
+
+  /**
+   * Elapsed, remaining and throughput are all derived from the measured clock
+   * and the measured per-file times of this run. Nothing here is a decorative
+   * number: with no completed file yet, the estimate says so instead of
+   * inventing a rate.
+   */
+  const pace = useMemo(() => {
+    const measured = items.filter((item) => item.status === "done" && item.ms > 0);
+    const seconds = elapsedMs / 1000;
+    const perMinute = measured.length > 0 && seconds > 0 ? measured.length / (seconds / 60) : 0;
+    const averageMs =
+      measured.length > 0
+        ? measured.reduce((sum, item) => sum + item.ms, 0) / measured.length
+        : 0;
+    const remainingCount = totals.queued + totals.processing;
+    const remainingSeconds =
+      averageMs > 0 && remainingCount > 0
+        ? (averageMs * remainingCount) / 1000 / Math.max(1, concurrency)
+        : null;
+    const percent =
+      items.length === 0 ? 0 : Math.round((totals.done / items.length) * 100);
+    return {
+      percent,
+      perMinute,
+      remainingSeconds,
+      remainingCount,
+      measuredCount: measured.length,
+    };
+  }, [items, elapsedMs, totals, concurrency]);
 
   const activeOperation = OPERATIONS.find((entry) => entry.id === config.operation);
 
@@ -325,6 +395,29 @@ export default function BatchView({
           </div>
         }
       />
+
+      <div className="kx-batch-stats" data-batch-stats role="group" aria-label={t("batch.stats")}>
+        <span className="kx-batch-stat" data-stat="queued">
+          <Icon name="layers" size={15} />
+          <b>{totals.queued}</b>
+          <span>{t("batch.statQueued")}</span>
+        </span>
+        <span className="kx-batch-stat" data-stat="processing" data-paused={paused ? "true" : "false"}>
+          <Icon name={paused ? "pause" : "activity"} size={15} />
+          <b>{totals.processing}</b>
+          <span>{paused ? t("batch.statPaused") : t("batch.statProcessing")}</span>
+        </span>
+        <span className="kx-batch-stat" data-stat="done">
+          <Icon name="check" size={15} />
+          <b>{totals.done}</b>
+          <span>{t("batch.statCompleted")}</span>
+        </span>
+        <span className="kx-batch-stat" data-stat="failed" data-nonzero={totals.failed > 0 ? "true" : undefined}>
+          <Icon name="alert" size={15} />
+          <b>{totals.failed}</b>
+          <span>{t("batch.statFailed")}</span>
+        </span>
+      </div>
 
       <div className="kx-notice" data-tone="info">
         <Icon name="cpu" size={18} />
@@ -441,7 +534,7 @@ export default function BatchView({
           <div className="kx-divider" />
           <h3 className="kx-subtitle">{t("batch.concurrency")}</h3>
           <div className="kx-segmented" role="group" aria-label={t("batch.concurrency")}>
-            {[1, 2, 3, 4].map((slot) => (
+            {[1, 2, 4, 8].map((slot) => (
               <button
                 key={slot}
                 type="button"
@@ -455,6 +548,11 @@ export default function BatchView({
             ))}
           </div>
           <p className="kx-card-sub">{t("batch.concurrencyHint")}</p>
+          {pace.measuredCount > 0 && (
+            <p className="kx-muted kx-mono" style={{ fontSize: "0.66rem" }} dir="ltr">
+              {t("batch.memoryNote").replace("{count}", String(concurrency))}
+            </p>
+          )}
         </aside>
 
         {/* queue */}
@@ -477,10 +575,22 @@ export default function BatchView({
                   {t("batch.start")}
                 </button>
               ) : (
-                <button type="button" className="kx-btn" data-action="cancel" onClick={cancel}>
-                  <Icon name="x" size={15} />
-                  {t("batch.cancel")}
-                </button>
+                <>
+                  <button
+                    type="button"
+                    className="kx-btn"
+                    data-action="pause"
+                    aria-pressed={paused}
+                    onClick={togglePause}
+                  >
+                    <Icon name={paused ? "play" : "pause"} size={15} />
+                    {paused ? t("batch.resume") : t("batch.pause")}
+                  </button>
+                  <button type="button" className="kx-btn kx-btn-danger" data-action="cancel" onClick={cancel}>
+                    <Icon name="stop" size={15} />
+                    {t("batch.cancel")}
+                  </button>
+                </>
               )}
               <button
                 type="button"
@@ -617,6 +727,49 @@ export default function BatchView({
                 );
               })}
             </ul>
+          )}
+
+          {items.length > 0 && (
+            <div className="kx-batch-status" data-batch-status>
+              <RingGauge
+                score={pace.percent}
+                caption={t("batch.progressCaption")}
+                tone={totals.failed > 0 ? "warn" : "ok"}
+              />
+              <div className="kx-batch-status-body">
+                <span className="kx-batch-status-title">{t("batch.statusTitle")}</span>
+                <span className="kx-batch-status-line" data-batch-progress-line dir="ltr">
+                  {totals.done} / {items.length} {t("batch.summaryTail")}
+                  {totals.processing > 0
+                    ? ` · ${totals.processing} ${paused ? t("batch.statPaused") : t("batch.statProcessing")}`
+                    : ""}
+                  {totals.queued > 0 ? ` · ${totals.queued} ${t("batch.statQueued")}` : ""}
+                  {totals.failed > 0 ? ` · ${totals.failed} ${t("batch.statFailed")}` : ""}
+                </span>
+              </div>
+              <div className="kx-batch-pace">
+                <span className="kx-batch-pace-item" data-elapsed dir="ltr">
+                  <span>{t("batch.elapsed")}</span>
+                  <b>{formatDuration(elapsedMs / 1000)}</b>
+                </span>
+                <span className="kx-batch-pace-item" data-remaining dir="ltr">
+                  <span>{t("batch.remaining")}</span>
+                  <b>
+                    {pace.remainingSeconds === null
+                      ? t("batch.measuring")
+                      : formatDuration(pace.remainingSeconds)}
+                  </b>
+                </span>
+                <span className="kx-batch-pace-item" data-throughput dir="ltr">
+                  <span>{t("batch.throughput")}</span>
+                  <b>
+                    {pace.perMinute === 0
+                      ? t("batch.measuring")
+                      : `${pace.perMinute.toFixed(1)} ${t("batch.perMinute")}`}
+                  </b>
+                </span>
+              </div>
+            </div>
           )}
 
           <p className="kx-card-sub">

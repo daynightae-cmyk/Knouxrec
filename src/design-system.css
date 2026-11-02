@@ -7961,3 +7961,95 @@ html[dir="rtl"] .kx-tbx-card:hover .kx-tbx-card-go {
 @media (max-width: 1180px) {
   .kx-audio-hero .kx-promise { display: none; }
 }
+
+/* =====================================================================
+   Batch Processing — queue counters, pause, measured status card
+   ===================================================================== */
+
+.kx-batch-stats {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.kx-batch-stat {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 14px;
+  border-radius: var(--kx-radius);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-surface);
+  font-size: 0.7rem;
+  color: var(--kx-text-faint);
+}
+
+.kx-batch-stat b {
+  font-family: var(--kx-font-numeric);
+  font-size: 1.06rem;
+  color: var(--kx-text);
+}
+
+.kx-batch-stat[data-stat="done"] svg { color: var(--kx-success); }
+.kx-batch-stat[data-stat="failed"] svg { color: var(--kx-danger); }
+.kx-batch-stat[data-stat="processing"] svg { color: var(--kx-info); }
+.kx-batch-stat[data-stat="processing"][data-paused="true"] svg { color: var(--kx-warning); }
+.kx-batch-stat[data-nonzero="true"] { border-color: rgba(255, 77, 94, 0.35); }
+
+.kx-batch-status {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: var(--kx-radius);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-elev-1);
+}
+
+.kx-batch-status-body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  flex: 1 1 220px;
+}
+
+.kx-batch-status-title {
+  font-size: 0.84rem;
+  font-weight: 650;
+  color: var(--kx-text);
+}
+
+.kx-batch-status-line {
+  font-family: var(--kx-font-numeric);
+  font-size: 0.7rem;
+  color: var(--kx-text-faint);
+}
+
+.kx-batch-pace {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.kx-batch-pace-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--kx-text-faint);
+}
+
+.kx-batch-pace-item b {
+  font-family: var(--kx-font-numeric);
+  font-size: 0.86rem;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--kx-text);
+}
