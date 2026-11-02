@@ -1,0 +1,72 @@
+[
+  {
+    "slot": 1,
+    "section": "brand-logo",
+    "filename": "design-references/01-brand-logo.png",
+    "bytes": 1429195,
+    "sha256": "ace3795ee0aa8ed5949ad953da2b9317a6676c8751a25eab0c98727a37507dc2"
+  },
+  {
+    "slot": 2,
+    "section": "dashboard-shell",
+    "filename": "design-references/02-dashboard-shell.png",
+    "bytes": 1751877,
+    "sha256": "5b8d76ac8a6fb3346aeeeedb14a1f291f37adeab6fa1f2467e89760877351590"
+  },
+  {
+    "slot": 3,
+    "section": "discover-service-cards",
+    "filename": "design-references/03-discover-service-cards.png",
+    "bytes": 1750486,
+    "sha256": "3d80c322e10a6ef4ee2945cf82d0dd600c2fd9235adaad9fc8de1a4e52a61b23"
+  },
+  {
+    "slot": 4,
+    "section": "recorder",
+    "filename": "design-references/04-recorder.png",
+    "bytes": 1637767,
+    "sha256": "14106d159572d3d879bdf8a68091d9767c186673c639a4a85327e7bd8de9a23e"
+  },
+  {
+    "slot": 5,
+    "section": "screenshots",
+    "filename": "design-references/05-screenshots.png",
+    "bytes": 1624456,
+    "sha256": "b48e60f51e53c4670c68b728bef2ff49df68b53cabf3e9e496f7815cf9cb6299"
+  },
+  {
+    "slot": 6,
+    "section": "library",
+    "filename": "design-references/06-library.png",
+    "bytes": 1734339,
+    "sha256": "770b7156ab850434cb2a92d3e252290c1f074bf1dcd6a5f19a47f03ef454ecf0"
+  },
+  {
+    "slot": 7,
+    "section": "templates",
+    "filename": "design-references/07-templates.png",
+    "bytes": 1764085,
+    "sha256": "5312b11b38662dde751c0ce31d97caf306b40d539cdf6ac71d73bb7888f7f05a"
+  },
+  {
+    "slot": 8,
+    "section": "toolbox",
+    "filename": "design-references/08-toolbox.png",
+    "bytes": 1769642,
+    "sha256": "eab7a395c8518d4c9e672b7a673408065ee99477057824c60431a8037bc89f25"
+  },
+  {
+    "slot": 9,
+    "section": "audio-studio",
+    "filename": "design-references/09-audio-studio.png",
+    "bytes": 1726050,
+    "sha256": "05d767c4931da90d372047fb2e30488afefa4019e51fa9f490b8e1cf39b2e8c0"
+  },
+  {
+    "slot": 10,
+    "section": "batch-processing",
+    "filename": "design-references/10-batch-processing.png",
+    "bytes": 1682812,
+    "sha256": "8ba97fa52ad2c253535759d05941b67c5b0ad956b0e7093f9761b016137d527a"
+  }
+]

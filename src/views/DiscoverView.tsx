@@ -37,6 +37,71 @@ const MODES: Array<ServiceMode | "ALL"> = [
   "UNAVAILABLE",
 ];
 
+const STATUSES: Array<ServiceStatus | "ALL"> = [
+  "ALL",
+  "VERIFIED",
+  "IMPLEMENTED-NOT-VERIFIED",
+  "PARTIAL",
+  "BLOCKED",
+  "NOT-IMPLEMENTED",
+];
+
+const CAPABILITY_FILTERS = ["ALL", "RUNNABLE", "CATALOGUE"] as const;
+type CapabilityFilter = (typeof CAPABILITY_FILTERS)[number];
+
+const TYPES = [
+  "ALL",
+  "capture",
+  "library",
+  "create",
+  "intelligence",
+  "system",
+] as const;
+type TypeFilter = (typeof TYPES)[number];
+
+const SORTS = ["RELEVANCE", "NAME", "STATUS"] as const;
+type SortMode = (typeof SORTS)[number];
+
+/**
+ * The three creative environments the approved artwork puts on the front of
+ * the discovery page. Each one opens a real route and carries the state the
+ * capability registry gives it, so a hub that is only partly built is labelled
+ * as such instead of being presented as finished.
+ */
+const APPLICATION_HUBS: Array<{
+  route: RouteId;
+  hubId: HubId;
+  icon: "elysian" | "morph" | "patch";
+  titleKey: string;
+  taglineEn: string;
+  artwork: "elysian" | "morph" | "patch";
+}> = [
+  {
+    route: "elysian",
+    hubId: "elysian",
+    icon: "elysian",
+    titleKey: "elysian",
+    taglineEn: "Art for the discerning eye",
+    artwork: "elysian",
+  },
+  {
+    route: "morphcore",
+    hubId: "morphcore",
+    icon: "morph",
+    titleKey: "morphCore",
+    taglineEn: "Manual geometry studio",
+    artwork: "morph",
+  },
+  {
+    route: "visual-patch",
+    hubId: "visual-patch",
+    icon: "patch",
+    titleKey: "visualPatch",
+    taglineEn: "Node-based visual lab",
+    artwork: "patch",
+  },
+];
+
 function readList(key: string): string[] {
   try {
     const raw = window.localStorage.getItem(key);
@@ -79,6 +144,11 @@ export default function DiscoverView({
   const [query, setQuery] = useState("");
   const [hub, setHub] = useState<HubId | "ALL">("ALL");
   const [mode, setMode] = useState<ServiceMode | "ALL">("ALL");
+  const [status, setStatus] = useState<ServiceStatus | "ALL">("ALL");
+  const [capabilityFilter, setCapabilityFilter] = useState<CapabilityFilter>("ALL");
+  const [type, setType] = useState<TypeFilter>("ALL");
+  const [sort, setSort] = useState<SortMode>("RELEVANCE");
+  const [showAllHubs, setShowAllHubs] = useState(false);
   const [runnableOnly, setRunnableOnly] = useState(false);
   const [favourites, setFavourites] = useState<string[]>(() => readList(FAVOURITES_KEY));
   const [recent, setRecent] = useState<string[]>(() => readList(RECENT_KEY));
@@ -92,12 +162,45 @@ export default function DiscoverView({
     const found = searchServices(query).filter((service) => {
       if (hub !== "ALL" && service.hub !== hub) return false;
       if (mode !== "ALL" && service.mode !== mode) return false;
+      if (status !== "ALL" && service.status !== status) return false;
+      if (capabilityFilter === "RUNNABLE" && !isRunnable(service)) return false;
+      if (capabilityFilter === "CATALOGUE" && isRunnable(service)) return false;
+      if (type !== "ALL") {
+        const group = service.route ? CAPABILITIES[service.route]?.group : undefined;
+        if (group !== type) return false;
+      }
       if (runnableOnly && !isRunnable(service)) return false;
       if (showFavourites && !favourites.includes(service.id)) return false;
       return true;
     });
+    if (sort === "NAME") {
+      return [...found].sort((a, b) => a.labelEn.localeCompare(b.labelEn));
+    }
+    if (sort === "STATUS") {
+      const weight: Record<ServiceStatus, number> = {
+        VERIFIED: 0,
+        "IMPLEMENTED-NOT-VERIFIED": 1,
+        PARTIAL: 2,
+        BLOCKED: 3,
+        "NOT-IMPLEMENTED": 4,
+      };
+      return [...found].sort(
+        (a, b) => weight[a.status] - weight[b.status] || a.labelEn.localeCompare(b.labelEn),
+      );
+    }
     return found;
-  }, [query, hub, mode, runnableOnly, showFavourites, favourites]);
+  }, [
+    query,
+    hub,
+    mode,
+    status,
+    capabilityFilter,
+    type,
+    sort,
+    runnableOnly,
+    showFavourites,
+    favourites,
+  ]);
 
   const grouped = useMemo(() => {
     const buckets = new Map<HubId, ServiceEntry[]>();
@@ -224,7 +327,11 @@ export default function DiscoverView({
         </span>
       </div>
 
-      <div className="kx-row elys-filters" style={{ gap: 6, flexWrap: "wrap" }}>
+      <div
+        className="kx-row elys-filters"
+        style={{ gap: 6, flexWrap: "wrap" }}
+        data-expanded={showAllHubs ? "true" : "false"}
+      >
         <button
           type="button"
           className="kx-chip"
@@ -246,6 +353,15 @@ export default function DiscoverView({
             {arabic ? entry.label : entry.labelEn}
           </button>
         ))}
+        <button
+          type="button"
+          className="kx-chip kx-chip-more"
+          onClick={() => setShowAllHubs((value) => !value)}
+          aria-expanded={showAllHubs}
+        >
+          {showAllHubs ? t("discover.showAllHubs") : t("discover.moreHubs")}
+          <Icon name={showAllHubs ? "chevronRight" : "chevronDown"} size={13} />
+        </button>
       </div>
 
       <div className="kx-row" style={{ gap: 6, flexWrap: "wrap", margin: "10px 0 16px" }}>
@@ -263,6 +379,132 @@ export default function DiscoverView({
           </button>
         ))}
       </div>
+
+      <div className="kx-row elys-selects" style={{ gap: 10, flexWrap: "wrap" }}>
+        <label className="kx-select-wrap">
+          <span className="kx-select-label">{t("discover.filterStatus")}</span>
+          <select
+            className="kx-select"
+            data-filter="status"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as ServiceStatus | "ALL")}
+          >
+            {STATUSES.map((entry) => (
+              <option key={entry} value={entry} dir="ltr">
+                {entry === "ALL" ? t("discover.all") : entry}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="kx-select-wrap">
+          <span className="kx-select-label">{t("discover.filterCapability")}</span>
+          <select
+            className="kx-select"
+            data-filter="capability"
+            value={capabilityFilter}
+            onChange={(event) =>
+              setCapabilityFilter(event.target.value as CapabilityFilter)
+            }
+          >
+            <option value="ALL">{t("discover.all")}</option>
+            <option value="RUNNABLE">{t("discover.capabilityRunnable")}</option>
+            <option value="CATALOGUE">{t("discover.capabilityCatalogue")}</option>
+          </select>
+        </label>
+        <label className="kx-select-wrap">
+          <span className="kx-select-label">{t("discover.filterType")}</span>
+          <select
+            className="kx-select"
+            data-filter="type"
+            value={type}
+            onChange={(event) => setType(event.target.value as TypeFilter)}
+          >
+            <option value="ALL">{t("discover.all")}</option>
+            <option value="capture">{t("discover.typeCapture")}</option>
+            <option value="library">{t("discover.typeLibrary")}</option>
+            <option value="create">{t("discover.typeCreate")}</option>
+            <option value="intelligence">{t("discover.typeIntelligence")}</option>
+            <option value="system">{t("discover.typeSystem")}</option>
+          </select>
+        </label>
+        <label className="kx-select-wrap">
+          <span className="kx-select-label">{t("discover.filterSort")}</span>
+          <select
+            className="kx-select"
+            data-filter="sort"
+            value={sort}
+            onChange={(event) => setSort(event.target.value as SortMode)}
+          >
+            <option value="RELEVANCE">{t("discover.sortRelevance")}</option>
+            <option value="NAME">{t("discover.sortName")}</option>
+            <option value="STATUS">{t("discover.sortStatus")}</option>
+          </select>
+        </label>
+      </div>
+
+      <section className="elys-hub-showcase">
+        <div className="kx-row-between" style={{ marginBottom: 12 }}>
+          <div>
+            <h3 className="elys-subtitle">{t("discover.applicationHubs")}</h3>
+            <p className="kx-card-sub">{t("discover.applicationHubsDesc")}</p>
+          </div>
+          <button
+            type="button"
+            className="kx-btn kx-btn-sm"
+            onClick={() => setHub("ALL")}
+          >
+            {t("discover.openHub")}
+            <Icon name="chevronRight" size={13} />
+          </button>
+        </div>
+        <div className="elys-hub-cards">
+          {APPLICATION_HUBS.map((entry) => {
+            const hubCapability = CAPABILITIES[entry.route];
+            return (
+              <article
+                className="elys-hub-card"
+                data-hub-card={entry.route}
+                data-state={hubCapability.state}
+                key={entry.route}
+              >
+                <div className="elys-hub-art" data-art={entry.artwork} aria-hidden="true">
+                  <span className="elys-hub-art-shape" />
+                  <span className="elys-hub-art-shape" />
+                  <span className="elys-hub-art-shape" />
+                </div>
+                <div className="elys-hub-body">
+                  <div className="elys-hub-head">
+                    <span className="elys-hub-icon">
+                      <Icon name={entry.icon} size={19} />
+                    </span>
+                    <span className="elys-hub-title">{t(entry.titleKey)}</span>
+                    <StateBadge state={hubCapability.state} />
+                  </div>
+                  <p className="elys-hub-tagline">{entry.taglineEn}</p>
+                  <p className="elys-hub-summary">{hubCapability.summary}</p>
+                  <div className="elys-hub-actions">
+                    <button
+                      type="button"
+                      className="kx-btn kx-btn-sm kx-btn-primary"
+                      onClick={() => onNavigate(entry.route)}
+                    >
+                      <Icon name="play" size={14} />
+                      {t("discover.open")}
+                    </button>
+                    <button
+                      type="button"
+                      className="kx-btn kx-btn-sm"
+                      onClick={() => setHub(entry.hubId)}
+                    >
+                      {t("discover.details")}
+                    </button>
+                  </div>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
 
       {recentServices.length > 0 && (
         <section className="elys-recent">

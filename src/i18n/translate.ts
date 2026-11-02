@@ -181,7 +181,7 @@ const STRINGS: Dictionary = {
     en: "Local-first. Recordings and screenshots never leave this device.",
     ar: "محلي بالكامل. لا تغادر التسجيلات ولقطات الشاشة هذا الجهاز أبدًا.",
   },
-  "shell.tagline": { en: "Local capture studio", ar: "استوديو التقاط محلي" },
+  "shell.tagline": { en: "Local-first capture studio", ar: "استوديو التقاط محلي" },
   "shell.status.requesting": { en: "Requesting access", ar: "جارٍ طلب الإذن" },
   "shell.status.saving": { en: "Saving capture", ar: "جارٍ حفظ الالتقاط" },
   "shell.status.error": { en: "Recorder error", ar: "خطأ في المسجل" },
@@ -279,6 +279,77 @@ const STRINGS: Dictionary = {
     en: "Weight files were found on this device; verify compatibility on the Models page.",
     ar: "تم العثور على ملفات أوزان على هذا الجهاز؛ تحقق من التوافق في صفحة النماذج.",
   },
+
+  // Dashboard — featured services, measured metrics and the hero promise cards
+  "dashboard.featuredServices": { en: "Featured services", ar: "الخدمات المميزة" },
+  "dashboard.featuredServicesDesc": {
+    en: "The complete local creative suite — capture, organize, edit, transform, and generate, all in one place.",
+    ar: "整套 الإبداع المحلي — التقاط وتنظيم وتحرير وتحويل وإنشاء، في مكان واحد.",
+  },
+  "dashboard.viewAllTools": { en: "View all tools", ar: "عرض كل الأدوات" },
+  "dashboard.health": { en: "Device health", ar: "حالة الجهاز" },
+  "dashboard.healthOptimal": { en: "Optimal", ar: "ممتاز" },
+  "dashboard.healthDegraded": { en: "Degraded", ar: "متدهور" },
+  "dashboard.healthUnknown": { en: "Unknown", ar: "غير معروف" },
+  "dashboard.healthAllReady": {
+    en: "Every runtime probe passed.",
+    ar: "نجحت جميع فحوص بيئة التشغيل.",
+  },
+  "dashboard.healthChecksNeedAttention": {
+    en: "{count} runtime checks need attention.",
+    ar: "{count} من فحوص بيئة التشغيل تحتاج إلى انتباه.",
+  },
+  "dashboard.libraryItems": { en: "Library items", ar: "عناصر المكتبة" },
+  "dashboard.libraryItemsHint": { en: "Videos · Images · Audio", ar: "فيديو · صور · صوت" },
+  "dashboard.capturesSeries": { en: "Captures over the last 7 days", ar: "الالتقطات خلال آخر ٧ أيام" },
+  "dashboard.kindSeries": { en: "Library items by kind", ar: "عناصر المكتبة حسب النوع" },
+  "dashboard.last7Days": { en: "Last 7 days", ar: "آخر ٧ أيام" },
+  "dashboard.quotaUnknown": { en: "Storage quota unknown", ar: "حصة التخزين غير معروفة" },
+  "dashboard.chipLocalFirst": { en: "Local-first", ar: "محلي أولًا" },
+  "dashboard.chipIndexedDb": { en: "IndexedDB storage", ar: "تخزين IndexedDB" },
+  "dashboard.chipNoAccount": { en: "No account required", ar: "بلا حساب" },
+  "dashboard.promiseRecord": { en: "Record anything", ar: "سجّل أي شيء" },
+  "dashboard.promiseRecordDetail": {
+    en: "Screen · Window · Region · Audio",
+    ar: "شاشة · نافذة · منطقة · صوت",
+  },
+  "dashboard.promiseCreate": { en: "Create & transform", ar: "أنشئ وحوّل" },
+  "dashboard.promiseCreateDetail": {
+    en: "Edit · Reshape · Patch · AI tools",
+    ar: "تحرير · إعادة shaping · ترقيع · أدوات ذكاء اصطناعي",
+  },
+  "dashboard.promiseLocal": { en: "Keep it local", ar: "أبقه محليًا" },
+  "dashboard.promiseLocalDetail": {
+    en: "Your media stays on this device",
+    ar: "وسائطك تبقى على هذا الجهاز",
+  },
+  "dashboard.openService": { en: "Open", ar: "فتح" },
+  "dashboard.mediaBreakdown": { en: "Media breakdown", ar: "توزيع الوسائط" },
+
+  // Discover — application hubs, filters and sorting
+  "discover.applicationHubs": { en: "Application hubs", ar: "مركز التطبيق" },
+  "discover.applicationHubsDesc": {
+    en: "Core studios and creative environments in KNOUX REC.",
+    ar: "الاستوديوهات الأساسية وبيئات الإبداع في KNOUX REC.",
+  },
+  "discover.details": { en: "Details", ar: "التفاصيل" },
+  "discover.filterStatus": { en: "Status", ar: "الحالة" },
+  "discover.filterCapability": { en: "Capability", ar: "القدرة" },
+  "discover.filterType": { en: "Type", ar: "النوع" },
+  "discover.filterSort": { en: "Sort", ar: "الترتيب" },
+  "discover.all": { en: "All", ar: "الكل" },
+  "discover.capabilityRunnable": { en: "Runnable", ar: "قابل للتشغيل" },
+  "discover.capabilityCatalogue": { en: "Catalogue only", ar: "كتالوج فقط" },
+  "discover.sortRelevance": { en: "Relevance", ar: "الصلة" },
+  "discover.sortName": { en: "Name", ar: "الاسم" },
+  "discover.sortStatus": { en: "Status", ar: "الحالة" },
+  "discover.typeCapture": { en: "Capture", ar: "التقاط" },
+  "discover.typeLibrary": { en: "Library", ar: "مكتبة" },
+  "discover.typeCreate": { en: "Create", ar: "إنشاء" },
+  "discover.typeIntelligence": { en: "Intelligence", ar: "ذكاء" },
+  "discover.typeSystem": { en: "System", ar: "نظام" },
+  "discover.moreHubs": { en: "More hubs", ar: "المزيد من المراكز" },
+  "discover.showAllHubs": { en: "Show all hubs", ar: "عرض كل المراكز" },
 
   // Geometry studio
   "geo.description": {
@@ -1013,9 +1084,12 @@ const STRINGS: Dictionary = {
 
   // Recorder
   "studio.description": {
-    en: "Real screen, window, and camera capture through MediaRecorder. Pause, resume, and stop write an actual video blob into the local library.",
-    ar: "التقاط حقيقي للشاشة والنافذة والكاميرا عبر MediaRecorder. الإيقاف المؤقت والاستئناف والإيقاف يكتب ملف فيديو فعليًا في المكتبة المحلية.",
+    en: "Real screen, window, selected-area, camera and microphone capture through MediaRecorder. Pause, resume, and stop write an actual video blob into the local library.",
+    ar: "التقاط حقيقي للشاشة والنافذة والمنطقة المحددة والكاميرا والميكروفون عبر MediaRecorder. الإيقاف المؤقت والاستئناف والإيقاف يكتب ملف فيديو فعليًا في المكتبة المحلية.",
   },
+  "studio.badgeLocal": { en: "100% local", ar: "محلي بالكامل" },
+  "studio.badgePrivate": { en: "Private by design", ar: "خاص بالتصميم" },
+  "studio.badgeQuality": { en: "High-quality capture", ar: "التقاط عالي الجودة" },
   "studio.captureFailed": { en: "Capture failed.", ar: "فشل الالتقاط." },
   "studio.displayUnavailable": {
     en: "Screen capture is unavailable in this runtime.",
@@ -1030,12 +1104,44 @@ const STRINGS: Dictionary = {
 
   "rec.mode.screen": { en: "Screen recording", ar: "تسجيل الشاشة" },
   "rec.mode.window": { en: "Window recording", ar: "تسجيل نافذة" },
+  "rec.mode.region": { en: "Selected area recording", ar: "تسجيل منطقة محددة" },
   "rec.mode.webcam": { en: "Camera recording", ar: "تسجيل الكاميرا" },
   "rec.mode.audio": { en: "Microphone recording", ar: "تسجيل الميكروفون" },
   "rec.startedScreen": { en: "Screen recording started", ar: "بدأ تسجيل الشاشة" },
   "rec.startedWindow": { en: "Window recording started", ar: "بدأ تسجيل النافذة" },
+  "rec.startedRegion": {
+    en: "Selected area recording started",
+    ar: "بدأ تسجيل المنطقة المحددة",
+  },
   "rec.startedWebcam": { en: "Camera recording started", ar: "بدأ تسجيل الكاميرا" },
   "rec.startedAudio": { en: "Microphone recording started", ar: "بدأ تسجيل الميكروفون" },
+
+  // Recorder — selected area, source surface and the live session strip
+  "studio.regionChip": { en: "Selected area", ar: "منطقة محددة" },
+  "studio.regionNote": {
+    en: "Pick the surface in the OS window, then drag a rectangle. Only the pixels inside that rectangle are encoded into the file.",
+    ar: "اختر السطح من نافذة النظام ثم اسحب مستطيلًا. تُشفَّر بكسلات هذا المستطيل فقط داخل الملف.",
+  },
+  "studio.chooseArea": { en: "Choose an area", ar: "اختر منطقة" },
+  "studio.sourceSurface": { en: "Source surface", ar: "سطح المصدر" },
+  "studio.sourceEntireScreen": { en: "Entire screen", ar: "الشاشة كاملة" },
+  "studio.sourceWindow": { en: "Application window", ar: "نافذة تطبيق" },
+  "studio.sourceSurfaceHint": {
+    en: "This is a hint for the OS picker. The system still asks you to choose and to grant permission before anything is captured.",
+    ar: "هذا تلميح لنافذة اختيار النظام؛ لا يزال النظام يطلب منك الاختيار والسماح قبل أي التقاط.",
+  },
+  "studio.recordingSize": { en: "Recording size", ar: "حجم التسجيل" },
+  "studio.recordingSizeHint": {
+    en: "Bytes the encoder has already produced",
+    ar: "البايتات التي أنتجها المرمّز حتى الآن",
+  },
+  "studio.recordingSizeIdle": {
+    en: "Measured while a recording is running",
+    ar: "يُقاس أثناء عمل التسجيل",
+  },
+  "studio.on": { en: "ON", ar: "يعمل" },
+  "studio.off": { en: "OFF", ar: "متوقف" },
+  "studio.previewSettings": { en: "Preview settings", ar: "إعدادات المعاينة" },
   "rec.startedBody": {
     en: "Pause or stop from the studio controls, or use the hotkeys.",
     ar: "أوقف مؤقتًا أو أنهِ من أدوات الاستوديو أو بمفاتيح الاختصار.",

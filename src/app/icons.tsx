@@ -39,12 +39,14 @@ export type IconName =
   | "video"
   | "image"
   | "audio"
+  | "microphone"
   | "external"
   | "hash"
   | "shield"
   | "cpu"
   | "copy"
   | "chevronRight"
+  | "chevronDown"
   | "plus"
   | "upload"
   | "clock"
@@ -252,6 +254,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <circle cx="16.5" cy="16" r="2.5" />
     </>
   ),
+  microphone: (
+    <>
+      <rect x="9" y="3" width="6" height="11" rx="3" />
+      <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+    </>
+  ),
   external: (
     <>
       <path d="M14 4h6v6M20 4l-9 9" />
@@ -279,6 +287,7 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   chevronRight: <path d="m9 6 6 6-6 6" />,
+  chevronDown: <path d="m6 9 6 6 6-6" />,
   plus: <path d="M12 5v14M5 12h14" />,
   upload: (
     <>

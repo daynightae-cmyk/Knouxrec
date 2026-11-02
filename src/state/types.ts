@@ -91,7 +91,7 @@ export interface RecorderSnapshot {
   elapsed: number;
   error: string | null;
   /** What the live session is capturing, so views can speak precisely about it. */
-  mode?: "screen" | "window" | "webcam" | "audio" | null;
+  mode?: "screen" | "window" | "region" | "webcam" | "audio" | null;
   lastCapture: {
     id: string;
     name: string;

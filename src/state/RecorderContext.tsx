@@ -14,6 +14,7 @@ import {
   type CaptureMode,
   type CaptureSupport,
 } from "../services/recordingEngine";
+import type { ScreenRegion } from "../services/regionCapture";
 import type { RecorderSnapshot, RecorderStatus } from "./types";
 import { useLibrary } from "./LibraryContext";
 import { useJobs, type StudioJobHandle } from "./JobsContext";
@@ -31,6 +32,7 @@ import { translate } from "../i18n/translate";
 const MODE_KEYS: Record<CaptureMode, string> = {
   screen: "rec.mode.screen",
   window: "rec.mode.window",
+  region: "rec.mode.region",
   webcam: "rec.mode.webcam",
   audio: "rec.mode.audio",
 };
@@ -38,14 +40,25 @@ const MODE_KEYS: Record<CaptureMode, string> = {
 const STARTED_KEYS: Record<CaptureMode, string> = {
   screen: "rec.startedScreen",
   window: "rec.startedWindow",
+  region: "rec.startedRegion",
   webcam: "rec.startedWebcam",
   audio: "rec.startedAudio",
 };
 
+/** Options a caller can hand to `start` for a selected-area recording. */
+export interface StartOptions {
+  /** The chosen rectangle, in device pixels of the captured surface. */
+  region?: ScreenRegion | null;
+  /** A display stream already acquired through the OS picker. */
+  sourceStream?: MediaStream | null;
+  /** Which surface kind the OS picker should open on. */
+  displaySurface?: "monitor" | "window";
+}
+
 export interface RecorderContextValue extends RecorderSnapshot {
   support: CaptureSupport;
   previewStream: MediaStream | null;
-  start: (mode?: CaptureMode) => Promise<void>;
+  start: (mode?: CaptureMode, options?: StartOptions) => Promise<void>;
   pause: () => void;
   resume: () => void;
   stop: () => Promise<void>;
@@ -54,6 +67,8 @@ export interface RecorderContextValue extends RecorderSnapshot {
   clearError: () => void;
   /** Live input peak, 0…1, for a microphone-only session. Zero otherwise. */
   readLevel: () => number;
+  /** Bytes encoded so far by the running session. Zero when idle. */
+  readBytes: () => number;
   /**
    * A countdown that will start a session on its own. It lives only for this
    * page: nothing is written to storage, so a reload can never begin recording
@@ -121,7 +136,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   );
 
   const start = useCallback(
-    async (mode: CaptureMode = "screen") => {
+    async (mode: CaptureMode = "screen", options?: StartOptions) => {
       if (
         statusRef.current === "recording" ||
         statusRef.current === "paused" ||
@@ -147,6 +162,9 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
           webcamPosition: settingsRef.current.recorder.webcamPosition,
           webcamSize: settingsRef.current.recorder.webcamSize,
           audioDeviceId: settingsRef.current.recorder.audioDeviceId ?? null,
+          region: options?.region ?? null,
+          sourceStream: options?.sourceStream ?? null,
+          displaySurface: options?.displaySurface ?? (mode === "window" ? "window" : "monitor"),
         });
         const preview = session.previewStream();
         setPreviewStream(preview);
@@ -412,6 +430,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
   }, [clearTimer]);
 
   const readLevel = useCallback(() => sessionRef.current?.level() ?? 0, []);
+  const readBytes = useCallback(() => sessionRef.current?.bytes() ?? 0, []);
 
   const value = useMemo(
     () => ({
@@ -430,6 +449,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       takeScreenshot,
       clearError,
       readLevel,
+      readBytes,
       schedule,
       scheduleStart,
       cancelSchedule,
@@ -452,6 +472,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       takeScreenshot,
       clearError,
       readLevel,
+      readBytes,
       schedule,
       scheduleStart,
       cancelSchedule,

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useCallback, useRef } from "react";
 import BrandMark from "./BrandMark";
+import { BrandWordmark } from "./BrandWordmark";
 import { Icon, type IconName } from "./icons";
 import { CAPABILITIES, NAVIGATION, type RouteId } from "./capabilities";
 import { useSettings } from "../state/SettingsContext";
@@ -58,6 +59,49 @@ export default function Sidebar({
 }) {
   const { settings } = useSettings();
   const t = (key: string) => translate(settings.language, key);
+  const itemRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+  /** Every route in document order, so arrow keys can walk the whole rail. */
+  const orderedRoutes = React.useMemo(
+    () => NAVIGATION.flatMap((group) => group.routes),
+    [],
+  );
+
+  const focusRoute = useCallback((next: RouteId) => {
+    itemRefs.current[next]?.focus();
+  }, []);
+
+  /**
+   * Roving keyboard navigation over the rail: Up/Down walk the items, Home and
+   * End jump to the ends, and the active route is the one that holds the tab
+   * stop so the rail is a single stop in the page tab order.
+   */
+  const onKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLElement>) => {
+      const current = orderedRoutes.indexOf(route);
+      let target: RouteId | null = null;
+      switch (event.key) {
+        case "ArrowDown":
+          target = orderedRoutes[(current + 1) % orderedRoutes.length];
+          break;
+        case "ArrowUp":
+          target =
+            orderedRoutes[(current - 1 + orderedRoutes.length) % orderedRoutes.length];
+          break;
+        case "Home":
+          target = orderedRoutes[0];
+          break;
+        case "End":
+          target = orderedRoutes[orderedRoutes.length - 1];
+          break;
+        default:
+          return;
+      }
+      event.preventDefault();
+      if (target) focusRoute(target);
+    },
+    [focusRoute, orderedRoutes, route],
+  );
 
   return (
     <aside
@@ -68,14 +112,12 @@ export default function Sidebar({
       <div className="kx-brand">
         <BrandMark />
         <div className="kx-brand-text">
-          <span className="kx-brand-name">
-            KNOUX<em>REC</em>
-          </span>
+          <BrandWordmark size="sm" />
           <span className="kx-brand-tag">{t("appTagline")}</span>
         </div>
       </div>
 
-      <nav className="kx-nav">
+      <nav className="kx-nav" onKeyDown={onKeyDown}>
         {NAVIGATION.map((group) => (
           <React.Fragment key={group.id}>
             <div className="kx-nav-group-label">{t(group.labelKey)}</div>
@@ -90,6 +132,10 @@ export default function Sidebar({
                   className="kx-nav-item"
                   data-route={id}
                   aria-current={active ? "page" : undefined}
+                  tabIndex={active ? 0 : -1}
+                  ref={(node) => {
+                    itemRefs.current[id] = node;
+                  }}
                   onClick={() => onNavigate(id)}
                   title={collapsed ? undefined : `${label} — ${stateText}`}
                 >

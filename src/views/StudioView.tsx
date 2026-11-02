@@ -9,9 +9,20 @@ import BrandMark from "../app/BrandMark";
 import { EmptyState, PreviewDialog, SectionHeader } from "./ui";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 import type { CaptureMode } from "../services/recordingEngine";
+import type { ScreenRegion } from "../services/regionCapture";
+import RegionSelector from "../ui/RegionSelector";
 import { LevelMeter } from "../ui/LevelMeter";
 import { comboParts, HOTKEY_ACTIONS } from "../services/hotkeys";
 import type { LibraryItem } from "../state/types";
+
+/** Every capture surface the recorder can drive, in the approved order. */
+const CAPTURE_MODES: Array<{ mode: CaptureMode; labelKey: string; icon: "studio" | "layers" | "cut" | "camera" | "audio" }> = [
+  { mode: "screen", labelKey: "screen", icon: "studio" },
+  { mode: "window", labelKey: "window", icon: "layers" },
+  { mode: "region", labelKey: "studio.regionChip", icon: "cut" },
+  { mode: "webcam", labelKey: "webcam", icon: "camera" },
+  { mode: "audio", labelKey: "studio.audioChip", icon: "audio" },
+];
 
 function StreamPreview({ stream }: { stream: MediaStream }) {
   const ref = useRef<HTMLVideoElement | null>(null);
@@ -51,10 +62,83 @@ export default function StudioView({
   const [preview, setPreview] = useState<LibraryItem | null>(null);
   const [devices, setDevices] = useState<Array<{ deviceId: string; label: string }>>([]);
   const [delay, setDelay] = useState(5);
+  const [displaySurface, setDisplaySurface] = useState<"monitor" | "window">(
+    "monitor",
+  );
+  const [regionStream, setRegionStream] = useState<MediaStream | null>(null);
+  const [regionOpen, setRegionOpen] = useState(false);
+  const [region, setRegion] = useState<ScreenRegion | null>(null);
+  const [pendingRegion, setPendingRegion] = useState(false);
 
   const active = recorder.status === "recording" || recorder.status === "paused";
   const busy = recorder.status === "requesting" || recorder.status === "stopping";
-  const videos = items.filter((item) => item.kind === "video").slice(0, 4);
+  const videos = items.filter((item) => item.kind === "video").slice(0, 3);
+
+  /**
+   * A selected-area take needs the rectangle measured against the surface the
+   * OS actually handed over, so the picker is opened first, the rectangle is
+   * drawn on the live preview of that surface, and only then is the recorder
+   * started with the already-acquired stream.
+   */
+  const requestRegionStream = async () => {
+    if (typeof navigator.mediaDevices?.getDisplayMedia !== "function") {
+      recorder.clearError();
+      return;
+    }
+    try {
+      // Called directly from the click so the request stays inside the user
+      // activation the OS picker requires.
+      const stream = await navigator.mediaDevices.getDisplayMedia({
+        video: {
+          width: { ideal: 3840 },
+          height: { ideal: 2160 },
+          frameRate: { ideal: settings.recorder.fps },
+          cursor: "always",
+          displaySurface,
+        },
+        audio: settings.recorder.systemAudio,
+      });
+      if (stream.getVideoTracks().length === 0) {
+        stream.getTracks().forEach((track) => track.stop());
+        return;
+      }
+      setRegionStream(stream);
+      setRegionOpen(true);
+    } catch {
+      // The user dismissed the OS picker. Nothing was recorded and nothing is
+      // claimed; the notice on screen already explains that permission is
+      // required.
+      setRegionStream(null);
+      setRegionOpen(false);
+    }
+  };
+
+  const releaseRegionStream = () => {
+    regionStream?.getTracks().forEach((track) => {
+      try {
+        track.stop();
+      } catch {
+        /* noop */
+      }
+    });
+    setRegionStream(null);
+    setRegionOpen(false);
+  };
+
+  const startRegionRecording = async (chosen: ScreenRegion) => {
+    if (!regionStream) return;
+    setRegion(chosen);
+    setRegionOpen(false);
+    setPendingRegion(true);
+    // The recorder takes ownership of the stream, so it is not released here.
+    const stream = regionStream;
+    setRegionStream(null);
+    try {
+      await recorder.start("region", { region: chosen, sourceStream: stream });
+    } finally {
+      setPendingRegion(false);
+    }
+  };
 
   // Device labels only exist once the microphone has been granted, so the list
   // is refreshed whenever a session starts or ends rather than guessed at.
@@ -91,6 +175,20 @@ export default function StudioView({
         description={t("studio.description")}
         actions={
           <>
+            <span className="kx-promise" data-recorder-promises>
+              <span className="kx-promise-item">
+                <Icon name="sparkles" size={14} />
+                {t("studio.badgeLocal")}
+              </span>
+              <span className="kx-promise-item">
+                <Icon name="shield" size={14} />
+                {t("studio.badgePrivate")}
+              </span>
+              <span className="kx-promise-item">
+                <Icon name="layers" size={14} />
+                {t("studio.badgeQuality")}
+              </span>
+            </span>
             <span className="kx-badge" data-state="VERIFIED">
               {t("studio.pipelineBadge")}
             </span>
@@ -174,6 +272,14 @@ export default function StudioView({
                   <span>{recorder.status === "paused" ? t("paused") : t("recording")}</span>
                   <time>{formatDuration(recorder.elapsed)}</time>
                 </div>
+                {recorder.mode === "region" && region && (
+                  <div className="kx-preview-region" data-region-badge>
+                    <Icon name="cut" size={13} />
+                    <span className="kx-mono">
+                      {region.width}×{region.height} @ {region.x},{region.y}
+                    </span>
+                  </div>
+                )}
                 <div className="kx-preview-timestamp">
                   {settings.recorder.quality}p · {settings.recorder.fps} fps
                 </div>
@@ -186,24 +292,58 @@ export default function StudioView({
                 </div>
                 <div>{t("previewIdle")}</div>
                 <div className="kx-row" style={{ justifyContent: "center", marginTop: 8 }}>
-                  <span className="kx-chip" aria-pressed={mode === "screen"}>
-                    <Icon name="studio" size={14} /> {t("screen")}
-                  </span>
-                  <span className="kx-chip" aria-pressed={mode === "window"}>
-                    <Icon name="layers" size={14} /> {t("window")}
-                  </span>
-                  <span className="kx-chip" aria-pressed={mode === "webcam"}>
-                    <Icon name="camera" size={14} /> {t("webcam")}
-                  </span>
-                  <span className="kx-chip" aria-pressed={mode === "audio"}>
-                    <Icon name="audio" size={14} /> {t("studio.audioChip")}
-                  </span>
+                  {CAPTURE_MODES.map((option) => (
+                    <span
+                      key={option.mode}
+                      className="kx-chip"
+                      aria-pressed={mode === option.mode}
+                    >
+                      <Icon name={option.icon} size={14} /> {t(option.labelKey)}
+                    </span>
+                  ))}
                 </div>
               </div>
             )}
           </div>
 
-          <div className="kx-grid kx-grid-2">
+          <div className="kx-preview-status" data-preview-status>
+            <span className="kx-preview-status-item">
+              <Icon name="studio" size={13} />
+              <span className="kx-mono">
+                {recorder.mode === "region" && region
+                  ? `${region.width} × ${region.height}`
+                  : `${settings.recorder.quality}p`}
+              </span>
+            </span>
+            <span className="kx-preview-status-item">
+              <Icon name="clock" size={13} />
+              <span className="kx-mono">{settings.recorder.fps} fps</span>
+            </span>
+            <span className="kx-preview-status-item">
+              <Icon name="audio" size={13} />
+              {t("systemAudio")}:{" "}
+              <strong data-system-audio-state={settings.recorder.systemAudio ? "on" : "off"}>
+                {settings.recorder.systemAudio ? t("studio.on") : t("studio.off")}
+              </strong>
+            </span>
+            <span className="kx-preview-status-item">
+              <Icon name="microphone" size={13} />
+              {t("microphone")}:{" "}
+              <strong data-microphone-state={settings.recorder.microphone ? "on" : "off"}>
+                {settings.recorder.microphone ? t("studio.on") : t("studio.off")}
+              </strong>
+            </span>
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm kx-preview-status-settings"
+              onClick={() => onNavigate("settings")}
+            >
+              <Icon name="settings" size={13} />
+              {t("studio.previewSettings")}
+            </button>
+          </div>
+
+          <div className="kx-grid kx-grid-3">
             <div className="kx-stat">
               <span className="kx-stat-label">{t("studio.elapsed")}</span>
               <span className="kx-stat-value">{formatDuration(recorder.elapsed)}</span>
@@ -212,9 +352,24 @@ export default function StudioView({
               </span>
             </div>
             <div className="kx-stat">
+              <span className="kx-stat-label">{t("studio.recordingSize")}</span>
+              <span className="kx-stat-value">
+                {active ? formatBytes(recorder.readBytes()) : "—"}
+              </span>
+              <span className="kx-stat-hint">
+                {active
+                  ? t("studio.recordingSizeHint")
+                  : t("studio.recordingSizeIdle")}
+              </span>
+            </div>
+            <div className="kx-stat">
               <span className="kx-stat-label">{t("studio.output")}</span>
               <span className="kx-stat-value">
-                {audioMode ? t("studio.audioValue") : `${settings.recorder.quality}p`}
+                {audioMode
+                  ? t("studio.audioValue")
+                  : recorder.mode === "region" && region
+                    ? `${region.width}×${region.height}`
+                    : `${settings.recorder.quality}p`}
               </span>
               <span className="kx-stat-hint">
                 {audioMode
@@ -264,33 +419,61 @@ export default function StudioView({
             <div className="kx-field">
               <span className="kx-label">{t("studio.captureSource")}</span>
               <div className="kx-segmented" data-capture-modes>
-                {(["screen", "window", "webcam", "audio"] as CaptureMode[]).map((option) => (
+                {CAPTURE_MODES.map((option) => (
                   <button
-                    key={option}
+                    key={option.mode}
                     type="button"
-                    aria-pressed={mode === option}
-                    data-capture-mode={option}
+                    aria-pressed={mode === option.mode}
+                    data-capture-mode={option.mode}
                     onClick={() => {
-                      setMode(option);
+                      setMode(option.mode);
+                      // The screen/window chips are the same display picker
+                      // with a different surface hint, so choosing one also
+                      // chooses what the OS picker opens on.
+                      if (option.mode === "window") setDisplaySurface("window");
+                      else if (option.mode === "screen") setDisplaySurface("monitor");
                       // The toggle shortcut starts whatever source was chosen
                       // last, so choosing one here is also a preference.
-                      recorder.setPreferredMode(option);
+                      recorder.setPreferredMode(option.mode);
                     }}
-                    disabled={active || busy}
+                    disabled={
+                      active ||
+                      busy ||
+                      (option.mode === "region" && !recorder.support.region)
+                    }
                   >
-                    {option === "screen"
-                      ? t("screen")
-                      : option === "window"
-                        ? t("window")
-                        : option === "webcam"
-                          ? t("webcam")
-                          : t("studio.audioChip")}
+                    <Icon name={option.icon} size={14} />
+                    {t(option.labelKey)}
                   </button>
                 ))}
               </div>
               <span className="kx-card-sub">
-                {audioMode ? t("studio.audioNote") : t("studio.screenAndWindowNote")}
+                {mode === "audio"
+                  ? t("studio.audioNote")
+                  : mode === "region"
+                    ? t("studio.regionNote")
+                    : t("studio.screenAndWindowNote")}
               </span>
+              {(mode === "screen" || mode === "window" || mode === "region") && (
+                <div className="kx-field" data-surface-picker>
+                  <span className="kx-label">{t("studio.sourceSurface")}</span>
+                  <select
+                    className="kx-input"
+                    value={displaySurface}
+                    aria-label={t("studio.sourceSurface")}
+                    disabled={active || busy}
+                    onChange={(event) =>
+                      setDisplaySurface(
+                        event.target.value as "monitor" | "window",
+                      )
+                    }
+                  >
+                    <option value="monitor">{t("studio.sourceEntireScreen")}</option>
+                    <option value="window">{t("studio.sourceWindow")}</option>
+                  </select>
+                  <span className="kx-card-sub">{t("studio.sourceSurfaceHint")}</span>
+                </div>
+              )}
               {audioMode && (
                 <div className="kx-field" data-microphone-picker>
                   <span className="kx-label">{t("studio.microphone")}</span>
@@ -505,6 +688,8 @@ export default function StudioView({
                     type="button"
                     className="kx-btn kx-btn-primary"
                     style={{ flex: 1 }}
+                    data-pause-toggle
+                    aria-pressed={recorder.status === "paused"}
                     onClick={() =>
                       recorder.status === "paused" ? recorder.resume() : recorder.pause()
                     }
@@ -519,6 +704,7 @@ export default function StudioView({
                     type="button"
                     className="kx-btn kx-btn-danger"
                     style={{ flex: 1 }}
+                    data-stop-recording
                     onClick={() => void recorder.stop()}
                   >
                     <Icon name="stop" size={17} />
@@ -529,15 +715,29 @@ export default function StudioView({
                 <button
                   type="button"
                   className="kx-btn kx-btn-primary kx-btn-block"
-                  onClick={() => void recorder.start(mode)}
-                  disabled={busy || !recorder.support.mediaRecorder}
+                  data-start-recording
+                  onClick={() => {
+                    if (mode === "region") {
+                      void requestRegionStream();
+                      return;
+                    }
+                    void recorder.start(mode, { displaySurface });
+                  }}
+                  disabled={
+                    busy ||
+                    pendingRegion ||
+                    !recorder.support.mediaRecorder ||
+                    (mode === "region" && !recorder.support.region)
+                  }
                 >
                   <Icon name="play" size={17} />
                   {recorder.status === "requesting"
-                    ? "Waiting for permission…"
+                    ? t("studio.status.requesting")
                     : recorder.status === "stopping"
-                      ? "Saving…"
-                      : t("startRecording")}
+                      ? t("studio.status.stopping")
+                      : mode === "region"
+                        ? t("studio.chooseArea")
+                        : t("startRecording")}
                 </button>
               )}
             </div>
@@ -632,6 +832,13 @@ export default function StudioView({
           </div>
         )}
       </div>
+
+      <RegionSelector
+        open={regionOpen}
+        stream={regionStream}
+        onCancel={releaseRegionStream}
+        onConfirm={(chosen) => void startRegionRecording(chosen)}
+      />
 
       <PreviewDialog
         item={preview}

@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="KNOUX REC glyph">
+  <defs>
+    <linearGradient id="kx-glyph-accent" x1="38" y1="30" x2="94" y2="98" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFE866"/>
+      <stop offset="1" stop-color="#FFC400"/>
+    </linearGradient>
+  </defs>
+  <!-- Transparent variant of the approved mark: the plate is removed so the
+       glyph can sit on any surface without a second dark rectangle. -->
+  <path d="M38 32v64" stroke="#F5F5F7" stroke-width="12" stroke-linecap="round"/>
+  <path d="M40 66l34-34M40 62l38 34" stroke="url(#kx-glyph-accent)" stroke-width="12" stroke-linecap="round"/>
+  <circle cx="92" cy="88" r="10" fill="#FF4D5E"/>
+</svg>

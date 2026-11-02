@@ -33,6 +33,7 @@
     "registry": "node scripts/build-capability-registry.mjs",
     "smoke:ui": "node scripts/ui-smoke.mjs",
     "smoke:recording": "node scripts/recording-smoke.mjs",
+    "smoke:region": "node scripts/region-recording-smoke.mjs",
     "smoke:screen": "node scripts/screen-capture-smoke.mjs",
     "smoke:error": "node scripts/error-state-smoke.mjs",
     "smoke:electron": "node scripts/electron-smoke.mjs",

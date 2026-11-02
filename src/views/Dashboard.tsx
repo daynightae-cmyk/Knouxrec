@@ -7,11 +7,21 @@ import { translate } from "../i18n/translate";
 import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { Icon, type IconName } from "../app/icons";
 import BrandMark from "../app/BrandMark";
-import { EmptyState, PreviewDialog, StatCard, StateBadge, Thumbnail } from "./ui";
+import { EmptyState, PreviewDialog, StateBadge, Thumbnail } from "./ui";
+import {
+  FeaturedServices,
+  HeroFeatureCards,
+  MiniBars,
+  RingGauge,
+  RuledHeading,
+  Sparkline,
+  StorageBar,
+} from "./dashboardWidgets";
 import WorkflowChains from "./WorkflowChains";
 import { LevelMeter } from "../ui/LevelMeter";
 import { downloadBlob, formatBytes, formatDuration } from "../lib/format";
 import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
+import { healthLabel, measureRuntimeHealth, type RuntimeHealth } from "../services/runtimeHealth";
 import type { LibraryItem } from "../state/types";
 
 function LivePreview({ stream }: { stream: MediaStream }) {
@@ -56,6 +66,59 @@ const QUICK_TOOLS: { route: RouteId; icon: IconName }[] = [
   { route: "offline-ai", icon: "brain" },
 ];
 
+/**
+ * The services the approved dashboard artwork puts on the front page. The
+ * order is the artwork's order; the state on each card is read from the
+ * capability registry, never hardcoded here.
+ */
+const FEATURED_ROUTES: RouteId[] = [
+  "studio",
+  "screenshots",
+  "library",
+  "templates",
+  "toolbox",
+  "audio-studio",
+  "batch",
+  "elysian",
+  "morphcore",
+  "visual-patch",
+  "body-editor",
+];
+
+const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function dayBuckets(items: LibraryItem[], now: number): number[] {
+  const buckets = new Array(7).fill(0);
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfWindow = startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000;
+  for (const item of items) {
+    if (item.createdAt < startOfWindow || item.createdAt > now) continue;
+    const day = Math.floor(
+      (item.createdAt - startOfWindow) / (24 * 60 * 60 * 1000),
+    );
+    if (day >= 0 && day < 7) buckets[day] += 1;
+  }
+  return buckets;
+}
+
+/** Recorded seconds per day over the same seven-day window. */
+function daySeconds(items: LibraryItem[], now: number): number[] {
+  const buckets = new Array(7).fill(0);
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const startOfWindow = startOfToday.getTime() - 6 * 24 * 60 * 60 * 1000;
+  for (const item of items) {
+    if (item.kind !== "video") continue;
+    if (item.createdAt < startOfWindow || item.createdAt > now) continue;
+    const day = Math.floor(
+      (item.createdAt - startOfWindow) / (24 * 60 * 60 * 1000),
+    );
+    if (day >= 0 && day < 7) buckets[day] += item.duration;
+  }
+  return buckets;
+}
+
 export default function Dashboard({
   onNavigate,
 }: {
@@ -76,6 +139,40 @@ export default function Dashboard({
     missing: number;
     total: number;
   }>({ checked: false, present: 0, missing: 0, total: MODEL_IDS.length });
+  const [health, setHealth] = useState<RuntimeHealth | null>(null);
+  const [storage, setStorage] = useState<{ usage: number; quota: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    let active = true;
+    void measureRuntimeHealth()
+      .then((value) => {
+        if (active) setHealth(value);
+      })
+      .catch(() => {
+        if (active) setHealth(null);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    void navigator.storage
+      ?.estimate?.()
+      .then((estimate) => {
+        if (!active) return;
+        if (estimate && estimate.usage !== undefined && estimate.quota !== undefined) {
+          setStorage({ usage: estimate.usage, quota: estimate.quota });
+        }
+      })
+      .catch(() => undefined);
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -134,6 +231,20 @@ export default function Dashboard({
     const last = items[0] ?? null;
     return { totalBytes, totalSeconds, last };
   }, [items]);
+
+  const series = useMemo(() => dayBuckets(items, Date.now()), [items]);
+  const secondsSeries = useMemo(() => daySeconds(items, Date.now()), [items]);
+
+  const kindCounts = useMemo(
+    () => ({
+      video: items.filter((item) => item.kind === "video").length,
+      image: items.filter((item) => item.kind === "image").length,
+      audio: items.filter((item) => item.kind === "audio").length,
+    }),
+    [items],
+  );
+
+  const healthState = healthLabel(health?.score ?? null);
 
   const rendering = recorder.status === "recording" || recorder.status === "paused";
   const audioLive =
@@ -215,6 +326,20 @@ export default function Dashboard({
             <Icon name="shield" size={14} />
             {t("dashboard.localFirstNote")}
           </div>
+          <div className="kx-hero-chips">
+            <span className="kx-hero-chip">
+              <Icon name="shield" size={13} />
+              {t("dashboard.chipLocalFirst")}
+            </span>
+            <span className="kx-hero-chip">
+              <Icon name="hardDrive" size={13} />
+              {t("dashboard.chipIndexedDb")}
+            </span>
+            <span className="kx-hero-chip">
+              <Icon name="check" size={13} />
+              {t("dashboard.chipNoAccount")}
+            </span>
+          </div>
         </div>
 
         <div className="kx-hero-side">
@@ -269,39 +394,125 @@ export default function Dashboard({
             )}
           </div>
         </div>
+
+        <div className="kx-hero-rail">
+          <HeroFeatureCards onNavigate={onNavigate} t={t} />
+        </div>
       </section>
 
-      <section className="kx-grid kx-grid-4">
-        <StatCard
-          label={t("totalCaptures")}
-          value={String(items.length)}
-          hint={`${items.filter((item) => item.kind === "video").length} videos · ${
-            items.filter((item) => item.kind === "image").length
-          } images`}
-          icon="layers"
-        />
-        <StatCard
-          label={t("storageUsed")}
-          value={formatBytes(stats.totalBytes)}
-          hint={t("dashboard.storedInDb")}
-          icon="hardDrive"
-        />
-        <StatCard
-          label={t("totalDuration")}
-          value={formatDuration(stats.totalSeconds)}
-          hint={t("dashboard.sumOfClips")}
-          icon="clock"
-        />
-        <StatCard
-          label={t("lastCapture")}
-          value={stats.last ? stats.last.name.replace(/\.[^.]+$/, "") : "—"}
-          hint={
-            stats.last
-              ? `${formatBytes(stats.last.size)} · ${new Date(stats.last.createdAt).toLocaleString()}`
-              : t("dashboard.nothingCaptured")
+      <section className="kx-grid kx-grid-metrics">
+        <div className="kx-stat kx-stat-metric">
+          <span className="kx-stat-label">
+            <Icon name="layers" size={14} /> {t("totalCaptures")}
+          </span>
+          <span className="kx-stat-value">{items.length}</span>
+          <span className="kx-stat-hint">
+            {kindCounts.video} videos · {kindCounts.image} images · {kindCounts.audio}{" "}
+            audio
+          </span>
+          <Sparkline values={series} label={t("dashboard.capturesSeries")} />
+          <span className="kx-stat-foot">{t("dashboard.last7Days")}</span>
+        </div>
+
+        <div className="kx-stat kx-stat-metric">
+          <span className="kx-stat-label">
+            <Icon name="hardDrive" size={14} /> {t("storageUsed")}
+          </span>
+          <span className="kx-stat-value">{formatBytes(stats.totalBytes)}</span>
+          <StorageBar
+            used={storage?.usage ?? stats.totalBytes}
+            quota={storage?.quota ?? null}
+          />
+          <span className="kx-stat-hint">
+            {storage
+              ? `${formatBytes(storage.usage)} of ${formatBytes(storage.quota)} quota`
+              : t("dashboard.quotaUnknown")}
+          </span>
+        </div>
+
+        <div className="kx-stat kx-stat-metric">
+          <span className="kx-stat-label">
+            <Icon name="clock" size={14} /> {t("totalDuration")}
+          </span>
+          <span className="kx-stat-value">{formatDuration(stats.totalSeconds)}</span>
+          <MiniBars
+            values={secondsSeries}
+            labels={DAY_LABELS}
+            caption={t("dashboard.capturesSeries")}
+          />
+          <span className="kx-stat-hint">{t("dashboard.sumOfClips")}</span>
+        </div>
+
+        <div className="kx-stat kx-stat-metric">
+          <span className="kx-stat-label">
+            <Icon name="library" size={14} /> {t("dashboard.libraryItems")}
+          </span>
+          <span className="kx-stat-value">{items.length}</span>
+          <MiniBars
+            values={[kindCounts.video, kindCounts.image, kindCounts.audio]}
+            labels={["VID", "IMG", "AUD"]}
+            caption={t("dashboard.kindSeries")}
+          />
+          <span className="kx-stat-hint">{t("dashboard.libraryItemsHint")}</span>
+        </div>
+
+        <div className="kx-stat kx-stat-metric" data-tone={healthState}>
+          <span className="kx-stat-label">
+            <Icon name="activity" size={14} /> {t("dashboard.health")}
+          </span>
+          <div className="kx-stat-health">
+            <RingGauge
+              score={health?.score ?? null}
+              caption={t("dashboard.health")}
+              tone={
+                healthState === "optimal"
+                  ? "ok"
+                  : healthState === "degraded"
+                    ? "warn"
+                    : "unknown"
+              }
+            />
+            <span className="kx-stat-health-text">
+              <strong>
+                {healthState === "optimal"
+                  ? t("dashboard.healthOptimal")
+                  : healthState === "degraded"
+                    ? t("dashboard.healthDegraded")
+                    : t("dashboard.healthUnknown")}
+              </strong>
+              <span className="kx-stat-hint">
+                {health
+                  ? health.checks.every((check) => check.state === "ok")
+                    ? t("dashboard.healthAllReady")
+                    : t("dashboard.healthChecksNeedAttention").replace(
+                        "{count}",
+                        String(
+                          health.checks.filter((check) => check.state !== "ok").length,
+                        ),
+                      )
+                  : t("dashboard.modelsChecking")}
+              </span>
+            </span>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <RuledHeading
+          title={t("dashboard.featuredServices")}
+          description={t("dashboard.featuredServicesDesc")}
+          action={
+            <button
+              type="button"
+              className="kx-btn kx-btn-sm"
+              onClick={() => onNavigate("discover")}
+            >
+              {t("dashboard.viewAllTools")}
+              <Icon name="chevronRight" size={15} />
+            </button>
           }
-          icon="video"
         />
+        <FeaturedServices onNavigate={onNavigate} routes={FEATURED_ROUTES} t={t} />
       </section>
 
       <section className="kx-card">
@@ -420,7 +631,7 @@ export default function Dashboard({
           </div>
         ) : (
           <div className="kx-media-grid" style={{ marginTop: 16 }}>
-            {items.slice(0, 6).map((item) => (
+            {items.slice(0, 7).map((item) => (
               <article className="kx-media-card" key={item.id}>
                 <button
                   type="button"

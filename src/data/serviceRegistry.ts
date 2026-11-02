@@ -100,6 +100,8 @@ export const SERVICES: ServiceEntry[] = [
 
   /* ---------------------------------------------------------- recording */
   entry({ id: "rec-display", hub: "recording", labelEn: "Full display recording", label: "تسجيل الشاشة كاملة", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
+  entry({ id: "rec-region", hub: "recording", labelEn: "Selected-area recording with real cropped pixels", label: "تسجيل منطقة محددة بالبكسلات المقصوصة", mode: "LOCAL", status: "VERIFIED", route: "studio", keywords: ["region", "area", "crop", "منطقة", "تحديد"] }),
+  entry({ id: "rec-window", hub: "recording", labelEn: "Application window recording", label: "تسجيل نافذة تطبيق", mode: "LOCAL", status: "VERIFIED", route: "studio", keywords: ["window", "نافذة"] }),
   entry({ id: "rec-pause", hub: "recording", labelEn: "Pause, resume and stop", label: "إيقاف مؤقت واستئناف وإنهاء", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "rec-overlay", hub: "recording", labelEn: "Webcam overlay compositing", label: "دمج طبقة الكاميرا", mode: "LOCAL", status: "VERIFIED", route: "studio" }),
   entry({ id: "rec-system-audio", hub: "recording", labelEn: "System audio capture", label: "التقاط صوت النظام", mode: "LOCAL", status: "PARTIAL", route: "studio", needs: "Only when the platform offers a system-audio track" }),

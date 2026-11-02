@@ -1,7 +1,9 @@
 import type { RecorderSettings } from "../state/types";
 import { patchWebmDuration } from "./webm";
+import { RegionCompositor } from "./regionRecording";
+import type { ScreenRegion } from "./regionCapture";
 
-export type CaptureMode = "screen" | "window" | "webcam" | "audio";
+export type CaptureMode = "screen" | "window" | "region" | "webcam" | "audio";
 
 export interface CaptureSupport {
   display: boolean;
@@ -9,6 +11,8 @@ export interface CaptureSupport {
   microphone: boolean;
   mediaRecorder: boolean;
   systemAudio: boolean;
+  /** True when a selected-area recording can be produced on this runtime. */
+  region: boolean;
   reason?: string;
 }
 
@@ -27,6 +31,23 @@ export interface CaptureRequest {
   echoCancellation?: boolean;
   noiseSuppression?: boolean;
   autoGainControl?: boolean;
+  /**
+   * The rectangle to record, in device pixels of the captured surface. Only
+   * used by the "region" mode; the engine refuses to start without it.
+   */
+  region?: ScreenRegion | null;
+  /**
+   * A display stream that was already acquired through the OS picker. When it
+   * is supplied the engine reuses it instead of asking for another surface,
+   * which keeps the permission prompt inside a single user gesture.
+   */
+  sourceStream?: MediaStream | null;
+  /**
+   * Which kind of surface the OS picker should open on. This is a hint the
+   * picker honours, not a way to bypass it: the user still chooses and still
+   * grants permission.
+   */
+  displaySurface?: "monitor" | "window";
 }
 
 export interface CaptureResult {
@@ -36,6 +57,8 @@ export interface CaptureResult {
   width: number;
   height: number;
   thumbnail: string | null;
+  /** How a selected-area recording produced its pixels. */
+  regionMode?: "region-compositor" | null;
 }
 
 interface ActiveCapture {
@@ -52,6 +75,8 @@ interface ActiveCapture {
   audioOnly: boolean;
   analyser: AnalyserNode | null;
   levelBuffer: Float32Array | null;
+  /** Set only for a selected-area recording. */
+  regionCompositor: RegionCompositor | null;
 }
 
 const MIME_CANDIDATES = [
@@ -81,6 +106,7 @@ export function detectCaptureSupport(): CaptureSupport {
       microphone: false,
       mediaRecorder: false,
       systemAudio: false,
+      region: false,
       reason: "MediaDevices API is not available in this runtime.",
     };
   }
@@ -93,6 +119,11 @@ export function detectCaptureSupport(): CaptureSupport {
     microphone: webcam,
     mediaRecorder,
     systemAudio: display && mediaRecorder,
+    // A selected-area recording needs a display surface, a 2D canvas to cut
+    // the rectangle out of it, and an encoder for the result.
+    region: display && mediaRecorder && typeof document !== "undefined" &&
+      typeof document.createElement === "function" &&
+      typeof HTMLCanvasElement !== "undefined",
     reason: display
       ? undefined
       : "Screen capture is unavailable. Open the desktop build or a Chromium browser.",
@@ -222,6 +253,16 @@ export class RecordingSession {
   }
 
   /**
+   * Bytes produced so far. MediaRecorder only hands over a chunk when it
+   * flushes, so this is the size of the data already encoded, not a guess.
+   */
+  bytes(): number {
+    const active = this.active;
+    if (!active) return 0;
+    return active.chunks.reduce((sum, chunk) => sum + chunk.size, 0);
+  }
+
+  /**
    * Microphone-only session: no display surface, no compositor, no frame.
    * The container is whatever the runtime admits to encoding, probed rather
    * than assumed.
@@ -315,6 +356,7 @@ export class RecordingSession {
         audioOnly: true,
         analyser,
         levelBuffer,
+        regionCompositor: null,
       };
       this.startedAt = performance.now();
       this.pausedTotal = 0;
@@ -339,10 +381,17 @@ export class RecordingSession {
     }
 
     const ownedStreams: MediaStream[] = [];
+    let regionCompositor: RegionCompositor | null = null;
 
-    let videoStream: MediaStream;
+    // `sourceStream` is the surface the pixels come from (a display or a
+    // camera). `videoOutputStream` is what the encoder actually records; for
+    // a selected-area recording that is the cut-out rectangle, not the whole
+    // surface.
+    let sourceStream: MediaStream;
+    let videoOutputStream: MediaStream;
+
     if (request.mode === "webcam") {
-      videoStream = await navigator.mediaDevices.getUserMedia({
+      sourceStream = await navigator.mediaDevices.getUserMedia({
         video: {
           width: { ideal: request.width },
           height: { ideal: request.height },
@@ -350,18 +399,43 @@ export class RecordingSession {
         },
         audio: request.microphone,
       });
+      ownedStreams.push(sourceStream);
+      videoOutputStream = sourceStream;
     } else {
-      videoStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {
-          width: { ideal: request.width },
-          height: { ideal: request.height },
-          frameRate: { ideal: request.fps },
-          cursor: "always",
-        },
-        audio: request.systemAudio,
-      });
+      const displayStream =
+        request.sourceStream ??
+        (await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: request.width },
+            height: { ideal: request.height },
+            frameRate: { ideal: request.fps },
+            cursor: "always",
+            displaySurface: request.displaySurface ?? "monitor",
+          },
+          audio: request.systemAudio,
+        }));
+      ownedStreams.push(displayStream);
+      sourceStream = displayStream;
+
+      if (request.mode === "region") {
+        const region = request.region;
+        if (!region) {
+          throw new Error(
+            "No area was selected. Choose a rectangle before recording a region.",
+          );
+        }
+        // The compositor copies only the chosen rectangle out of every frame,
+        // so the encoded file holds the selected pixels and nothing else.
+        regionCompositor = await RegionCompositor.create({
+          stream: displayStream,
+          region,
+          fps: request.fps,
+        });
+        videoOutputStream = regionCompositor.stream;
+      } else {
+        videoOutputStream = displayStream;
+      }
     }
-    ownedStreams.push(videoStream);
 
     let audioContext: AudioContext | null = null;
 
@@ -386,22 +460,22 @@ export class RecordingSession {
         }
       }
 
-      const videoTrack = videoStream.getVideoTracks()[0];
+      const videoTrack = videoOutputStream.getVideoTracks()[0];
       const detected = videoTrack?.getSettings?.() ?? {};
       const width = detected.width || request.width;
       const height = detected.height || request.height;
 
       let outputStream: MediaStream;
 
-      const mixed = await mixAudioStreams(videoStream, microphoneStream);
+      const mixed = await mixAudioStreams(sourceStream, microphoneStream);
       if (mixed) {
         audioContext = mixed.context;
         outputStream = new MediaStream([
-          ...videoStream.getVideoTracks(),
+          ...videoOutputStream.getVideoTracks(),
           ...mixed.stream.getAudioTracks(),
         ]);
       } else {
-        outputStream = new MediaStream(videoStream.getVideoTracks());
+        outputStream = new MediaStream(videoOutputStream.getVideoTracks());
       }
 
       let canvasTimer: number | null = null;
@@ -429,7 +503,7 @@ export class RecordingSession {
         if (!context) throw new Error("Unable to create compositor canvas.");
 
         const screenVideo = document.createElement("video");
-        screenVideo.srcObject = videoStream;
+        screenVideo.srcObject = videoOutputStream;
         screenVideo.muted = true;
         screenVideo.playsInline = true;
         await screenVideo.play().catch(() => undefined);
@@ -504,6 +578,7 @@ export class RecordingSession {
         audioOnly: false,
         analyser: null,
         levelBuffer: null,
+        regionCompositor,
       };
       this.startedAt = performance.now();
       this.pausedTotal = 0;
@@ -515,6 +590,7 @@ export class RecordingSession {
       // The capture never became active, so this.active is still null and
       // cancel() cannot clean up. Release every acquired stream here instead.
       this.active = null;
+      regionCompositor?.dispose();
       ownedStreams.forEach(stopStream);
       await closeAudioContext(audioContext);
       throw error;
@@ -591,6 +667,7 @@ export class RecordingSession {
       // The capture resources are released whether or not the encoder
       // produced a usable blob.
       if (active.canvasTimer !== null) window.clearInterval(active.canvasTimer);
+      active.regionCompositor?.dispose();
       active.ownedStreams.forEach(stopStream);
       stopStream(active.stream);
       await closeAudioContext(active.audioContext);
@@ -615,6 +692,7 @@ export class RecordingSession {
       // An audio file has no frame to offer; inventing one would be a colour
       // swatch dressed up as a preview.
       thumbnail: audioOnly ? null : await createThumbnailFromBlob(patched),
+      regionMode: active.regionCompositor ? "region-compositor" : null,
     };
   }
 
@@ -627,6 +705,7 @@ export class RecordingSession {
       /* noop */
     }
     if (active.canvasTimer !== null) window.clearInterval(active.canvasTimer);
+    active.regionCompositor?.dispose();
     active.ownedStreams.forEach(stopStream);
     stopStream(active.stream);
     closeAudioContext(active.audioContext);

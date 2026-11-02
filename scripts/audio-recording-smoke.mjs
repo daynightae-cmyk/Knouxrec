@@ -201,7 +201,9 @@ try {
   );
   check(
     "studio: the capture source list offers microphone only",
-    sources.includes("audio") && sources.length === 4,
+    sources.includes("audio") &&
+      sources.includes("region") &&
+      sources.length === 5,
     sources,
   );
 
@@ -519,7 +521,7 @@ try {
   await page.goto(`${BASE}#/studio`, { waitUntil: "domcontentloaded" });
   const rtlReady = await waitFor(
     page,
-    () => document.querySelectorAll("[data-capture-mode]").length === 4,
+    () => document.querySelectorAll("[data-capture-mode]").length === 5,
     20000,
   );
   const rtl = await page.evaluate(() => ({
@@ -535,7 +537,11 @@ try {
   }));
   check(
     "arabic: the studio lists the microphone source in Arabic",
-    rtlReady && rtl.dir === "rtl" && rtl.sources.length === 4 && /ميكروفون/.test(rtl.sources.join(" ")),
+    rtlReady &&
+      rtl.dir === "rtl" &&
+      rtl.sources.length === 5 &&
+      /ميكروفون/.test(rtl.sources.join(" ")) &&
+      /منطقة/.test(rtl.sources.join(" ")),
     rtl,
   );
   check("arabic: no translation key leaks into the studio", rtl.rawKeys === false, rtl);

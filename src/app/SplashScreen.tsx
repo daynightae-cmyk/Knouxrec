@@ -1,5 +1,6 @@
 
 import BrandMark from "./BrandMark";
+import { BrandFrame, BrandWordmark } from "./BrandWordmark";
 import { Icon } from "./icons";
 import { useSettings } from "../state/SettingsContext";
 import { translate } from "../i18n/translate";
@@ -28,12 +29,29 @@ export default function SplashScreen({
 
   return (
     <div className="kx-splash" data-leaving={leaving} role="status" aria-live="polite">
+      {/* Decorative atmosphere of the approved brand artwork: a fine grid, one
+          warm corner light and two signal traces. Nothing here is a button and
+          nothing here is read out. */}
+      <span className="kx-splash-grid" aria-hidden="true" />
+      <span className="kx-splash-glow" aria-hidden="true" />
+      <span className="kx-splash-trace kx-splash-trace-tl" aria-hidden="true">
+        <i className="kx-splash-node" />
+      </span>
+      <span className="kx-splash-trace kx-splash-trace-br" aria-hidden="true">
+        <i className="kx-splash-node" />
+      </span>
+
       <div className="kx-splash-inner">
-        <BrandMark size={96} className="kx-splash-mark" />
-        <div className="kx-splash-name">
-          KNOUX<em>REC</em>
+        <div className="kx-splash-emblem">
+          <BrandFrame />
+          <BrandMark size={104} className="kx-splash-mark" />
         </div>
-        <div className="kx-splash-tag">{t("shell.tagline")}</div>
+
+        <BrandWordmark
+          size="lg"
+          className="kx-splash-name"
+          tagline={t("shell.tagline")}
+        />
 
         <div className="kx-splash-steps">
           {steps.map((step) => (
