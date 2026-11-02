@@ -108,12 +108,12 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     id: "screenshots",
     group: "capture",
     labelKey: "screenshots",
-    state: "VERIFIED",
+    state: "PARTIAL",
     summary:
-      "Real display capture plus a full editor: crop, arrows, shapes, highlight, text, blur/pixelate, undo/redo, compare, library save and verified PNG export; fresh captures open directly in the editor.",
+      "A capture studio on the real display stream: from-screen, application-window and region sources with a delay countdown, an item rail with search, persisted tags and notes, clipboard copy, PNG/JPEG/WebP output, save to library and export; a full editor with crop, arrows, shapes, highlight, text, blur/pixelate, undo/redo and compare opens on every fresh capture. Scrolling capture is listed as blocked because nothing in this build stitches repeated frames.",
     requirements: ["Screen capture permission"],
     evidence:
-      "scripts/screenshot-editor-smoke.mjs captures a real frame from the display stream and drives the editor (16 checks): crop geometry, pixel-changing annotations and blur, undo, compare, the stored PNG and the exported bytes.",
+      "scripts/screenshot-editor-smoke.mjs captures a real frame from the display stream and drives the editor (18/18): the delay counts down before any pixel is taken and cancelling takes nothing, the editor decodes the captured pixels, the overlay tracks the canvas geometry, crop lands on the dragged rectangle in real pixels, arrow/text/blur each change real pixels, undo restores the pre-blur bytes, before/after shows the untouched capture, the edit saves as a real PNG library item, export writes PNG bytes that decode at the edited dimensions, and the editor closes back to the hub.",
   },
   library: {
     id: "library",

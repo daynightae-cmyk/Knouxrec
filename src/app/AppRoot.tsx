@@ -314,7 +314,7 @@ export default function AppRoot() {
       case "studio":
         return <StudioView onNavigate={navigate} />;
       case "screenshots":
-        return <ScreenshotsView />;
+        return <ScreenshotsView onNavigate={navigate} />;
       case "library":
         return <LibraryView onNavigate={navigate} />;
       case "settings":

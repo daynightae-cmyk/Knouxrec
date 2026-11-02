@@ -111,10 +111,7 @@ try {
   });
   await sleep(200);
   await page.evaluate(() => {
-    const button = [...document.querySelectorAll("button")].find(
-      (element) => element.textContent?.trim() === "Capture screen",
-    );
-    button?.click();
+    document.querySelector('[data-action="capture"]')?.click();
   });
   await sleep(400);
   const counting = await page.evaluate(() => ({
@@ -145,10 +142,8 @@ try {
 
   // 1. Real capture through the display stream.
   const clicked = await page.evaluate(() => {
-    const button = [...document.querySelectorAll("button")].find(
-      (element) => element.textContent?.trim() === "Capture screen",
-    );
-    if (!button) return false;
+    const button = document.querySelector('[data-action="capture"]');
+    if (!button || button.disabled) return false;
     button.click();
     return true;
   });

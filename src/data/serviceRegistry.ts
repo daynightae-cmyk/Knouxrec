@@ -112,6 +112,10 @@ export const SERVICES: ServiceEntry[] = [
 
   /* -------------------------------------------------------- screenshots */
   entry({ id: "shot-capture", hub: "screenshots", labelEn: "Capture the display", label: "التقاط الشاشة", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
+  entry({ id: "shot-window", hub: "screenshots", labelEn: "Capture one application window", label: "التقاط نافذة تطبيق", mode: "LOCAL", status: "IMPLEMENTED-NOT-VERIFIED", route: "screenshots", needs: "The OS picker opens on the window tab; an end-to-end window-only assertion is not yet in the smoke" }),
+  entry({ id: "shot-scrolling", hub: "screenshots", labelEn: "Scrolling capture stitched into one tall image", label: "التقاط التمرير كصورة طويلة", mode: "UNAVAILABLE", status: "NOT-IMPLEMENTED", route: "screenshots", needs: "Nothing in this build stitches repeated frames; the control is shown as blocked instead of faked" }),
+  entry({ id: "shot-clipboard", hub: "screenshots", labelEn: "Copy a capture to the system clipboard", label: "نسخ لقطة إلى الحافظة", mode: "LOCAL", status: "IMPLEMENTED-NOT-VERIFIED", route: "screenshots", needs: "Re-encodes to PNG because Chromium only accepts a PNG clipboard item; needs a focused real-browser assertion" }),
+  entry({ id: "shot-tags", hub: "screenshots", labelEn: "Tags and notes persisted on a capture", label: "وسوم وملاحظات محفوظة مع اللقطة", mode: "LOCAL", status: "IMPLEMENTED-NOT-VERIFIED", route: "screenshots", needs: "Written through the library update path; a reload assertion is not yet automated" }),
   entry({ id: "shot-crop", hub: "screenshots", labelEn: "Crop by dragging a region", label: "قص بمنطقة السحب", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-annotate", hub: "screenshots", labelEn: "Arrows, shapes, highlight and text", label: "أسهم وأشكال وإبراز ونص", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),
   entry({ id: "shot-redact", hub: "screenshots", labelEn: "Pixelate or blur a sensitive region", label: "تمويه أو بكسلة منطقة حساسة", mode: "LOCAL", status: "VERIFIED", route: "screenshots" }),

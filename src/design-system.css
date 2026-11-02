@@ -7101,3 +7101,364 @@ html[dir="rtl"] .kx-region-hint {
 @media (max-width: 1180px) {
   .kx-promise { display: none; }
 }
+
+/* =====================================================================
+   Screenshots Studio — capture bar, canvas with rulers, item rail
+   ===================================================================== */
+
+.kx-shot-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: var(--kx-radius);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-surface);
+}
+
+.kx-shot-bar .kx-segmented { flex: 1 1 420px; }
+
+.kx-shot-blocked {
+  margin-inline-start: 6px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--kx-danger-soft);
+  color: var(--kx-danger);
+  font-size: 0.58rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.kx-shot-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 14px;
+  align-items: start;
+}
+
+.kx-shot-canvas-panel {
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--kx-radius-lg);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-elev-1);
+  overflow: hidden;
+  min-height: 420px;
+}
+
+.kx-shot-ruler-top {
+  position: relative;
+  height: 22px;
+  flex: 0 0 22px;
+  margin-inline-start: 42px;
+  border-bottom: 1px solid var(--kx-border);
+  background: var(--kx-bg-soft);
+}
+
+.kx-shot-ruler-left {
+  position: relative;
+  width: 42px;
+  flex: 0 0 42px;
+  border-inline-end: 1px solid var(--kx-border);
+  background: var(--kx-bg-soft);
+}
+
+.kx-shot-tick {
+  position: absolute;
+  font-family: var(--kx-font-numeric);
+  font-size: 0.56rem;
+  color: var(--kx-text-faint);
+  white-space: nowrap;
+}
+
+.kx-shot-ruler-top .kx-shot-tick { top: 4px; transform: translateX(2px); }
+.kx-shot-ruler-top .kx-shot-tick::after {
+  content: "";
+  position: absolute;
+  top: 12px;
+  left: 0;
+  width: 1px;
+  height: 6px;
+  background: var(--kx-border-strong);
+}
+
+.kx-shot-ruler-left .kx-shot-tick {
+  inset-inline-end: 6px;
+  transform: translateY(2px);
+}
+
+.kx-shot-canvas-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Named apart from the editor's own .kx-shot-canvas <canvas>, which the
+   screenshot smoke and the editor both rely on. */
+.kx-studio-canvas {
+  flex: 1 1 auto;
+  overflow: auto;
+  padding: 16px;
+  background:
+    linear-gradient(45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(-45deg, rgba(255, 255, 255, 0.03) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%),
+    linear-gradient(-45deg, transparent 75%, rgba(255, 255, 255, 0.03) 75%);
+  background-size: 20px 20px;
+  background-position: 0 0, 0 10px, 10px -10px, -10px 0;
+}
+
+.kx-studio-canvas img {
+  display: block;
+  max-width: none;
+  border-radius: 6px;
+  box-shadow: var(--kx-shadow-2);
+}
+
+.kx-shot-canvas-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-top: 1px solid var(--kx-border);
+  background: var(--kx-bg-soft);
+}
+
+.kx-shot-readout {
+  margin-inline-start: auto;
+  font-family: var(--kx-font-numeric);
+  font-size: 0.7rem;
+  color: var(--kx-text-soft);
+}
+
+.kx-shot-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  border-radius: var(--kx-radius-lg);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-elev-1);
+  padding: 12px;
+}
+
+.kx-shot-tabs {
+  display: flex;
+  gap: 6px;
+}
+
+.kx-shot-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  height: 32px;
+  padding: 0 10px;
+  border-radius: var(--kx-radius-xs);
+  border: 1px solid var(--kx-border);
+  background: transparent;
+  color: var(--kx-text-faint);
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: var(--kx-motion);
+}
+
+.kx-shot-tab[aria-selected="true"] {
+  background: var(--kx-accent-soft);
+  border-color: var(--kx-accent-line);
+  color: var(--kx-text);
+}
+
+.kx-shot-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: var(--kx-radius-xs);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-surface);
+  color: var(--kx-text-faint);
+}
+
+.kx-shot-search input {
+  flex: 1 1 auto;
+  border: 0;
+  background: transparent;
+  color: var(--kx-text);
+  font-size: 0.76rem;
+  outline: none;
+}
+
+.kx-shot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 360px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.kx-shot-row {
+  display: flex;
+  gap: 10px;
+  padding: 8px;
+  border-radius: var(--kx-radius-sm);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-surface);
+  color: var(--kx-text);
+  text-align: start;
+  cursor: pointer;
+  transition: var(--kx-motion);
+}
+
+.kx-shot-row:hover { background: var(--kx-surface-hover); }
+
+.kx-shot-row[data-selected="true"] {
+  border-color: var(--kx-accent-line);
+  background: var(--kx-accent-soft);
+}
+
+.kx-shot-row-thumb {
+  display: block;
+  width: 56px;
+  height: 40px;
+  flex: 0 0 56px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #050507;
+}
+
+.kx-shot-row-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+.kx-shot-row-body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.kx-shot-row-name {
+  font-size: 0.74rem;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kx-shot-row-meta {
+  font-family: var(--kx-font-numeric);
+  font-size: 0.66rem;
+  color: var(--kx-text-faint);
+}
+
+.kx-shot-row-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.kx-shot-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.kx-shot-dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.kx-shot-dl div {
+  padding: 8px 10px;
+  border-radius: var(--kx-radius-xs);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-surface);
+}
+
+.kx-shot-dl dt {
+  font-size: 0.58rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--kx-text-faint);
+}
+
+.kx-shot-dl dd {
+  margin: 3px 0 0;
+  font-size: 0.76rem;
+  color: var(--kx-text);
+  overflow-wrap: anywhere;
+}
+
+.kx-shot-section { display: flex; flex-direction: column; gap: 8px; }
+
+.kx-shot-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.kx-shot-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px 2px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--kx-border-strong);
+  background: var(--kx-surface-strong);
+  font-size: 0.68rem;
+}
+
+.kx-shot-tag button {
+  display: grid;
+  place-items: center;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--kx-text-faint);
+  cursor: pointer;
+}
+
+.kx-shot-tag button:hover { background: var(--kx-danger-soft); color: var(--kx-danger); }
+
+.kx-shot-note { resize: vertical; font-family: var(--kx-font-ui); }
+
+.kx-shot-format {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 10px;
+  border-top: 1px solid var(--kx-border);
+}
+
+.kx-shot-footer {
+  position: sticky;
+  bottom: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  border-radius: var(--kx-radius);
+  border: 1px solid var(--kx-border);
+  background: var(--kx-elev-2);
+}
+
+.kx-shot-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.76rem;
+  color: var(--kx-success);
+}
+
+.kx-shot-footer .kx-shot-status:has([data-tone]) { color: var(--kx-text-soft); }
+.kx-shot-footer .kx-row { margin-inline-start: auto; }
+
+@media (max-width: 1180px) {
+  .kx-shot-workspace { grid-template-columns: minmax(0, 1fr); }
+}

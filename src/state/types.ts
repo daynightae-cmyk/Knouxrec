@@ -76,6 +76,10 @@ export interface LibraryItem {
   provenance?: ProvenanceRecord[];
   /** Optional user collection; empty means unfiled. */
   collection?: string;
+  /** User tags, persisted with the item so a screenshot can be found again. */
+  tags?: string[];
+  /** A free-text note about this capture. */
+  note?: string;
 }
 
 export type RecorderStatus =
