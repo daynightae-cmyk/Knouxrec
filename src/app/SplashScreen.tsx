@@ -47,11 +47,16 @@ export default function SplashScreen({
           <BrandMark size={104} className="kx-splash-mark" />
         </div>
 
-        <BrandWordmark
-          size="lg"
-          className="kx-splash-name"
-          tagline={t("shell.tagline")}
-        />
+        <BrandWordmark size="lg" className="kx-splash-name" />
+
+        {/* The tagline is a sibling, not a child of the name: the brand lockup
+            and the strapline are two things, and readers and tests should be
+            able to name each one on its own. */}
+        <span className="kx-wordmark-tagline kx-splash-tagline">
+          <span className="kx-wordmark-rule" aria-hidden="true" />
+          <span>{t("shell.tagline")}</span>
+          <span className="kx-wordmark-rule" aria-hidden="true" />
+        </span>
 
         <div className="kx-splash-steps">
           {steps.map((step) => (
