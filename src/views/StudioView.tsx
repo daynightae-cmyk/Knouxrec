@@ -59,6 +59,13 @@ export default function StudioView({
   const { items, urlFor } = useLibrary();
   const t = (key: string) => translate(settings.language, key);
   const [mode, setMode] = useState<CaptureMode>(recorder.preferredMode);
+
+  // The menu's "New area recording" sets the preferred source before arriving
+  // here, and the recorder may already be mounted. Following the preference
+  // while idle keeps that entry point honest instead of landing on Screen.
+  useEffect(() => {
+    if (recorder.status === "idle") setMode(recorder.preferredMode);
+  }, [recorder.preferredMode, recorder.status]);
   const [preview, setPreview] = useState<LibraryItem | null>(null);
   const [devices, setDevices] = useState<Array<{ deviceId: string; label: string }>>([]);
   const [delay, setDelay] = useState(5);

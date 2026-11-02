@@ -154,6 +154,10 @@ function buildMenu() {
       label: "File",
       submenu: [
         { label: "New screen recording", accelerator: "F9", click: () => sendCommand("record.toggle") },
+        // A menu shortcut cannot draw the selection rectangle for the user, so
+        // this opens the recorder with the area source already chosen; the
+        // rectangle and the OS permission are still the user's own action.
+        { label: "New area recording…", accelerator: "CmdOrCtrl+Shift+A", click: () => sendCommand("record.area") },
         { label: "Pause or resume", accelerator: "F10", click: () => sendCommand("record.pause-toggle") },
         { label: "Capture screenshot", accelerator: "F12", click: () => sendCommand("record.screenshot") },
         { type: "separator" },

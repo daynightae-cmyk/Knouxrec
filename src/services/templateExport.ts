@@ -225,22 +225,53 @@ async function exportTemplateVideoOnce(
     recorder.start(100);
     const targetFrames = Math.max(1, Math.round(spec.duration * spec.fps));
     const startedAt = performance.now();
-    const ceilingMs = Math.max(20_000, (spec.duration + 6) * 1_000 + targetFrames * 500);
+    // A stall budget, not an absolute one. The absolute ceiling this loop used
+    // to carry aborted a two-second ident at 38 s even though frames were still
+    // being produced — on a loaded machine requestAnimationFrame is throttled
+    // hard, sixty frames can take minutes, and the result was a 0.2 s file that
+    // claimed to be the clip. As long as frames keep advancing the export is
+    // making progress and must be allowed to finish; it only gives up when the
+    // frame counter itself stops moving, or after a very hard backstop.
+    const STALL_MS = 20_000;
+    const HARD_CEILING_MS = Math.max(180_000, targetFrames * 5_000);
+    let lastFrameAt = performance.now();
+    // Driven by a timer, not requestAnimationFrame. rAF is throttled to a
+    // trickle whenever the page is not the compositor's priority — a background
+    // window, a headless run, or simply a busy machine — and a two-second ident
+    // then took minutes to draw sixty frames. The recorder's webcam overlay and
+    // trimMedia both moved off rAF for the same reason; this loop is the third
+    // instance of the same lesson.
+    const frameInterval = Math.max(16, Math.round(1000 / spec.fps));
     await new Promise<void>((resolve) => {
       const step = async () => {
-        const elapsed = (performance.now() - startedAt) / 1000;
-        if (token.cancelled || elapsed * 1000 > ceilingMs) {
+        const now = performance.now();
+        const elapsed = (now - startedAt) / 1000;
+        if (token.cancelled) {
+          resolve();
+          return;
+        }
+        if (now - lastFrameAt > STALL_MS || now - startedAt > HARD_CEILING_MS) {
           resolve();
           return;
         }
         const time = Math.min(spec.duration, frames / spec.fps);
-        await engine.renderTemplate(
-          spec.templateId,
-          spec.customizations,
-          settings,
-          time,
-        );
+        try {
+          await engine.renderTemplate(
+            spec.templateId,
+            spec.customizations,
+            settings,
+            time,
+          );
+        } catch (cause) {
+          // A single frame that fails to draw must not hang the export; it
+          // counts as a stall and the budget above decides whether to stop.
+          if (token.cancelled) {
+            resolve();
+            return;
+          }
+        }
         frames += 1;
+        lastFrameAt = performance.now();
         onProgress({
           percent: Math.min(100, Math.round((frames / targetFrames) * 100)),
           message: `Rendering and encoding frame ${frames} of ${targetFrames}`,
@@ -249,9 +280,9 @@ async function exportTemplateVideoOnce(
           resolve();
           return;
         }
-        window.requestAnimationFrame(() => void step());
+        window.setTimeout(() => void step(), frameInterval);
       };
-      window.requestAnimationFrame(() => void step());
+      window.setTimeout(() => void step(), frameInterval);
     });
 
     // Give the encoder a moment to capture the final frame.

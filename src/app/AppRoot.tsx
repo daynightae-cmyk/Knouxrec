@@ -203,6 +203,13 @@ export default function AppRoot() {
           return;
         }
         switch (command) {
+          case "record.area":
+            // Opens the recorder on the area source. The rectangle still has
+            // to be drawn by the user, and the OS picker still has to be
+            // accepted, so nothing is captured from a menu click alone.
+            recorder.setPreferredMode("region");
+            navigate("studio");
+            break;
           case "record.start":
             if (recorder.status === "idle") void recorder.start("screen");
             break;
