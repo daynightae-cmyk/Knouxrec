@@ -82,29 +82,90 @@ async function ensureChrome() {
   throw new Error(`No Chromium/Edge binary found for screenshots (${CHROME})`);
 }
 
-async function captureRoute(page, route, theme, direction) {
-  const url = `${BASE}#/${route}`;
-  await page.goto(url, { waitUntil: "domcontentloaded" });
-  // Wait for the app shell (the splash screen may still be on top).
-  await page.waitForSelector(".kx-app", { timeout: 20000 });
-  // Force the theme/direction explicitly so the capture is deterministic.
-  await page.evaluate(
+async function captureRoute(page, route, theme, direction, dpi) {
+  // Preferences are written to the app's own storage key before React
+  // initialises, so the capture shows the real SettingsContext state. Toggling
+  // a CSS class afterwards — which is what the first version of this harness
+  // did — only ever painted over the surface and was called out as a faulty
+  // evidence method in the independent production-evidence correction.
+  await page.evaluateOnNewDocument(
     (t, d) => {
-      document.documentElement.classList.toggle("dark", t === "dark");
-      document.documentElement.classList.toggle("light", t !== "dark");
-      document.documentElement.dir = d;
-      document.documentElement.lang = d === "rtl" ? "ar" : "en";
+      try {
+        window.localStorage.setItem(
+          "knoux-rec.settings.v1",
+          JSON.stringify({
+            theme: t,
+            language: d === "rtl" ? "ar" : "en",
+            reduceMotion: true,
+            screenshotFormat: "png",
+            screenshotQuality: 0.92,
+            recorder: {
+              quality: 1080,
+              fps: 30,
+              systemAudio: false,
+              microphone: false,
+              webcamOverlay: false,
+              webcamPosition: "bottomRight",
+              webcamSize: "medium",
+              namingPattern: "KNOUX-REC-[DATE]_[TIME]",
+            },
+            hotkeys: {},
+          }),
+        );
+      } catch {
+        /* storage may be blocked; the capture still proceeds on defaults */
+      }
     },
     theme,
     direction,
   );
-  // Let the splash transition finish and lazy routes settle.
-  await new Promise((resolve) => setTimeout(resolve, 2600));
+
+  const url = `${BASE}#/${route}`;
+  await page.setViewport({ width, height, deviceScaleFactor: dpi });
+  // A hash-only navigation does not create a new document, so the preference
+  // hook above would never run again and every later capture would silently be
+  // the first page's theme and language. Dropping to about:blank forces a real
+  // load, which is the only way the boot-time preferences take effect.
+  await page.goto("about:blank");
+  await page.goto(url, { waitUntil: "domcontentloaded" });
+  await page.waitForSelector(".kx-app", { timeout: 20000 });
+  // .kx-app mounts *behind* the splash, so waiting for it alone captures an
+  // overlay and calls it a route. Wait for the splash to be gone.
+  await page
+    .waitForFunction(() => document.querySelector(".kx-splash") === null, { timeout: 20000 })
+    .catch(() => undefined);
+  // Let lazy routes and measured probes settle.
+  await new Promise((resolve) => setTimeout(resolve, 2400));
+
+  const observed = await page.evaluate(() => ({
+    hash: location.hash,
+    theme: document.documentElement.dataset.theme ?? null,
+    dir: document.documentElement.dir,
+    lang: document.documentElement.lang,
+    splashPresent: Boolean(document.querySelector(".kx-splash")),
+    contentLength: (document.querySelector(".kx-main")?.textContent ?? "").trim().length,
+    horizontalOverflow:
+      document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    routeLabel:
+      document.querySelector(".kx-nav-item[aria-current='page'] .kx-nav-label")?.textContent?.trim() ??
+      null,
+  }));
+
+  // Fail closed: a capture of the wrong route, of the splash, or of a page that
+  // overflows horizontally is recorded as a failure, never as a picture.
+  const problems = [];
+  if (!observed.hash.startsWith(`#/${route}`)) problems.push(`route is ${observed.hash}`);
+  if (observed.splashPresent) problems.push("splash still covering the route");
+  if (observed.contentLength < 50) problems.push("main content is empty");
+  if (observed.horizontalOverflow > 1) problems.push(`overflow ${observed.horizontalOverflow}px`);
+  if (direction === "rtl" && observed.dir !== "rtl") problems.push("document is not RTL");
+
   const routeName = direction === "rtl" ? `${route}-rtl` : route;
-  const file = path.join(OUT_ROOT, label, theme, `${routeName}.png`);
+  const file = path.join(OUT_ROOT, label, theme, `${routeName}-${Math.round(dpi * 100)}.png`);
   await mkdir(path.dirname(file), { recursive: true });
   await page.screenshot({ path: file, fullPage: false });
-  return file;
+  const info = await stat(file);
+  return { file, bytes: info.size, observed, problems };
 }
 
 async function main() {
@@ -135,27 +196,48 @@ async function main() {
   });
   page.on("pageerror", (err) => consoleErrors.push(`pageerror: ${err.message}`));
 
-  const manifest = { label, base: BASE, capturedAt: new Date().toISOString(), shots: {} };
+  const manifest = {
+    label,
+    base: BASE,
+    capturedAt: new Date().toISOString(),
+    viewport: { width, height },
+    // The independent correction requires both a wide and a minimum window.
+    shots: {},
+  };
 
   const themes = arg("themes", "dark") === "all" ? ["dark", "light"] : ["dark"];
   const directions = arg("dirs", "ltr") === "all" ? ["ltr", "rtl"] : ["ltr"];
+  const dpis = arg("dpis", "1") === "all" ? [1, 1.25, 1.5] : [Number(arg("dpis", "1"))];
 
   for (const theme of themes) {
     for (const direction of directions) {
       for (const route of routes) {
-        const key = `${theme}/${direction}/${route}`;
-        try {
-          const file = await captureRoute(page, route, theme, direction);
-          const info = await stat(file);
-          manifest.shots[key] = { file, bytes: info.size };
-          console.log(`OK   ${key} -> ${path.relative(process.cwd(), file)} (${info.size} B)`);
-        } catch (err) {
-          manifest.shots[key] = { error: err.message };
-          console.error(`FAIL ${key}: ${err.message}`);
+        for (const dpi of dpis) {
+          const key = `${theme}/${direction}/${route}@${dpi}x`;
+          try {
+            const result = await captureRoute(page, route, theme, direction, dpi);
+            manifest.shots[key] = result;
+            const flag = result.problems.length ? "FAIL " : "OK   ";
+            console.log(
+              `${flag}${key} -> ${path.relative(process.cwd(), result.file)} (${result.bytes} B)${
+                result.problems.length ? " :: " + result.problems.join("; ") : ""
+              }`,
+            );
+          } catch (err) {
+            manifest.shots[key] = { error: err.message };
+            console.error(`ERROR ${key}: ${err.message}`);
+          }
         }
       }
     }
   }
+
+  const failing = Object.entries(manifest.shots).filter(
+    ([, value]) => value.problems?.length || value.error,
+  );
+  manifest.failingCount = failing.length;
+  manifest.visualReferenceReview =
+    "NOT_REVIEWED — these captures prove the route rendered without the splash, at the requested theme, direction and viewport, with no horizontal overflow. They are not a human design-fidelity acceptance.";
 
   manifest.consoleErrors = consoleErrors.slice(0, 50);
   const manifestPath = path.join(OUT_ROOT, label, "manifest.json");
@@ -165,6 +247,27 @@ async function main() {
   if (consoleErrors.length) {
     console.log(`Console errors observed: ${consoleErrors.length}`);
   }
+
+  // The manifest is written either way, but a run where every capture was
+  // flagged must not report success. Counting failures and exiting 0 is the
+  // same faulty evidence method the production-evidence correction called out:
+  // the harness proved it could take a picture, not that the picture was real.
+  if (failing.length) {
+    console.error(
+      `\nvisual-execution-capture: FAILED — ${failing.length} of ${
+        Object.keys(manifest.shots).length
+      } captures flagged`,
+    );
+    for (const [key, value] of failing.slice(0, 15)) {
+      console.error(
+        ` - ${key}: ${(value.problems?.length ? value.problems : [value.error]).join("; ")}`,
+      );
+    }
+    process.exit(1);
+  }
+  console.log(
+    `\nvisual-execution-capture: PASSED — ${Object.keys(manifest.shots).length} captures, none flagged`,
+  );
 }
 
 main().catch((err) => {
