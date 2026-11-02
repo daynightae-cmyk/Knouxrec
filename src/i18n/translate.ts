@@ -1725,6 +1725,7 @@ const STRINGS: Dictionary = {
   "toolbox.searchPlaceholder": { en: "Search tools", ar: "ابحث في الأدوات" },
   "toolbox.category": { en: "Category", ar: "الفئة" },
   "toolbox.all": { en: "All", ar: "الكل" },
+  "toolbox.countUnit": { en: "local tools", ar: "أدوات محلية" },
   "toolbox.category.image": { en: "Images", ar: "صور" },
   "toolbox.category.video": { en: "Video", ar: "فيديو" },
   "toolbox.category.audio": { en: "Audio", ar: "صوت" },

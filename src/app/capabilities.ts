@@ -143,7 +143,7 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     labelKey: "toolbox",
     state: "VERIFIED",
     summary:
-      "Eleven local media utilities with real processors: resize, filters, format conversion, rotate/flip, crop, pixelate, video thumbnail, waveform, text image, QR code and colour palette.",
+      "Thirteen local media utilities with real processors, grouped by the medium they act on: resize, filters, format conversion, rotate/flip, crop, pixelate, compress and palette extraction for images; video thumbnail and a decoded contact sheet for video; waveform poster for audio; text image; and a QR code generator.",
     requirements: [
       "Canvas 2D encoder",
       "Web Audio decoder for the visualiser",

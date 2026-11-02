@@ -148,6 +148,21 @@ export default function ToolboxView({
   const tokenRef = useRef<CancellationToken>({ cancelled: false });
   const resultUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
+
+  // The reference artwork prints Ctrl K on the toolbox search field, so the
+  // binding is implemented rather than only advertised.
+  useEffect(() => {
+    const handler = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        searchRef.current?.focus();
+        searchRef.current?.select();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const tool = useMemo(
     () => MEDIA_TOOLS.find((entry) => entry.id === toolId) ?? null,
@@ -334,25 +349,46 @@ export default function ToolboxView({
           eyebrow={t("groupCreate")}
           title={t("toolbox")}
           description={t("toolbox.subtitle")}
-          actions={<StateBadge state={CAPABILITIES.toolbox.state} />}
+          actions={
+            <>
+              <span className="kx-badge" data-state="VERIFIED" data-tool-count>
+                {MEDIA_TOOLS.length} {t("toolbox.countUnit")}
+              </span>
+              <StateBadge state={CAPABILITIES.toolbox.state} />
+            </>
+          }
         />
 
-        <div className="kx-row" style={{ gap: 12, marginBottom: 16, flexWrap: "wrap" }}>
-          <input
-            className="kx-input kx-search"
-            type="search"
-            value={query}
-            placeholder={t("toolbox.searchPlaceholder")}
-            onChange={(event) => setQuery(event.target.value)}
-            aria-label={t("toolbox.searchPlaceholder")}
-          />
-          <div className="kx-segmented" role="group" aria-label={t("toolbox.category")}>
+        <div className="kx-row kx-tbx-tools" style={{ gap: 12, flexWrap: "wrap" }}>
+          <label className="kx-search kx-tbx-search">
+            <Icon name="search" size={16} />
+            <input
+              className="kx-input"
+              type="search"
+              value={query}
+              data-tool-search
+              ref={searchRef}
+              placeholder={t("toolbox.searchPlaceholder")}
+              onChange={(event) => setQuery(event.target.value)}
+              aria-label={t("toolbox.searchPlaceholder")}
+            />
+            <kbd className="kx-kbd">Ctrl K</kbd>
+          </label>
+          <div
+            className="kx-segmented kx-tbx-cats"
+            role="group"
+            aria-label={t("toolbox.category")}
+          >
             <button
               type="button"
               aria-pressed={category === "all"}
+              data-tool-cat="all"
               onClick={() => setCategory("all")}
             >
               {t("toolbox.all")}
+              <b className="kx-tbx-cat-count" data-cat-count="all">
+                {MEDIA_TOOLS.length}
+              </b>
             </button>
             {(["image", "video", "audio", "text", "utility"] as MediaToolCategory[]).map(
               (entry) => (
@@ -360,33 +396,52 @@ export default function ToolboxView({
                   key={entry}
                   type="button"
                   aria-pressed={category === entry}
+                  data-tool-cat={entry}
                   onClick={() => setCategory(entry)}
                 >
                   {t(`toolbox.category.${entry}`)}
+                  <b className="kx-tbx-cat-count" data-cat-count={entry}>
+                    {MEDIA_TOOLS.filter((toolEntry) => toolEntry.category === entry).length}
+                  </b>
                 </button>
               ),
             )}
           </div>
         </div>
 
-        <div className="kx-grid kx-grid-3">
+        <div className="kx-tbx-grid" data-tool-grid>
           {filtered.map((entry) => (
             <button
               key={entry.id}
               type="button"
-              className="kx-tool-card"
+              className="kx-tool-card kx-tbx-card"
+              data-tool-id={entry.id}
               onClick={() => openTool(entry.id)}
             >
-              <span className="kx-tool-icon">
-                <Icon name={CATEGORY_ICONS[entry.category]} size={22} />
-              </span>
-              <span className="kx-tool-name">{entry.name}</span>
-              <span className="kx-tool-desc">{entry.description}</span>
-              <span className="kx-tool-foot">
-                <span className="kx-chip">{t(`toolbox.category.${entry.category}`)}</span>
-                <span className="kx-badge" data-state="VERIFIED">
-                  {t("toolbox.ready")}
+              <span className="kx-tbx-card-art" data-art={entry.category} aria-hidden="true">
+                <span className="kx-tbx-art-shape" />
+                <span className="kx-tbx-art-shape" />
+                <span className="kx-tbx-art-icon">
+                  <Icon name={CATEGORY_ICONS[entry.category]} size={20} />
                 </span>
+              </span>
+              <span className="kx-tbx-card-body">
+                <span className="kx-tbx-card-cat">
+                  {t(`toolbox.category.${entry.category}`)}
+                </span>
+                <span className="kx-tool-name">{entry.name}</span>
+                <span className="kx-tool-desc">{entry.description}</span>
+                <span className="kx-tool-foot">
+                  <span className="kx-chip">
+                    {t(`toolbox.category.${entry.category}`)}
+                  </span>
+                  <span className="kx-badge" data-state="VERIFIED">
+                    {t("toolbox.ready")}
+                  </span>
+                </span>
+              </span>
+              <span className="kx-tbx-card-go" aria-hidden="true">
+                <Icon name="chevronRight" size={16} />
               </span>
             </button>
           ))}
