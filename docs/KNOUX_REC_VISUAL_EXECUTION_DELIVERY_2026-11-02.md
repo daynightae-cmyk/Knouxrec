@@ -217,6 +217,7 @@ twelve-file queue so both measure a real interruption. `smoke:batch` 37/37.
 | `npm run build` | exit 0 |
 | `npm run verify` (all five above) | **exit 0** |
 | `node scripts/smoke-all.mjs` | **26/26 passed**, 726 s, exit 0 — first complete aggregate run (§6.8) |
+| GitHub Actions CI on `450c142` | both jobs green: type-check/lint/unit/build, and a freshly packaged desktop binary rendering every route |
 | `smoke:ui` | 58/58 |
 | `smoke:discover` | 26/26 |
 | `smoke:recording` | 21/21 |
@@ -476,11 +477,19 @@ to starvation is correct — it errors with a precise diagnostic and saves
 nothing. The runner now settles 2.5 s between suites, which removes the overlap
 between one suite's Chromium teardown and the next one's capture.
 
-**Packaged evidence caveat.** `smoke:packaged` and `smoke:electron` pass, but
-`release/win-unpacked/resources/app.asar` is dated **2026-10-27** — five days
-before this work. They prove the old bundle boots; they do **not** evidence the
-redesigned renderer in a packaged runtime. `release/` was left untouched because
-the October audit cites those exact files.
+**Packaged evidence caveat.** `smoke:packaged` and `smoke:electron` as run in
+this workspace pass against `release/win-unpacked/resources/app.asar` dated
+**2026-10-27** — five days before this work. Locally, they prove the old bundle
+boots; they do **not** evidence the redesigned renderer. `release/` was left
+untouched because the October audit cites those exact files.
+
+GitHub Actions closes that gap for the merged code: `.github/workflows/ci.yml`
+runs `npm run electron:dist` — which is `npm run build` followed by
+`electron-builder` — and then `npm run smoke:packaged` against the package it
+just made. Both jobs are green on `450c142`, the current `origin/main`, so the
+packaged runtime of this code is verified in CI even though it is not verified
+by the local run described above. What remains unverified in both places is the
+same thing: real Windows display, microphone and system-audio hardware (§5).
 
 ### 6.7 A note on this session's own errors
 
