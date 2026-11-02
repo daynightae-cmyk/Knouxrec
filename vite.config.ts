@@ -37,5 +37,27 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: false,
     minify: "terser",
+    // Split large vendor libraries into their own chunks so the main entry
+    // stays under the 500 kB warning threshold. Each group below is a
+    // dependency that is large enough to justify its own request.
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          "react-vendor": ["react", "react-dom"],
+          "wavesurfer": ["wavesurfer.js"],
+          "fabric": ["fabric"],
+          "tensorflow": [
+            "@tensorflow/tfjs",
+            "@tensorflow/tfjs-backend-webgl",
+            "@tensorflow/tfjs-converter",
+          ],
+          "radix-tooltip": ["@radix-ui/react-tooltip"],
+          "react-compare-slider": ["react-compare-slider"],
+          "react-zoom-pan-pinch": ["react-zoom-pan-pinch"],
+          "react-resizable-panels": ["react-resizable-panels"],
+          "react-colorful": ["react-colorful"],
+        },
+      },
+    },
   },
 });

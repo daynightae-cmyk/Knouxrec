@@ -1,0 +1,99 @@
+{
+  "generatedAt": "2026-11-02",
+  "baseSha": "630ec6087bf2a121f74a13f195f2ea32f58c98cc",
+  "branch": "feat/rec-production-completion-2026-11-02",
+  "baseline": {
+    "typeCheck": "PASS",
+    "lint": "PASS",
+    "unitTests": { "total": 342, "passed": 342, "failed": 0, "files": 28 },
+    "build": "PASS",
+    "buildWarning": "chunk-size-over-500kb"
+  },
+  "registryCounts": {
+    "total": 132,
+    "VERIFIED": 110,
+    "IMPLEMENTED-NOT-VERIFIED": 5,
+    "PARTIAL": 5,
+    "BLOCKED": 10,
+    "NOT-IMPLEMENTED": 2
+  },
+  "routes": {
+    "total": 20,
+    "VERIFIED": 9,
+    "PARTIAL": 10,
+    "MISSING_MODEL": 1
+  },
+  "actionableGaps": [
+    {
+      "id": "GAP-01",
+      "title": "Bundle code-splitting",
+      "priority": "High",
+      "status": "pending",
+      "problem": "Main chunk 1.18MB; only ElysianStudio lazy-loaded",
+      "scope": "vite.config.ts manualChunks + lazy-load heavy views",
+      "risk": "Low"
+    },
+    {
+      "id": "GAP-02",
+      "title": "Visual Patch algorithm-family regression tests",
+      "priority": "Medium",
+      "status": "pending",
+      "problem": "50 tools / 8 edit modes; only one family smoke-tested",
+      "scope": "Unit tests for each edit-mode pixel operation",
+      "risk": "Low"
+    },
+    {
+      "id": "GAP-03",
+      "title": "Screenshot IMPLEMENTED-NOT-VERIFIED smoke coverage",
+      "priority": "Medium",
+      "status": "pending",
+      "problem": "shot-window, shot-clipboard, shot-tags lack smoke assertions",
+      "scope": "Extend screenshot smoke for clipboard/tags/window",
+      "risk": "Low"
+    }
+  ],
+  "blockedGaps": [
+    {
+      "id": "BLK-01",
+      "title": "Model weights (0/23 present)",
+      "dependency": "Licensed neural weight binaries",
+      "affectedRoutes": ["offline-ai", "arabic-ai", "elysian", "morphcore", "body-editor", "models"]
+    },
+    {
+      "id": "BLK-02",
+      "title": "MP3/AAC encoding",
+      "dependency": "No encoder runtime",
+      "affectedRoutes": ["audio-studio"]
+    },
+    {
+      "id": "BLK-03",
+      "title": "System audio capture",
+      "dependency": "Platform loopback (Chromium limitation)",
+      "affectedRoutes": ["studio"]
+    },
+    {
+      "id": "BLK-04",
+      "title": "Scrolling screenshot capture",
+      "dependency": "Frame stitching engine",
+      "affectedRoutes": ["screenshots"]
+    },
+    {
+      "id": "BLK-05",
+      "title": "Durable cross-reload handoff",
+      "dependency": "Deliberate design decision",
+      "affectedRoutes": ["library"]
+    },
+    {
+      "id": "BLK-06",
+      "title": "Digital signing",
+      "dependency": "Trusted Authenticode certificate",
+      "affectedRoutes": ["release"]
+    },
+    {
+      "id": "BLK-07",
+      "title": "Online provider integrations",
+      "dependency": "Credentials, paid APIs, user consent",
+      "affectedRoutes": ["elysian"]
+    }
+  ]
+}

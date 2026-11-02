@@ -43,3 +43,6 @@ artifacts
 
 # Packed application archives produced while repacking the bundle
 *.asar
+
+# Vitest temporary timestamp files generated during test runs
+vitest.config.ts.timestamp-*

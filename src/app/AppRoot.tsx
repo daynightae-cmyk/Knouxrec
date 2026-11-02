@@ -21,23 +21,26 @@ import { SectionLoading } from "../views/ui";
 import { inspectModels, MODEL_IDS } from "../services/modelRegistry";
 import Dashboard from "../views/Dashboard";
 import DiscoverView from "../views/DiscoverView";
-import StudioView from "../views/StudioView";
-import ScreenshotsView from "../views/ScreenshotsView";
-import LibraryView from "../views/LibraryView";
 import SettingsView from "../views/SettingsView";
 import DiagnosticsView from "../views/DiagnosticsView";
 import AboutView from "../views/AboutView";
-import ModelsView from "../views/ModelsView";
-import ToolboxView from "../views/ToolboxView";
-import AiWorkspaceView from "../views/AiWorkspaceView";
-import TemplatesView from "../views/TemplatesView";
-import VisualPatchView from "../views/VisualPatchView";
-import LiveStudioView from "../views/LiveStudioView";
-import MorphCoreView from "../views/MorphCoreView";
-import BodyProportionsView from "../views/BodyProportionsView";
-import AudioStudioView from "../views/AudioStudioView";
-import BatchView from "../views/BatchView";
 
+// Heavy views are lazy-loaded so the initial bundle stays small. The landing
+// route (dashboard), discover, settings, diagnostics and about stay eager
+// because they are lightweight and commonly visited first.
+const StudioView = lazy(() => import("../views/StudioView"));
+const ScreenshotsView = lazy(() => import("../views/ScreenshotsView"));
+const LibraryView = lazy(() => import("../views/LibraryView"));
+const ModelsView = lazy(() => import("../views/ModelsView"));
+const ToolboxView = lazy(() => import("../views/ToolboxView"));
+const AiWorkspaceView = lazy(() => import("../views/AiWorkspaceView"));
+const TemplatesView = lazy(() => import("../views/TemplatesView"));
+const VisualPatchView = lazy(() => import("../views/VisualPatchView"));
+const LiveStudioView = lazy(() => import("../views/LiveStudioView"));
+const MorphCoreView = lazy(() => import("../views/MorphCoreView"));
+const BodyProportionsView = lazy(() => import("../views/BodyProportionsView"));
+const AudioStudioView = lazy(() => import("../views/AudioStudioView"));
+const BatchView = lazy(() => import("../views/BatchView"));
 const ElysianStudio = lazy(() => import("../views/ElysianStudioView"));
 
 const ROUTE_IDS = Object.keys(CAPABILITIES) as RouteId[];
@@ -312,6 +315,12 @@ export default function AppRoot() {
     });
   };
 
+  const lazyFallback = (labelKey: string) => (
+    <SectionLoading
+      label={fill(t("ui.loadingModule"), { name: t(labelKey) })}
+    />
+  );
+
   const renderRoute = () => {
     switch (route) {
       case "dashboard":
@@ -319,11 +328,23 @@ export default function AppRoot() {
       case "discover":
         return <DiscoverView onNavigate={navigate} />;
       case "studio":
-        return <StudioView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("studio")}>
+            <StudioView onNavigate={navigate} />
+          </Suspense>
+        );
       case "screenshots":
-        return <ScreenshotsView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("screenshots")}>
+            <ScreenshotsView onNavigate={navigate} />
+          </Suspense>
+        );
       case "library":
-        return <LibraryView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("library")}>
+            <LibraryView onNavigate={navigate} />
+          </Suspense>
+        );
       case "settings":
         return <SettingsView />;
       case "diagnostics":
@@ -331,39 +352,77 @@ export default function AppRoot() {
       case "about":
         return <AboutView />;
       case "models":
-        return <ModelsView />;
+        return (
+          <Suspense fallback={lazyFallback("models")}>
+            <ModelsView />
+          </Suspense>
+        );
       case "templates":
-        return <TemplatesView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("templates")}>
+            <TemplatesView onNavigate={navigate} />
+          </Suspense>
+        );
       case "visual-patch":
-        return <VisualPatchView />;
+        return (
+          <Suspense fallback={lazyFallback("visualPatch")}>
+            <VisualPatchView />
+          </Suspense>
+        );
       case "morphcore":
-        return <MorphCoreView />;
+        return (
+          <Suspense fallback={lazyFallback("morphCore")}>
+            <MorphCoreView />
+          </Suspense>
+        );
       case "audio-studio":
-        return <AudioStudioView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("audioStudio")}>
+            <AudioStudioView onNavigate={navigate} />
+          </Suspense>
+        );
       case "batch":
-        return <BatchView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("batchHub")}>
+            <BatchView onNavigate={navigate} />
+          </Suspense>
+        );
       case "body-editor":
-        return <BodyProportionsView />;
+        return (
+          <Suspense fallback={lazyFallback("bodyEditor")}>
+            <BodyProportionsView />
+          </Suspense>
+        );
       case "toolbox":
-        return <ToolboxView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("toolbox")}>
+            <ToolboxView onNavigate={navigate} />
+          </Suspense>
+        );
       case "offline-ai":
-        return <AiWorkspaceView variant="offline-ai" />;
+        return (
+          <Suspense fallback={lazyFallback("offlineAI")}>
+            <AiWorkspaceView variant="offline-ai" />
+          </Suspense>
+        );
       case "arabic-ai":
-        return <AiWorkspaceView variant="arabic-ai" />;
+        return (
+          <Suspense fallback={lazyFallback("arabicAI")}>
+            <AiWorkspaceView variant="arabic-ai" />
+          </Suspense>
+        );
       case "elysian":
         return (
-          <Suspense
-            fallback={
-              <SectionLoading
-                label={fill(t("ui.loadingModule"), { name: t("elysian.title") })}
-              />
-            }
-          >
+          <Suspense fallback={lazyFallback("elysian")}>
             <ElysianStudio />
           </Suspense>
         );
       case "live-studio":
-        return <LiveStudioView onNavigate={navigate} />;
+        return (
+          <Suspense fallback={lazyFallback("liveStudio")}>
+            <LiveStudioView onNavigate={navigate} />
+          </Suspense>
+        );
       default:
         return <Dashboard onNavigate={navigate} />;
     }
