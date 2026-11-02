@@ -1149,3 +1149,4 @@ class VisualPatchLabService {
 }
 
 export const visualPatchLabService = new VisualPatchLabService();
+export { VisualPatchLabService };
