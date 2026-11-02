@@ -12,21 +12,27 @@ import {
 import { trimMedia } from "../services/recordingEngine";
 import { useLibrary } from "../state/LibraryContext";
 import { useToast } from "../state/ToastContext";
+import { useT } from "../i18n/useT";
+import { fill } from "../i18n/translate";
 
-export const STATE_LABEL: Record<CapabilityState, string> = {
-  VERIFIED: "Verified",
-  AVAILABLE_UNVERIFIED: "Available · unverified",
-  PARTIAL: "Partial",
-  MISSING_ENGINE: "Missing engine",
-  MISSING_MODEL: "Missing model",
-  NOT_IMPLEMENTED: "Not implemented",
-  BLOCKED: "Blocked",
+// Capability states are dictionary keys, not literals: the badge renders on
+// every route, so an untranslated label here leaks into the Arabic build
+// everywhere at once.
+const STATE_KEY: Record<CapabilityState, string> = {
+  VERIFIED: "ui.stateVerified",
+  AVAILABLE_UNVERIFIED: "ui.stateAvailableUnverified",
+  PARTIAL: "ui.statePartial",
+  MISSING_ENGINE: "ui.stateMissingEngine",
+  MISSING_MODEL: "ui.stateMissingModel",
+  NOT_IMPLEMENTED: "ui.stateNotImplemented",
+  BLOCKED: "ui.stateBlocked",
 };
 
 export function StateBadge({ state }: { state: CapabilityState }) {
+  const t = useT();
   return (
     <span className="kx-badge" data-state={state}>
-      {STATE_LABEL[state]}
+      {t(STATE_KEY[state])}
     </span>
   );
 }
@@ -103,6 +109,7 @@ export function EmptyState({
 }
 
 export function CapabilityNotice({ capability }: { capability: Capability }) {
+  const t = useT();
   const tone =
     capability.state === "VERIFIED"
       ? "ok"
@@ -132,12 +139,12 @@ export function CapabilityNotice({ capability }: { capability: Capability }) {
         </div>
         {capability.requirements.length > 0 && (
           <div style={{ marginTop: 6 }}>
-            <span className="kx-muted">Requires: </span>
+            <span className="kx-muted">{t("requirements")}: </span>
             {capability.requirements.join(" · ")}
           </div>
         )}
         <div style={{ marginTop: 4 }}>
-          <span className="kx-muted">Evidence: </span>
+          <span className="kx-muted">{t("evidence")}: </span>
           {capability.evidence}
         </div>
       </div>
@@ -145,16 +152,15 @@ export function CapabilityNotice({ capability }: { capability: Capability }) {
   );
 }
 
-export function SectionLoading({ label = "Loading section" }: { label?: string }) {
+export function SectionLoading({ label }: { label?: string }) {
+  const t = useT();
   return (
     <div className="kx-empty" role="status" aria-live="polite">
       <span className="kx-spin">
         <Icon name="refresh" size={26} />
       </span>
-      <div className="kx-empty-title">{label}</div>
-      <p className="kx-empty-hint">
-        The module is being loaded from the local bundle.
-      </p>
+      <div className="kx-empty-title">{label ?? t("loadingSection")}</div>
+      <p className="kx-empty-hint">{t("ui.moduleLoading")}</p>
     </div>
   );
 }
@@ -192,6 +198,7 @@ export function PreviewDialog({
   onClose: () => void;
   onExport: (item: LibraryItem) => void;
 }) {
+  const t = useT();
   const mediaStyle: React.CSSProperties = {
     width: "100%",
     maxHeight: "62vh",
@@ -204,13 +211,13 @@ export function PreviewDialog({
     <Modal
       isOpen={Boolean(item)}
       onClose={onClose}
-      title={item?.name ?? "Preview"}
+      title={item?.name ?? t("preview")}
       size="lg"
       footer={
         item && (
           <>
             <button type="button" className="kx-btn" onClick={onClose}>
-              Close
+              {t("close")}
             </button>
             <button
               type="button"
@@ -218,7 +225,7 @@ export function PreviewDialog({
               onClick={() => onExport(item)}
             >
               <Icon name="download" size={16} />
-              Export file
+              {t("ui.exportFile")}
             </button>
           </>
         )
@@ -227,8 +234,8 @@ export function PreviewDialog({
       {!item || !url ? (
         <EmptyState
           icon="info"
-          title="No preview available"
-          hint="The stored blob could not be turned into a local object URL."
+          title={t("noPreview")}
+          hint={t("ui.noPreviewBlobHint")}
         />
       ) : item.kind === "image" ? (
         <img src={url} alt={item.name} style={mediaStyle} />
@@ -254,7 +261,7 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = "Delete",
+  confirmLabel,
   onConfirm,
   onCancel,
 }: {
@@ -265,6 +272,7 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   return (
     <Modal
       isOpen={open}
@@ -274,11 +282,11 @@ export function ConfirmDialog({
       footer={
         <>
           <button type="button" className="kx-btn" onClick={onCancel}>
-            Cancel
+            {t("cancel")}
           </button>
           <button type="button" className="kx-btn kx-btn-danger" onClick={onConfirm}>
             <Icon name="trash" size={16} />
-            {confirmLabel}
+            {confirmLabel ?? t("delete")}
           </button>
         </>
       }
@@ -300,6 +308,7 @@ export function RenameDialog({
   onSave: (value: string) => void;
 }) {
   const [value, setValue] = useState(initial);
+  const t = useT();
 
   useEffect(() => {
     if (open) setValue(initial);
@@ -309,12 +318,12 @@ export function RenameDialog({
     <Modal
       isOpen={open}
       onClose={onCancel}
-      title="Rename item"
+      title={t("ui.renameTitle")}
       size="sm"
       footer={
         <>
           <button type="button" className="kx-btn" onClick={onCancel}>
-            Cancel
+            {t("cancel")}
           </button>
           <button
             type="button"
@@ -322,13 +331,13 @@ export function RenameDialog({
             disabled={!value.trim()}
             onClick={() => onSave(value)}
           >
-            Save name
+            {t("ui.saveName")}
           </button>
         </>
       }
     >
       <label className="kx-field">
-        <span className="kx-label">File name</span>
+        <span className="kx-label">{t("ui.fileName")}</span>
         <input
           className="kx-input"
           autoFocus
@@ -354,6 +363,7 @@ export function TrimDialog({
 }) {
   const { add } = useLibrary();
   const { push } = useToast();
+  const t = useT();
   const [duration, setDuration] = useState(0);
   const [start, setStart] = useState(0);
   const [end, setEnd] = useState(0);
@@ -374,7 +384,7 @@ export function TrimDialog({
   const apply = async () => {
     if (!item) return;
     if (!(end > start)) {
-      setError("Choose a non-empty range before trimming.");
+      setError(t("ui.trimEmptyRange"));
       return;
     }
     setBusy(true);
@@ -399,13 +409,13 @@ export function TrimDialog({
       });
       push(
         "success",
-        "Trim saved as a new clip",
+        t("ui.trimSaved"),
         `${name} · ${formatDuration(end - start)} · ${formatBytes(blob.size)}`,
       );
       onClose();
     } catch (cause) {
       const message =
-        cause instanceof Error ? cause.message : "The trim could not be completed.";
+        cause instanceof Error ? cause.message : t("ui.trimFailed");
       setError(message);
     } finally {
       setBusy(false);
@@ -416,7 +426,9 @@ export function TrimDialog({
     <Modal
       isOpen={Boolean(item)}
       onClose={busy ? () => undefined : onClose}
-      title={item ? `Trim · ${item.name}` : "Trim"}
+      title={
+        item ? fill(t("ui.trimTitle"), { name: item.name }) : t("trim")
+      }
       size="lg"
       closeOnBackdrop={!busy}
       footer={
@@ -427,7 +439,7 @@ export function TrimDialog({
             onClick={onClose}
             disabled={busy}
           >
-            Cancel
+            {t("cancel")}
           </button>
           <button
             type="button"
@@ -440,12 +452,12 @@ export function TrimDialog({
                 <span className="kx-spin">
                   <Icon name="refresh" size={16} />
                 </span>
-                Re-encoding {Math.round(progress * 100)}%
+                {fill(t("ui.reencoding"), { percent: String(Math.round(progress * 100)) })}
               </>
             ) : (
               <>
                 <Icon name="cut" size={16} />
-                Apply trim
+                {t("ui.applyTrim")}
               </>
             )}
           </button>
@@ -455,8 +467,8 @@ export function TrimDialog({
       {!item || !url ? (
         <EmptyState
           icon="info"
-          title="Trim unavailable"
-          hint="The stored video could not be opened for trimming."
+          title={t("ui.trimUnavailable")}
+          hint={t("ui.trimUnavailableHint")}
         />
       ) : (
         <div className="kx-col">
@@ -480,12 +492,16 @@ export function TrimDialog({
           {duration > 0 && (
             <>
               <div className="kx-row-between kx-mono">
-                <span>Start {formatDuration(start)}</span>
-                <span>End {formatDuration(end)}</span>
-                <span>Length {formatDuration(Math.max(0, end - start))}</span>
+                <span>{fill(t("ui.trimStart"), { time: formatDuration(start) })}</span>
+                <span>{fill(t("ui.trimEnd"), { time: formatDuration(end) })}</span>
+                <span>
+                  {fill(t("ui.trimLength"), {
+                    time: formatDuration(Math.max(0, end - start)),
+                  })}
+                </span>
               </div>
               <label className="kx-field">
-                <span className="kx-label">Start point</span>
+                <span className="kx-label">{t("ui.trimStartPoint")}</span>
                 <input
                   type="range"
                   min={0}
@@ -500,7 +516,7 @@ export function TrimDialog({
                 />
               </label>
               <label className="kx-field">
-                <span className="kx-label">End point</span>
+                <span className="kx-label">{t("ui.trimEndPoint")}</span>
                 <input
                   type="range"
                   min={0}
@@ -516,8 +532,7 @@ export function TrimDialog({
               </label>
               <div className="kx-notice" data-tone="info">
                 <Icon name="info" size={16} />
-                The selection is re-encoded into a new clip. The original stays in the
-                library untouched.
+                {t("ui.trimNotice")}
               </div>
             </>
           )}

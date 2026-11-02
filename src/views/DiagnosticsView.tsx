@@ -12,7 +12,7 @@ import { SectionHeader, StateBadge } from "./ui";
 import { formatBytes } from "../lib/format";
 import { useToast } from "../state/ToastContext";
 import { useSettings } from "../state/SettingsContext";
-import { translate } from "../i18n/translate";
+import { fill, translate } from "../i18n/translate";
 
 interface RuntimeInfo {
   support: CaptureSupport;
@@ -372,12 +372,11 @@ export default function DiagnosticsView() {
           <div className="kx-card kx-scroll-x">
             <div className="kx-card-title">
               <span>{t("diag.capabilityLedger")}</span>
-              <span className="kx-badge">{capabilityRows.length} sections</span>
+              <span className="kx-badge">
+                {fill(t("diag.sectionsCount"), { count: String(capabilityRows.length) })}
+              </span>
             </div>
-            <p className="kx-card-sub">
-              The same registry that drives navigation. A red state means the feature is
-              present in source but cannot execute honestly in this build.
-            </p>
+            <p className="kx-card-sub">{t("diag.capabilityLedgerHint")}</p>
             <table className="kx-table" style={{ marginTop: 12 }}>
               <thead>
                 <tr>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AppSettings } from "./types";
+import type { AppSettings, Language } from "./types";
 import { DEFAULT_SETTINGS, loadSettings, saveSettings } from "./settingsStore";
 
 export interface SettingsContextValue {
@@ -65,4 +65,15 @@ export function useSettings(): SettingsContextValue {
   const value = useContext(SettingsContext);
   if (!value) throw new Error("useSettings must be used inside SettingsProvider");
   return value;
+}
+
+/**
+ * The active language, defaulting to English when there is no provider.
+ *
+ * Shared presentational components use this instead of useSettings() so a
+ * dialog rendered outside the provider tree falls back to a real locale
+ * rather than throwing.
+ */
+export function useAppLanguage(): Language {
+  return useContext(SettingsContext)?.settings.language ?? "en";
 }

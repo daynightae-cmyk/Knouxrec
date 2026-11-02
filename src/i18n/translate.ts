@@ -53,7 +53,7 @@ const STRINGS: Dictionary = {
   "discover.studio": { en: "Run in Live Studio", ar: "التشغيل في استوديو البث" },
   "discover.configure": { en: "Configure models", ar: "ضبط النماذج" },
   "discover.favourite": { en: "Toggle favourite", ar: "تبديل المفضلة" },
-  elysian: { en: "Elysian Canvas", ar: "لوحة إليزيان" },
+  elysian: { en: "Elysian Canvas", ar: "لوحة إليسيان" },
   bodyEditor: { en: "Proportion mirror", ar: "مرآة النسب" },
   offlineAI: { en: "Offline AI", ar: "الذكاء المحلي" },
   arabicAI: { en: "Arabic AI Tools", ar: "أدوات عربية" },
@@ -316,7 +316,7 @@ const STRINGS: Dictionary = {
   "dashboard.promiseCreate": { en: "Create & transform", ar: "أنشئ وحوّل" },
   "dashboard.promiseCreateDetail": {
     en: "Edit · Reshape · Patch · AI tools",
-    ar: "تحرير · إعادة shaping · ترقيع · أدوات ذكاء اصطناعي",
+    ar: "تحرير · إعادة تشكيل · ترقيع · أدوات ذكاء اصطناعي",
   },
   "dashboard.promiseLocal": { en: "Keep it local", ar: "أبقه محليًا" },
   "dashboard.promiseLocalDetail": {
@@ -325,6 +325,70 @@ const STRINGS: Dictionary = {
   },
   "dashboard.openService": { en: "Open", ar: "فتح" },
   "dashboard.mediaBreakdown": { en: "Media breakdown", ar: "توزيع الوسائط" },
+  "dashboard.heroBody": {
+    en: "A real screen recorder, screenshot studio, and local media library in one obsidian workspace. Your recordings are written to this device — never uploaded.",
+    ar: "مسجّل شاشة حقيقي، واستوديو لقطات، ومكتبة وسائط محلية في مساحة عمل واحدة داكنة. تُكتب تسجيلاتك على هذا الجهاز ولا تُرفع أبدًا.",
+  },
+  "dashboard.kindHint": {
+    en: "{video} videos · {image} images · {audio} audio",
+    ar: "{video} فيديو · {image} صورة · {audio} صوت",
+  },
+  "dashboard.quotaHint": {
+    en: "{used} of {quota} quota",
+    ar: "{used} من حصة {quota}",
+  },
+
+  // Shared surfaces in src/views/ui.tsx — dialogs, badges and empty states that
+  // every route renders, so they carry the same translation requirement.
+  "ui.stateVerified": { en: "Verified", ar: "موثّقة" },
+  "ui.stateAvailableUnverified": {
+    en: "Available · unverified",
+    ar: "متاحة · غير موثّقة",
+  },
+  "ui.statePartial": { en: "Partial", ar: "جزئية" },
+  "ui.stateMissingEngine": { en: "Missing engine", ar: "المحرك مفقود" },
+  "ui.stateMissingModel": { en: "Missing model", ar: "النموذج مفقود" },
+  "ui.stateNotImplemented": { en: "Not implemented", ar: "غير مُنفَّذة" },
+  "ui.stateBlocked": { en: "Blocked", ar: "محجوبة" },
+  "ui.moduleLoading": {
+    en: "The module is being loaded from the local bundle.",
+    ar: "يُحمَّل هذا القسم من الحزمة المحلية.",
+  },
+  "ui.loadingModule": { en: "Loading {name}", ar: "جارٍ تحميل {name}" },
+  "ui.exportFile": { en: "Export file", ar: "تصدير الملف" },
+  "ui.noPreviewBlobHint": {
+    en: "The stored blob could not be turned into a local object URL.",
+    ar: "لم يمكن تحويل الملف المخزَّن إلى عنوان عنصر محلي للمعاينة.",
+  },
+  "ui.renameTitle": { en: "Rename item", ar: "إعادة تسمية العنصر" },
+  "ui.saveName": { en: "Save name", ar: "حفظ الاسم" },
+  "ui.fileName": { en: "File name", ar: "اسم الملف" },
+  "ui.trimTitle": { en: "Trim · {name}", ar: "قصّ · {name}" },
+  "ui.trimEmptyRange": {
+    en: "Choose a non-empty range before trimming.",
+    ar: "اختر مدة غير فارغة قبل القص.",
+  },
+  "ui.trimSaved": { en: "Trim saved as a new clip", ar: "حُفظ القصّ كمقطع جديد" },
+  "ui.trimFailed": {
+    en: "The trim could not be completed.",
+    ar: "تعذّر إتمام القص.",
+  },
+  "ui.trimUnavailable": { en: "Trim unavailable", ar: "القص غير متاح" },
+  "ui.trimUnavailableHint": {
+    en: "The stored video could not be opened for trimming.",
+    ar: "لم يمكن فتح الفيديو المخزّن لقصّه.",
+  },
+  "ui.trimNotice": {
+    en: "The selection is re-encoded into a new clip. The original stays in the library untouched.",
+    ar: "يُعاد ترميز الجزء المحدَّد في مقطع جديد، ويبقى الأصل في المكتبة دون تعديل.",
+  },
+  "ui.reencoding": { en: "Re-encoding {percent}%", ar: "إعادة الترميز {percent}٪" },
+  "ui.applyTrim": { en: "Apply trim", ar: "تطبيق القص" },
+  "ui.trimStart": { en: "Start {time}", ar: "البداية {time}" },
+  "ui.trimEnd": { en: "End {time}", ar: "النهاية {time}" },
+  "ui.trimLength": { en: "Length {time}", ar: "المدة {time}" },
+  "ui.trimStartPoint": { en: "Start point", ar: "نقطة البداية" },
+  "ui.trimEndPoint": { en: "End point", ar: "نقطة النهاية" },
 
   // Discover — application hubs, filters and sorting
   "discover.applicationHubs": { en: "Application hubs", ar: "مركز التطبيق" },
@@ -1272,6 +1336,10 @@ const STRINGS: Dictionary = {
     en: "MediaRecorder pipeline",
     ar: "مسار MediaRecorder",
   },
+  "studio.permissionNotice": {
+    en: "Screen capture requires a direct user gesture and OS permission. Nothing is recorded until the picker is accepted.",
+    ar: "التقاط الشاشة يتطلب إجراءً مباشرًا من المستخدم وإذنًا من النظام. لا يُسجَّل شيء قبل قبول نافذة الاختيار.",
+  },
 
   // Screenshots
   "screenshots.description": {
@@ -1651,6 +1719,11 @@ const STRINGS: Dictionary = {
   "diag.bundledFonts": { en: "Bundled fonts", ar: "الخطوط المضمَّنة" },
   "diag.appChannel": { en: "App channel", ar: "قناة التطبيق" },
   "diag.capabilityLedger": { en: "Capability ledger", ar: "سجل الإمكانات" },
+  "diag.capabilityLedgerHint": {
+    en: "The same registry that drives navigation. A red state means the feature is present in source but cannot execute honestly in this build.",
+    ar: "السجل نفسه الذي يحرّك التنقّل. الحالة الحمراء تعني أن الميزة موجودة في المصدر لكنها لا تستطيع العمل بأمانة في هذا البناء.",
+  },
+  "diag.sectionsCount": { en: "{count} sections", ar: "{count} قسمًا" },
   "diag.section": { en: "Section", ar: "القسم" },
   "diag.state": { en: "State", ar: "الحالة" },
   "diag.requirements": { en: "Requirements", ar: "المتطلبات" },
@@ -1683,7 +1756,7 @@ const STRINGS: Dictionary = {
   },
   "diag.noMime": {
     en: "No supported video mime type detected",
-    ar: "لم يُكتشف نوع mime مدعوم للفيديو",
+    ar: "لم تُكتشف صيغة فيديو مدعومة",
   },
   "diag.indexedDbUsable": { en: "IndexedDB usable", ar: "IndexedDB قابل للاستخدام" },
   "diag.indexedDbBlocked": { en: "IndexedDB blocked", ar: "IndexedDB محجوب" },
@@ -1721,7 +1794,7 @@ const STRINGS: Dictionary = {
   "models.weightPayload": { en: "Weight payload", ar: "حجم الأوزان" },
   "models.manifestsHint": {
     en: "model.json files found",
-    ar: "عدد ملفات model.jsonالموجودة",
+    ar: "عدد ملفات model.json الموجودة",
   },
   "models.measuredFromHead": {
     en: "Measured from HEAD responses",
@@ -2333,6 +2406,35 @@ export function translate(language: Language, key: string): string {
   return entry[language];
 }
 
+/**
+ * Interpolates `{token}` placeholders into a dictionary value.
+ *
+ * Split/join rather than replace: a token may repeat, and the replacement is
+ * user data that must not be read as a replacement pattern.
+ */
+export function fill(template: string, values: Record<string, string>): string {
+  return Object.entries(values).reduce(
+    (text, [token, value]) => text.split(`{${token}}`).join(value),
+    template,
+  );
+}
+
 export function useTranslation(language: Language) {
   return (key: string) => translate(language, key);
+}
+
+/**
+ * Every key the dictionary holds.
+ *
+ * Enumeration is a runtime call rather than an exported object so the table
+ * stays private, and so coverage checks see the real contents instead of
+ * whatever shape a source-text regular expression happens to recognise.
+ */
+export function dictionaryKeys(): string[] {
+  return Object.keys(STRINGS);
+}
+
+/** Both locale values for a key, or undefined when nothing is translated. */
+export function dictionaryEntry(key: string): { en: string; ar: string } | undefined {
+  return STRINGS[key];
 }

@@ -751,10 +751,7 @@ export default function StudioView({
 
             <div className="kx-notice" data-tone="warn">
               <Icon name="shield" size={16} />
-              <div>
-                Screen capture requires a direct user gesture and OS permission. Nothing is
-                recorded until the picker is accepted.
-              </div>
+              <div>{t("studio.permissionNotice")}</div>
             </div>
           </div>
         </div>

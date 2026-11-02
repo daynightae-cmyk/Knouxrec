@@ -16,39 +16,45 @@ import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const VIEW_FILES = [
+// Which directories hold renderer code — every .tsx below them is scanned.
+//
+// This used to be a hand-typed list of 30 paths. That is how src/views/ui.tsx,
+// the dialog and badge library behind every route, stayed unchecked while its
+// English chrome shipped into the Arabic build, and how a route added next
+// month would be invisible to the gate until someone remembered this file.
+const SCAN_ROOTS = ["src/app", "src/ui", "src/views", "src/state"];
+
+// Surfaces that must always be present in the discovered set.
+const REQUIRED_SCANNED = [
   "src/app/Sidebar.tsx",
   "src/app/TopBar.tsx",
   "src/app/SplashScreen.tsx",
-  "src/app/ErrorBoundary.tsx",
-  "src/app/ToastViewport.tsx",
+  "src/app/AppRoot.tsx",
   "src/views/Dashboard.tsx",
   "src/views/StudioView.tsx",
   "src/views/ScreenshotsView.tsx",
   "src/views/LibraryView.tsx",
-  "src/views/SettingsView.tsx",
-  "src/views/DiagnosticsView.tsx",
-  "src/views/ModelsView.tsx",
-  "src/views/AiWorkspaceView.tsx",
-  "src/views/AiTaskRunner.tsx",
-  "src/views/TemplatesView.tsx",
-  "src/views/ToolboxView.tsx",
-  "src/views/VisualPatchView.tsx",
-  "src/views/LiveStudioView.tsx",
-  "src/views/MorphCoreView.tsx",
-  "src/views/ElysianStudioView.tsx",
-  "src/views/WorkflowChains.tsx",
-  "src/views/DiscoverView.tsx",
+  "src/views/BatchView.tsx",
   "src/views/AudioStudioView.tsx",
-  "src/views/BodyProportionsView.tsx",
-  "src/views/AboutView.tsx",
+  "src/views/ui.tsx",
+  "src/ui/RegionSelector.tsx",
+  "src/ui/CurveEditor.tsx",
 ];
 
-// Shared workspace surfaces render user-visible text too, so they are held to
-// the same standard as the views.
-const VIEW_FILES_SHARED = ["src/ui/CurveEditor.tsx"];
+function collectRendererFiles(dir, out = []) {
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) collectRendererFiles(full, out);
+    else if (/\.tsx$/.test(entry.name) && !/\.test\.tsx$/.test(entry.name)) {
+      out.push(full.split(path.sep).join("/"));
+    }
+  }
+  return out;
+}
 
-const SCANNED_FILES = [...VIEW_FILES, ...VIEW_FILES_SHARED];
+const SCANNED_FILES = [
+  ...new Set(SCAN_ROOTS.flatMap((dir) => collectRendererFiles(dir))),
+].sort();
 
 // Registries that carry user-visible labels through a key field rather than a
 // t("…") call, so their literals are checked against the dictionary too.
@@ -57,13 +63,30 @@ const KEY_FIELD_FILES = [
   "src/data/knouxIdentity.ts",
 ];
 
-const TEXT_PATTERN = />\s*([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})\s*</g;
+// A JSX text node breaks across source lines whenever the copy is wrapped at a
+// readable width, so a newline has to be part of the character class. Excluding
+// them let every multi-line paragraph slip through this gate unnoticed.
+//
+// The lookbehind skips `=> Promise<void>` and `=> Partial<Settings>`: an arrow
+// followed by a generic type reads exactly like a JSX text node to this regex.
+const TEXT_PATTERN =
+  /(?<!=)>\s*([A-Z][A-Za-z0-9 ,.'’&/():%+—\-\n]{3,})\s*</g;
 const ATTRIBUTE_PATTERN =
   /(?:title|aria-label|placeholder|hint|label|description|message|eyebrow)=(?:"([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})")/g;
 const QUOTED_LITERAL_PATTERN =
   /(?:title|aria-label|placeholder|hint|description)="([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{8,})"/g;
 
 const failures = [];
+
+// A rename or a move that takes one of these out of the discovered set is a
+// coverage regression, not a cleanup.
+for (const required of REQUIRED_SCANNED) {
+  if (!SCANNED_FILES.includes(required)) {
+    failures.push(
+      `gate coverage: "${required}" is no longer scanned — check SCAN_ROOTS and the file's location`,
+    );
+  }
+}
 
 // Brand names and technical identifiers that are intentionally not translated.
 const ALLOWED = new Set([
@@ -78,6 +101,14 @@ const ALLOWED = new Set([
   "WEBP",
   "JPEG",
   "PNG",
+  // Container and codec names printed beside a measured support mark. They are
+  // the same tokens in every language and are shown inside dir="ltr" spans.
+  "WAV",
+  "MP3",
+  "AAC",
+  "FLAC",
+  "Opus",
+  "WebM/Opus",
   "Capture.",
   "Create.",
   "Ctrl+Shift+R",
@@ -92,7 +123,11 @@ const dictionary = fs.readFileSync(path.join(root, "src/i18n/translate.ts"), "ut
 for (const file of SCANNED_FILES) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
   const hits = new Set();
-  for (const match of text.matchAll(TEXT_PATTERN)) hits.add(match[1].trim());
+  for (const match of text.matchAll(TEXT_PATTERN)) {
+    // Wrapped copy normalises to single spaces so a hit is the string the
+    // reader sees, not the source's line breaks.
+    hits.add(match[1].replace(/\s+/g, " ").trim());
+  }
   for (const match of text.matchAll(ATTRIBUTE_PATTERN)) hits.add(match[1].trim());
   for (const hit of hits) {
     if (ALLOWED.has(hit)) continue;
@@ -160,6 +195,25 @@ for (const file of [...SCANNED_FILES, ...KEY_FIELD_FILES]) {
   }
 }
 
+// A dotted string whose first segment is a real dictionary namespace is a
+// translation key wherever it appears — including lookup tables such as
+// STATE_KEY, which no t("...") call and no *Key field reveals.
+const namespaces = new Set(
+  [...dictionaryKeys]
+    .filter((key) => key.includes("."))
+    .map((key) => key.slice(0, key.indexOf("."))),
+);
+for (const file of SCANNED_FILES) {
+  const text = fs.readFileSync(path.join(root, file), "utf8");
+  for (const match of text.matchAll(/"([a-z][a-zA-Z0-9]*\.[a-zA-Z0-9.]+)"/g)) {
+    const key = match[1];
+    if (!namespaces.has(key.slice(0, key.indexOf(".")))) continue;
+    if (!dictionaryKeys.has(key)) {
+      failures.push(`${file}: missing translation key "${key}"`);
+    }
+  }
+}
+
 if (failures.length) {
   console.error(`i18n gate: FAILED (${failures.length} problems)`);
   for (const failure of failures) console.error(` - ${failure}`);
@@ -167,5 +221,5 @@ if (failures.length) {
 }
 
 console.log(
-  `i18n gate: PASSED (${VIEW_FILES.length} views + ${VIEW_FILES_SHARED.length} shared surfaces, ${arabicValues.length} translated strings)`,
+  `i18n gate: PASSED (${SCANNED_FILES.length} renderer files, ${arabicValues.length} translated strings)`,
 );

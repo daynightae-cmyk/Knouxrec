@@ -7,7 +7,7 @@ import {
   useState,
 } from "react";
 import { CAPABILITIES, type RouteId } from "./capabilities";
-import { translate } from "../i18n/translate";
+import { fill, translate } from "../i18n/translate";
 import { useLibrary } from "../state/LibraryContext";
 import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
@@ -352,7 +352,13 @@ export default function AppRoot() {
         return <AiWorkspaceView variant="arabic-ai" />;
       case "elysian":
         return (
-          <Suspense fallback={<SectionLoading label="Loading Elysian Canvas" />}>
+          <Suspense
+            fallback={
+              <SectionLoading
+                label={fill(t("ui.loadingModule"), { name: t("elysian.title") })}
+              />
+            }
+          >
             <ElysianStudio />
           </Suspense>
         );

@@ -3,7 +3,7 @@ import { useLibrary } from "../state/LibraryContext";
 import { useRecorder } from "../state/RecorderContext";
 import { useSettings } from "../state/SettingsContext";
 import { useJobs } from "../state/JobsContext";
-import { translate } from "../i18n/translate";
+import { fill, translate } from "../i18n/translate";
 import { CAPABILITIES, type RouteId } from "../app/capabilities";
 import { Icon, type IconName } from "../app/icons";
 import BrandMark from "../app/BrandMark";
@@ -269,11 +269,7 @@ export default function Dashboard({
             <br />
             <em>{t("dashboard.keepItLocal")}</em>
           </h1>
-          <p className="kx-hero-desc">
-            A real screen recorder, screenshot studio, and local media library in one
-            obsidian workspace. Your recordings are written to this device — never
-            uploaded.
-          </p>
+          <p className="kx-hero-desc">{t("dashboard.heroBody")}</p>
           <div className="kx-hero-actions">
             {rendering ? (
               <button
@@ -407,8 +403,11 @@ export default function Dashboard({
           </span>
           <span className="kx-stat-value">{items.length}</span>
           <span className="kx-stat-hint">
-            {kindCounts.video} videos · {kindCounts.image} images · {kindCounts.audio}{" "}
-            audio
+            {fill(t("dashboard.kindHint"), {
+              video: String(kindCounts.video),
+              image: String(kindCounts.image),
+              audio: String(kindCounts.audio),
+            })}
           </span>
           <Sparkline values={series} label={t("dashboard.capturesSeries")} />
           <span className="kx-stat-foot">{t("dashboard.last7Days")}</span>
@@ -425,7 +424,10 @@ export default function Dashboard({
           />
           <span className="kx-stat-hint">
             {storage
-              ? `${formatBytes(storage.usage)} of ${formatBytes(storage.quota)} quota`
+              ? fill(t("dashboard.quotaHint"), {
+                  used: formatBytes(storage.usage),
+                  quota: formatBytes(storage.quota),
+                })
               : t("dashboard.quotaUnknown")}
           </span>
         </div>
