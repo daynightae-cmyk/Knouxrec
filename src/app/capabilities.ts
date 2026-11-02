@@ -120,9 +120,11 @@ export const CAPABILITIES: Record<RouteId, Capability> = {
     group: "library",
     labelKey: "library",
     state: "VERIFIED",
-    summary: "Persistent local library with preview, rename, delete, export and trim.",
+    summary:
+      "Persistent local library over the real IndexedDB blobs: five measured counts, search, kind and favourites filters, date/resolution/duration/size/tag facets, grid or list view, multi-select bulk favourite, export, collection and delete, plus preview, rename, trim and hand-off into any compatible workspace.",
     requirements: ["IndexedDB"],
-    evidence: "Items survive reload; object URLs are created from stored blobs, never placeholders.",
+    evidence:
+      "Items survive reload and object URLs are created from stored blobs, never placeholders. scripts/recording-smoke.mjs proves the round trip end to end (21/21): a capture appears in the library, decodes in the browser, trims into a new persisted clip, survives a full page reload with its favourite flag, and exports a real media file signature. scripts/handoff-smoke.mjs drives the open-in control across hubs (31/31) including the Arabic build. The quota card reads navigator.storage.estimate() for this origin and says so, rather than inventing a disk size.",
   },
   templates: {
     id: "templates",
