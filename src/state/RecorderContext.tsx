@@ -207,7 +207,11 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
         const message =
           cause instanceof Error ? cause.message : "Recording could not be started.";
         setError(message);
-        push("error", "Recording could not start", message);
+        push(
+          "error",
+          translate(settingsRef.current.language, "rec.startFailed"),
+          message,
+        );
       }
     },
     [beginJob, modeLabel, push, startTimer],
@@ -336,7 +340,7 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       }
       push(
         "success",
-        "Recording saved to library",
+        translate(settingsRef.current.language, "rec.saved"),
         `${name} · ${formatDuration(item.duration)} · ${formatBytes(item.size)}`,
       );
     } catch (cause) {
@@ -350,7 +354,11 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       setError(message);
       jobRef.current?.fail(message);
       jobRef.current = null;
-      push("error", "Recording failed to save", message);
+      push(
+        "error",
+        translate(settingsRef.current.language, "rec.saveFailed"),
+        message,
+      );
     }
   }, [addToLibrary, clearTimer, push]);
 
@@ -404,14 +412,18 @@ export function RecorderProvider({ children }: { children: React.ReactNode }) {
       });
       push(
         "success",
-        "Screenshot saved",
+        translate(settingsRef.current.language, "rec.screenshotSaved"),
         `${name} · ${result.width}×${result.height}`,
       );
     } catch (cause) {
       const message =
         cause instanceof Error ? cause.message : "The screenshot could not be captured.";
       setError(message);
-      push("error", "Screenshot failed", message);
+      push(
+        "error",
+        translate(settingsRef.current.language, "rec.screenshotFailed"),
+        message,
+      );
     }
   }, [addToLibrary, push]);
 

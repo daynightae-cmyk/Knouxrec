@@ -61,6 +61,9 @@ const SCANNED_FILES = [
 const KEY_FIELD_FILES = [
   "src/services/elysianPresets.ts",
   "src/data/knouxIdentity.ts",
+  // Drives navigation and renders the dashboard cards, the Discover hubs and
+  // every capability notice through labelKey / summaryKey rather than t("…").
+  "src/app/capabilities.ts",
 ];
 
 // A JSX text node breaks across source lines whenever the copy is wrapped at a
@@ -73,6 +76,12 @@ const TEXT_PATTERN =
   /(?<!=)>\s*([A-Z][A-Za-z0-9 ,.'’&/():%+—\-\n]{3,})\s*</g;
 const ATTRIBUTE_PATTERN =
   /(?:title|aria-label|placeholder|hint|label|description|message|eyebrow)=(?:"([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})")/g;
+// A toast title is a plain argument, not JSX text, so neither pattern above can
+// see it — and an English notification pops over a fully translated Arabic
+// page. The arguments are matched across line breaks because a wrapped push()
+// call is how six of them reached RecorderContext unnoticed.
+const PUSH_PATTERN =
+  /\bpush\(\s*"(?:success|error|info|warn|warning)"\s*,\s*"([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{3,})"/g;
 const QUOTED_LITERAL_PATTERN =
   /(?:title|aria-label|placeholder|hint|description)="([A-Z][A-Za-z0-9 ,.'’&/():%+—\-]{8,})"/g;
 
@@ -129,6 +138,7 @@ for (const file of SCANNED_FILES) {
     hits.add(match[1].replace(/\s+/g, " ").trim());
   }
   for (const match of text.matchAll(ATTRIBUTE_PATTERN)) hits.add(match[1].trim());
+  for (const match of text.matchAll(PUSH_PATTERN)) hits.add(match[1].trim());
   for (const hit of hits) {
     if (ALLOWED.has(hit)) continue;
     failures.push(`${file}: hardcoded user-visible string "${hit}"`);
@@ -187,7 +197,7 @@ for (const file of SCANNED_FILES) {
 for (const file of [...SCANNED_FILES, ...KEY_FIELD_FILES]) {
   const text = fs.readFileSync(path.join(root, file), "utf8");
   for (const match of text.matchAll(
-    /\b(?:labelKey|reasonKey|hintKey|actionKey):\s*"([a-zA-Z][a-zA-Z0-9.]*)"/g,
+    /\b(?:labelKey|reasonKey|hintKey|actionKey|summaryKey):\s*"([a-zA-Z][a-zA-Z0-9.]*)"/g,
   )) {
     if (!dictionaryKeys.has(match[1])) {
       failures.push(`${file}: missing translation key "${match[1]}"`);

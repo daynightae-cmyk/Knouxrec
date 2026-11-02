@@ -743,7 +743,7 @@ export default function Dashboard({
                     <Icon name={icon} size={22} />
                   </span>
                   <span className="kx-tool-name">{t(capability.labelKey)}</span>
-                  <span className="kx-tool-desc">{capability.summary}</span>
+                  <span className="kx-tool-desc">{t(capability.summaryKey)}</span>
                   <span className="kx-tool-foot">
                     <StateBadge state={capability.state} />
                   </span>

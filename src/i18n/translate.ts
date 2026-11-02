@@ -284,7 +284,7 @@ const STRINGS: Dictionary = {
   "dashboard.featuredServices": { en: "Featured services", ar: "الخدمات المميزة" },
   "dashboard.featuredServicesDesc": {
     en: "The complete local creative suite — capture, organize, edit, transform, and generate, all in one place.",
-    ar: "整套 الإبداع المحلي — التقاط وتنظيم وتحرير وتحويل وإنشاء، في مكان واحد.",
+    ar: "حزمة الإبداع المحلية الكاملة — التقاط وتنظيم وتحرير وتحويل وتوليد، في مكان واحد.",
   },
   "dashboard.viewAllTools": { en: "View all tools", ar: "عرض كل الأدوات" },
   "dashboard.health": { en: "Device health", ar: "حالة الجهاز" },
@@ -389,6 +389,92 @@ const STRINGS: Dictionary = {
   "ui.trimLength": { en: "Length {time}", ar: "المدة {time}" },
   "ui.trimStartPoint": { en: "Start point", ar: "نقطة البداية" },
   "ui.trimEndPoint": { en: "End point", ar: "نقطة النهاية" },
+
+  // Capability summaries. src/app/capabilities.ts drives navigation and renders
+  // these on the dashboard cards, the Discover hubs and every capability notice,
+  // so they were the largest block of English left in the Arabic build.
+  // Each Arabic value keeps the source's numbers and limits exactly: a
+  // translated capability claim that overstates what runs is worse than English.
+  "cap.summary.dashboard": {
+    en: "Unified capture dashboard with live recorder status and recent local media.",
+    ar: "لوحة تحكم موحّدة لالتقاط الوسائط، تعرض حالة المسجّل الحيّة وأحدث الملفات المحفوظة على هذا الجهاز.",
+  },
+  "cap.summary.discover": {
+    en: "One place to find every service: global search across the canonical registry of 121 entries in 17 hubs, hub filters, favourites and recents, with the execution mode (local, model-local, hybrid, online) and the honest run state of each entry. Blocked services name the missing dependency and link to the model manager.",
+    ar: "مكان واحد للعثور على كل خدمة: بحث شامل في السجل الرسمي ذي الـ121 مدخلًا ضمن 17 مركزًا، مع تصفية حسب المركز والمفضّلة والأخيرة، ونمط التنفيذ (محلي، محلي بالنموذج، هجين، متصل) والحالة الحقيقية لكل مدخل. الخدمات المحجوبة تسمي المكوّن الناقص وتربط بمدير النماذج.",
+  },
+  "cap.summary.studio": {
+    en: "Real getDisplayMedia/getUserMedia capture through MediaRecorder with pause/resume and persisted output, across five sources: full screen, application window, a user-drawn selected area, camera, and a microphone-only session that never asks for a display surface.",
+    ar: "التقاط حقيقي عبر getDisplayMedia/getUserMedia باستخدام MediaRecorder مع إيقاف مؤقت واستئناف ومخرجات محفوظة، من خمسة مصادر: الشاشة كاملة، ونافذة التطبيق، ومنطقة محدَّدة يرسمها المستخدم، والكاميرا، وجلسة ميكروفون فقط لا تطلب سطح عرض أبدًا.",
+  },
+  "cap.summary.screenshots": {
+    en: "A capture studio on the real display stream: from-screen, application-window and region sources with a delay countdown, an item rail with search, persisted tags and notes, clipboard copy, PNG/JPEG/WebP output, save to library and export; a full editor with crop, arrows, shapes, highlight, text, blur/pixelate, undo/redo and compare opens on every fresh capture. Scrolling capture is listed as blocked because nothing in this build stitches repeated frames.",
+    ar: "استوديو التقاط على تدفّق العرض الحقيقي: مصادر الشاشة والنافذة والمنطقة مع عدّاد تأخير، وشريط عناصر فيه بحث ووسوم وملاحظات محفوظة، ونسخ إلى الحافظة، وإخراج PNG/JPEG/WebP، وحفظ في المكتبة وتصدير؛ ويفتح محرّر كامل بالتقطيع والأسهم والأشكال والتظليل والنص والطمس والتبييض والتراجع والإعادة والمقارنة مع كل لقطة جديدة. يُدرَج التقاط التمرير كمحجوب لأن لا شيء في هذا البناء يجمع الإطارات المتكرّرة.",
+  },
+  "cap.summary.library": {
+    en: "Persistent local library over the real IndexedDB blobs: five measured counts, search, kind and favourites filters, date/resolution/duration/size/tag facets, grid or list view, multi-select bulk favourite, export, collection and delete, plus preview, rename, trim and hand-off into any compatible workspace.",
+    ar: "مكتبة محلية دائمة فوق وسائط IndexedDB الحقيقية: خمس عدّادات مقاسة، وبحث، وتصفية بالنوع والمفضّلة، وتصفية بالتاريخ والدقة والمدة والحجم والوسوم، وعرض شبكي أو قائمة، وتحديد متعدد للوسم بالمفضّلة والتصدير والمجموعة والحذف، إضافة إلى المعاينة وإعادة التسمية والقصّ والتسليم إلى أي مساحة عمل متوافقة.",
+  },
+  "cap.summary.templates": {
+    en: "Five real templates presented as a visual gallery with rendered thumbnails, editable text, frame export and WebM video export; the 51 placeholders stay behind a clearly labelled development catalog.",
+    ar: "خمسة قوالب حقيقية تُعرض كمعرض مرئي بمصغّرات مرسومة ونص قابل للتعديل وتصدير إطار وتصدير فيديو WebM؛ تبقى العناصر النائبة الإحدى والخمسون خلف كتالوج تطوير مُعنون بوضوح.",
+  },
+  "cap.summary.toolbox": {
+    en: "Thirteen local media utilities with real processors, grouped by the medium they act on: resize, filters, format conversion, rotate/flip, crop, pixelate, compress and palette extraction for images; video thumbnail and a decoded contact sheet for video; waveform poster for audio; text image; and a QR code generator.",
+    ar: "ثلاثة عشر أداة وسائط محلية بمعالجات حقيقية، مجمّعة حسب الوسيط الذي تعمل عليه: تغيير حجم، ومرشّحات، وتحويل صيغة، وتدوير وقلب، وتقطيع، وتبييض، وضغط، واستخراج لوحة ألوان للصور؛ ومصغّرة فيديو وشبكة مصغّرات مفكَّكة للفيديو؛ وملصق موجة صوتية للصوت؛ وصورة من نص؛ ومولّد رموز QR.",
+  },
+  "cap.summary.visual-patch": {
+    en: "Region based image editor with the fifty preserved tools and their real canvas processors: paint a freehand stroke or drag a rectangle, see the mask over the picture, erase or grow it, apply the tool, compare, undo and export.",
+    ar: "محرّر صور يعمل على المناطق مع الأدوات الخمسين المحفوظة ومعالجاتها الحقيقية على اللوحة: ارسم خطًّا حرًّا أو اسحب مستطيلًا، وشاهد القناع فوق الصورة، وامسح منه أو وسّعه، وطبّق الأداة، وقارن، وتراجع، وصدّر.",
+  },
+  "cap.summary.morphcore": {
+    en: "Local geometry studio with real resampling: independent stretch, free rotation with flips, pinch/bulge, trapezoid perspective, a sine warp and a draggable mesh lattice (2×2 up to 6×6 per axis, keyboard-editable control points), with history, compare and export. Body-aware operations remain blocked behind missing segmentation weights and a native engine.",
+    ar: "استوديو هندسة محلي بإعادة عيّنات حقيقية: شدّ مستقل، وتدوير حر مع قلب، وقرص وانتفاخ، ومنظور شبه منحرف، وانحناء جيبي، وشبكة نقاط قابلة للسحب (من 2×2 حتى 6×6 لكل محور، بنقاط تحكّم تُعدَّل بلوحة المفاتيح)، مع سجلّ ومقارنة وتصدير. عمليات فهم الجسم تبقى محجوبة وراء أوزان تجزئة مفقودة ومحرك أصلي.",
+  },
+  "cap.summary.audio-studio": {
+    en: "Local audio workspace on a non-destructive step stack: waveform with drag selection, real playback, trim, split into segments, silence scan and cut, gain, peak normalisation, fades, reverse, mono/stereo conversion, browser biquad low-pass, high-pass and band-pass filters, and a learned-profile spectral noise reduction. Exports 16-bit WAV always and WebM/Opus only when the runtime reports it can.",
+    ar: "مساحة عمل صوتية محلية على سلسلة خطوات غير مدمِّرة: موجة صوتية بتحديد بالسحب، وتشغيل حقيقي، وقصّ، وتقسيم إلى مقاطع، ومسح للصمت وقطعه، وكسب، وتطبيع للذروة، وتلاشٍ، وعكس، وتحويل بين أحادي وستيريو، ومرشّحات ثنائية القطب من المتصفح منخفضة وعالية ونطاقية، وتقليل ضوضاء طيفي بملف مكتسب. يصدّر WAV بعمق 16 بت دائمًا، وWebM/Opus فقط عندما يُبلّغ وقت التشغيل أنه يستطيع.",
+  },
+  "cap.summary.batch": {
+    en: "Queue many files through the already-verified image processors with bounded concurrency: batch resize, format conversion, crop presets and watermarking. Per-file progress, failure isolation, cancellation, output verification and a multi-file export of everything that succeeded.",
+    ar: "أدخِل كثيرًا من الملفات على معالجات الصور الموثَّقة سابقًا بتزامن محدود: تغيير حجم مجمّع، وتحويل صيغة، وإعدادات تقطيع جاهزة، وعلامة مائية. تقدّم لكل ملف، وعزل للفشل، وإلغاء، والتحقق من المخرجات، وتصدير متعدد لكل ما نجح.",
+  },
+  "cap.summary.elysian": {
+    en: "Full creative image studio on a non-destructive layer stack: crop, resize, rotate, flip, exposure, brightness, contrast, gamma, vignette, saturation, temperature, blur, sharpen, pixelate, borders, text and tiled watermarks, a tone-curve workbench with a measured histogram and per-channel curves, plus ten presets built from the same operations. The effect browser renders its thumbnails by running those operations on the working image.",
+    ar: "استوديو صور إبداعي كامل على طبقات غير مدمِّرة: تقطيع، وتغيير حجم، وتدوير، وقلب، وتعريض، وسطوع، وتباين، وغاما، وتظليل حواف، وتشبّع، ودرجة حرارة، وطمس، وتحديد، وتبييض، وحواف، ونص، وعلامات مائية مكرَّرة، مع منضدة منحى النغمة بتدرج مقاس ومنحنيات لكل قناة، وعشرة إعدادات جاهزة مبنية من العمليات نفسها. متصفّح المؤثّرات يرسم مصغّراته بتشغيل تلك العمليات على صورة العمل.",
+  },
+  "cap.summary.body-editor": {
+    en: "Age-gated proportion mirror: place five height guides and two edge guides on your own photograph and read the spans between them in pixels and in head lengths, with the artist's canon available as a placement aid. No body recognition, no reshaping, and the body-aware services stay listed as blocked.",
+    ar: "مرآة نسب بموافقة عمرية: ضع خمس أدلة ارتفاع ودليلَي حافة على صورتك، واقرأ المسافات بينها بالبكسل وبأطوال الرأس، مع توفّر القانون الفني كعونٍ على المواضع. لا تعرّف للجسم، ولا إعادة تشكيل، وخدمات فهم الجسم تبقى مدرجة كمحجوبة.",
+  },
+  "cap.summary.offline-ai": {
+    en: "One unified catalog of 38 on-device tasks. 15 run now on deterministic local engines (DSP, canvas, container analysis); the other 23 stay blocked until their weight binaries exist.",
+    ar: "كتالوج موحّد من 38 مهمة تعمل على الجهاز. 15 منها تعمل الآن على محركات محلية حتمية (معالجة إشارات، لوحة رسم، تحليل حاويات)؛ والثلاث والعشرون الأخرى تبقى محجوبة حتى توجد ملفات أوزانها.",
+  },
+  "cap.summary.arabic-ai": {
+    en: "The Arabic entry point of the same 38 canonical tasks, with Arabic titles, descriptions and features taken from the preserved panel. The 15 deterministic tasks run here too.",
+    ar: "نقطة الدخول العربية للمهام الرسمية الثماني والثلاثين نفسها، بعناوين ووصف وميزات عربية مأخوذة من اللوحة المحفوظة. المهام الحتمية الخمس عشرة تعمل هنا أيضًا.",
+  },
+  "cap.summary.models": {
+    en: "Model manifest inventory with explicit weight-file probes plus a local validation workflow (size against the manifest, SHA-256 of the chosen file); nothing is installed or executed.",
+    ar: "جرد بيانات النماذج مع فحوص صريحة لملفات الأوزان، إضافة إلى تحقّق محلي (الحجم مقابل البيان، و SHA-256 للملف المختار)؛ لا يُثبَّت شيء ولا يُنفَّذ شيء.",
+  },
+  "cap.summary.settings": {
+    en: "Persisted appearance, language and recording defaults, plus keyboard shortcuts that the user can rebind, with conflicts refused before they are stored.",
+    ar: "المظهر واللغة وافتراضيات التسجيل محفوظة، مع اختصارات لوحة مفاتيح يستطيع المستخدم إعادة ربطها، وتُرفض التعارضات قبل حفظها.",
+  },
+  "cap.summary.diagnostics": {
+    en: "Runtime capability matrix measured from MediaDevices, MediaRecorder, IndexedDB, the Electron bridge and the bundled model folders.",
+    ar: "مصفوفة إمكانات وقت التشغيل مقاسة من MediaDevices وMediaRecorder وIndexedDB وجسر Electron ومجلدات النماذج المضمَّنة.",
+  },
+  "cap.summary.about": {
+    en: "The official KNOUX corporate identity: the genuine logo, the founder and his engineering practice, and every company and personal contact destination — WhatsApp, corporate email, direct call, the website and five social profiles — each one a working action rather than printed text.",
+    ar: "هوية KNOUX الرسمية: الشعار الحقيقي، والمؤسس ومكتبه الهندسي، وكل وجهات اتصال الشركة والأشخاص — واتساب، والبريد الرسمي، والاتصال المباشر، والموقع، وحسابات التواصل الخمسة — وكلّها إجراء يعمل لا نص مطبوع.",
+  },
+  "cap.summary.live-studio": {
+    en: "Shared execution workspace for every real job: media tools, template WebM exports and recordings, with live lifecycle events, media previews, verification and save/export.",
+    ar: "مساحة تنفيذ مشتركة لكل مهمة حقيقية: أدوات الوسائط، وتصدير القوالب WebM، والتسجيلات، مع أحداث حيّة لدورة الحياة، ومعاينة وسائط، وتحقّق، وحفظ وتصدير.",
+  },
 
   // Discover — application hubs, filters and sorting
   "discover.applicationHubs": { en: "Application hubs", ar: "مركز التطبيق" },
@@ -1218,6 +1304,14 @@ const STRINGS: Dictionary = {
   },
   "rec.startedWebcam": { en: "Camera recording started", ar: "بدأ تسجيل الكاميرا" },
   "rec.startedAudio": { en: "Microphone recording started", ar: "بدأ تسجيل الميكروفون" },
+  // Recorder notifications. These pop over whatever route the user is on, so an
+  // English one is visible in the Arabic build even when the page behind it is
+  // fully translated.
+  "rec.saved": { en: "Recording saved to library", ar: "حُفظ التسجيل في المكتبة" },
+  "rec.saveFailed": { en: "Recording failed to save", ar: "تعذّر حفظ التسجيل" },
+  "rec.startFailed": { en: "Recording could not start", ar: "تعذّر بدء التسجيل" },
+  "rec.screenshotSaved": { en: "Screenshot saved", ar: "حُفظت لقطة الشاشة" },
+  "rec.screenshotFailed": { en: "Screenshot failed", ar: "فشلت لقطة الشاشة" },
 
   // Recorder — selected area, source surface and the live session strip
   "studio.regionChip": { en: "Selected area", ar: "منطقة محددة" },
@@ -2136,7 +2230,7 @@ const STRINGS: Dictionary = {
   "models.noSizeBaseline": { en: "No declared size", ar: "لا يوجد حجم معلن" },
   "models.honestBody": {
     en: "The manifests describe graph metadata only. Until the matching weight binaries are shipped and verified, every AI task that depends on them stays disabled.",
-    ar: "تصف بيانات النماذج بنية الشبكة فقط، ما لم تُشحن ملفات الأوزان也不再 التحقق منها تبقى كل مهام الذكاء الاصطناعي المعطلة.",
+    ar: "تصف بيانات النماذج بنية الشبكة فقط. وحتى تُشحن ملفات الأوزان المطابقة ويُتحقّق منها، تبقى كل مهام الذكاء الاصطناعي التي تعتمد عليها معطّلة.",
   },
   "templates.description": {
     en: "Five renderable templates with real canvas frames and WebM video export, plus the generated placeholders, shown as they really are.",

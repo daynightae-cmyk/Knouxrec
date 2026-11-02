@@ -481,7 +481,7 @@ export default function DiscoverView({
                     <StateBadge state={hubCapability.state} />
                   </div>
                   <p className="elys-hub-tagline">{entry.taglineEn}</p>
-                  <p className="elys-hub-summary">{hubCapability.summary}</p>
+                  <p className="elys-hub-summary">{t(hubCapability.summaryKey)}</p>
                   <div className="elys-hub-actions">
                     <button
                       type="button"

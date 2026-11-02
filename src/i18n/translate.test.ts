@@ -101,6 +101,27 @@ describe("Arabic values", () => {
     expect(leaked).toEqual([]);
   });
 
+  it("carries no characters from a third script", () => {
+    // Two Arabic values shipped with Chinese inside them ("整套 الإبداع…"
+    // and "…الأوزان也不再 التحقق…"). Neither the Latin-word rule nor the
+    // Arabic-script rule notices that: the value does contain Arabic, and CJK
+    // is not Latin. The product speaks English and Arabic, nothing else.
+    const THIRD_SCRIPT =
+      /[\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF\u0400-\u04FF\u0370-\u03FF\u1100-\u11FF\uAC00-\uD7AF]/;
+    const offenders = keys
+      .map((key) => {
+        const entry = dictionaryEntry(key);
+        const field = THIRD_SCRIPT.test(entry?.ar ?? "")
+          ? "ar"
+          : THIRD_SCRIPT.test(entry?.en ?? "")
+            ? "en"
+            : null;
+        return field ? `${key} (${field})` : null;
+      })
+      .filter(Boolean);
+    expect(offenders).toEqual([]);
+  });
+
   it("detector itself distinguishes a leak from a technical token", () => {
     // The regression this rule was written for, and the shapes it must not
     // report. Without this the suite above could pass on a broken detector.

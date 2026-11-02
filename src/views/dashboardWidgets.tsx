@@ -219,7 +219,7 @@ export function FeaturedServices({
               </span>
               <StateBadge state={capability.state} />
             </span>
-            <span className="kx-service-card-summary">{capability.summary}</span>
+            <span className="kx-service-card-summary">{t(capability.summaryKey)}</span>
             <span className="kx-service-card-foot">
               <span className="kx-service-card-open">
                 {t("dashboard.openService")}

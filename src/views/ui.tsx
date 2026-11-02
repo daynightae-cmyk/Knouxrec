@@ -134,7 +134,7 @@ export function CapabilityNotice({ capability }: { capability: Capability }) {
       />
       <div>
         <div className="kx-row" style={{ gap: 8 }}>
-          <strong>{capability.summary}</strong>
+          <strong>{t(capability.summaryKey)}</strong>
           <StateBadge state={capability.state} />
         </div>
         {capability.requirements.length > 0 && (
