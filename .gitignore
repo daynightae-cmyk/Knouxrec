@@ -26,6 +26,10 @@ release
 release-fresh
 release-next
 release-g*
+# Packaging output for the real-hardware acceptance build. It is a rebuild of
+# the same source that CI already packages, and it is kept on disk rather than
+# deleted so the binary stays available for testing; it is not source.
+release-hw
 asar-stage
 .asar-stage
 artifacts
